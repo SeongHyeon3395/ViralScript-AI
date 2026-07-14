@@ -1,5 +1,10 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Python (잘못 생성된 가상환경 — 이 프로젝트는 Node.js/TypeScript 전용)
+.venv/
+__pycache__/
+*.pyc
+
 # dependencies
 /node_modules
 /.pnp
