@@ -126,8 +126,8 @@ export default function Navbar() {
             <nav className="hidden md:flex items-center gap-1">
               {[
                 { label: '대본 생성기', href: '/generator' },
-                { label: '가격', href: '/pricing' },
-                { label: '트렌드', href: '/trends' },
+                { label: '크레딧', href: '/pricing' },
+                { label: '최신 트렌드', href: '/trends' },
               ].map((item) => (
                 <a
                   key={item.label}

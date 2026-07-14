@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { AnalyzeResponse, GenerationOutput, SceneScript } from '@/types';
 import Navbar from '@/app/components/Navbar';
+import Footer from '@/app/components/Footer';
 import RemixPanel from '@/app/components/RemixPanel';
 import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
@@ -11,7 +12,7 @@ import {
   Link2, ShoppingBag, SlidersHorizontal, Rocket, Loader2, Zap,
   Film, Clock, TrendingUp, Music, Camera, Play, ChevronDown, ChevronUp,
   Sparkles, BarChart3, Globe, ArrowRight, Gift, RefreshCw, Shuffle,
-  Star, X, CheckCircle2, AlertCircle, Shield,
+  Star, X, CheckCircle2, AlertCircle, Shield, LogIn,
 } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -155,7 +156,18 @@ export default function GeneratorPage() {
     <>
       <Navbar />
       <main className="flex-1">
-        <section className="pt-24 pb-20 px-4 sm:px-6">
+        {!user ? (
+          <section className="pt-32 pb-20 px-4 sm:px-6">
+            <div className="mx-auto max-w-md text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg"><LogIn size={28} className="text-white" /></div>
+              <h2 className="text-2xl font-bold text-white">로그인이 필요합니다</h2>
+              <p className="text-sm text-white/40">대본 생성기를 사용하려면 로그인 또는 회원가입을 해주세요.</p>
+              <a href="/" className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />로그인하러 가기<ArrowRight size={15} /></a>
+            </div>
+            <Footer />
+          </section>
+        ) : (
+          <section className="pt-24 pb-20 px-4 sm:px-6">
           <div className="mx-auto max-w-2xl space-y-8">
             <div className="text-center space-y-2">
               <span className="badge badge-purple inline-flex"><Sparkles size={11} /> 대본 생성기</span>
@@ -215,6 +227,8 @@ export default function GeneratorPage() {
             {result && <ResultPanel result={result} cached={cached} />}
           </div>
         </section>
+        )}
+        <Footer />
       </main>
 
       <DailyRewardWheel onClaim={handleRewardClaimed} />

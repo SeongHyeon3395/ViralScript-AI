@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Star, Shield, Zap, Check, ArrowRight, Sparkles, Gift, Play, Users } from 'lucide-react';
 import { CREDIT_PLANS } from '@/lib/credits';
 import Navbar from '@/app/components/Navbar';
+import Footer from '@/app/components/Footer';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -24,7 +25,7 @@ export default function PricingPage() {
       <main className="flex-1 pt-24 pb-20 px-4 sm:px-6">
         <div className="mx-auto max-w-5xl">
           <div className="text-center mb-14 space-y-3">
-            <span className="badge badge-amber inline-flex"><Star size={11} /> Pricing</span>
+            <span className="badge badge-amber inline-flex"><Star size={11} /> 크레딧</span>
             {PAYMENT_ENABLED ? (
               <>
                 <h2 className="text-3xl font-bold text-white">크레딧 충전 플랜</h2>
@@ -107,6 +108,7 @@ export default function PricingPage() {
           )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }
