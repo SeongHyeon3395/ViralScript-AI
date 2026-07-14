@@ -16,11 +16,11 @@ import {
 } from 'lucide-react';
 import AuthModal from './AuthModal';
 import ReferralSystem from './ReferralSystem';
+import LanguageSwitcher from './LanguageSwitcher';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -60,10 +60,10 @@ export default function Navbar() {
       const supabase = getSupabaseBrowserClient();
       const { data } = await supabase
         .from('profiles')
-        .select('credits')
+        .select('credits_remaining')
         .eq('id', userId)
-        .single<{ credits: number }>();
-      if (data) setUserCredits(data.credits ?? 0);
+        .single<{ credits_remaining: number }>();
+      if (data) setUserCredits(data.credits_remaining ?? 0);
     } catch {
       // 무시
     }
@@ -75,13 +75,7 @@ export default function Navbar() {
     setUserMenuOpen(false);
   }
 
-  useEffect(() => {
-    function handleScroll() {
-      setScrolled(window.scrollY > 10);
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  useEffect(() => {}, []);
 
   function openLogin() {
     setAuthMode('login');
@@ -98,9 +92,7 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`sticky top-0 z-40 w-full transition-all duration-300 ${
-          scrolled ? 'glass shadow-lg shadow-black/20' : 'bg-transparent'
-        }`}
+        className="sticky top-0 z-40 w-full glass shadow-lg shadow-black/20"
       >
         {/* Top announcement bar — 로그인 시 숨김 */}
         {!user && (
@@ -147,7 +139,10 @@ export default function Navbar() {
             </nav>
 
             {/* Right side */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Language Selector */}
+              <LanguageSwitcher />
+
               {user ? (
                 <>
                   {/* Credits badge */}
@@ -211,7 +206,7 @@ export default function Navbar() {
                     onClick={openSignup}
                     className="px-4 py-2 text-sm font-bold text-white rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all"
                   >
-                    무료 시작
+                    회원가입
                   </button>
                 </>
               )}
@@ -232,9 +227,9 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-white/8 glass px-4 py-4 space-y-1 fade-in-up">
             {[
-              { label: '기능 소개', href: '#features' },
-              { label: '가격', href: '#pricing' },
-              { label: '트렌드', href: '#usecases' },
+              { label: '대본 생성기', href: '/generator' },
+              { label: '크레딧', href: '/pricing' },
+              { label: '최신 트렌드', href: '/trends' },
             ].map((item) => (
               <a
                 key={item.label}

@@ -40,10 +40,6 @@ export default function Home() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
           <div className="absolute top-40 left-1/3 w-[300px] h-[300px] rounded-full bg-cyan-500/8 blur-3xl pointer-events-none" />
           <div className="relative mx-auto max-w-4xl text-center space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5" style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.25)' }}>
-              <Sparkles size={13} className="text-violet-400" />
-              <span className="text-xs font-semibold text-violet-300 tracking-wide">미국 · 한국 · 일본 3개국 동시 로컬라이징</span>
-            </div>
             <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.1] text-white">
               숏폼 URL 하나로<br /><span className="gradient-text">3개국 바이럴 대본</span> 생성
             </h1>

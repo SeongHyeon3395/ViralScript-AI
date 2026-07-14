@@ -164,9 +164,9 @@ export default function GeneratorPage() {
               <p className="text-sm text-white/40">대본 생성기를 사용하려면 로그인 또는 회원가입을 해주세요.</p>
               <a href="/" className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />로그인하러 가기<ArrowRight size={15} /></a>
             </div>
-            <Footer />
           </section>
         ) : (
+          <>
           <section className="pt-24 pb-20 px-4 sm:px-6">
           <div className="mx-auto max-w-2xl space-y-8">
             <div className="text-center space-y-2">
@@ -227,8 +227,9 @@ export default function GeneratorPage() {
             {result && <ResultPanel result={result} cached={cached} />}
           </div>
         </section>
-        )}
         <Footer />
+        </>
+        )}
       </main>
 
       <DailyRewardWheel onClaim={handleRewardClaimed} />

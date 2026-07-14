@@ -29,6 +29,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   function resetForm() {
     setEmail('');
     setPassword('');
+    setPasswordError('');
     setName('');
     setShowPassword(false);
     setMessage(null);
@@ -53,6 +55,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setPasswordError('');
+
+    // 비밀번호 특수문자 검증
+    if ((mode === 'signup' || mode === 'login') && password && !/[!@#$%^&*(),.?":{}|<>~`_\-+=\[\]\\;'/]/.test(password)) {
+      setPasswordError('비밀번호는 최소 1개의 특수문자(!@#$%^&*)를 포함해야 합니다.');
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
@@ -135,12 +145,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             </div>
             <h2 className="text-2xl font-bold text-white mt-3">
               {mode === 'login' && '다시 오신 걸 환영해요'}
-              {mode === 'signup' && '무료로 시작하세요'}
+              {mode === 'signup' && '만나서 반가워요! 🎉'}
               {mode === 'forgot' && '비밀번호 재설정'}
             </h2>
             <p className="text-sm text-white/40 mt-1">
               {mode === 'login' && '계속하려면 로그인해 주세요'}
-              {mode === 'signup' && '가입 즉시 크레딧 10개가 지급됩니다'}
+              {mode === 'signup' && '지금 가입하고 크레딧 10개를 바로 받아가세요 ✨'}
               {mode === 'forgot' && '가입한 이메일 주소를 입력해 주세요'}
             </p>
           </div>
@@ -187,11 +197,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="비밀번호 (8자 이상)"
+                  placeholder="비밀번호 (특수문자 1개 이상 포함)"
                   required
                   minLength={8}
-                  className="w-full pl-10 pr-11 py-3 rounded-xl input-dark text-sm"
+                  className={`w-full pl-10 pr-11 py-3 rounded-xl text-sm ${passwordError ? 'border-red-500/60 ring-1 ring-red-500/30' : 'input-dark'}`}
                 />
+                {passwordError && <p className="flex items-center gap-1.5 text-xs text-red-400 mt-1"><span>⚠️</span> {passwordError}</p>}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
