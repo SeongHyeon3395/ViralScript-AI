@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   Sparkles,
   Zap,
@@ -20,7 +20,12 @@ import LanguageSwitcher from './LanguageSwitcher';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-export default function Navbar() {
+export interface NavbarRef {
+  openLoginModal: () => void;
+  getUser: () => SupabaseUser | null;
+}
+
+const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -75,6 +80,14 @@ export default function Navbar() {
     setUserMenuOpen(false);
   }
 
+  useImperativeHandle(ref, () => ({
+    openLoginModal: () => {
+      setAuthMode('login');
+      setAuthOpen(true);
+    },
+    getUser: () => user,
+  }));
+
   useEffect(() => {}, []);
 
   function openLogin() {
@@ -117,7 +130,7 @@ export default function Navbar() {
             {/* Desktop Nav links */}
             <nav className="hidden md:flex items-center gap-1">
               {[
-                { label: '대본 생성기', href: '/generator' },
+                { label: '대본 생성', href: '/generator' },
                 { label: '크레딧', href: '/pricing' },
                 { label: '최신 트렌드', href: '/trends' },
               ].map((item) => (
@@ -130,7 +143,13 @@ export default function Navbar() {
                 </a>
               ))}
               <button
-                onClick={() => setReferralOpen(true)}
+                onClick={() => {
+                  if (user) {
+                    setReferralOpen(true);
+                  } else {
+                    openLogin();
+                  }
+                }}
                 className="flex items-center gap-1.5 px-4 py-2 text-sm text-emerald-400/70 hover:text-emerald-300 rounded-lg hover:bg-emerald-500/8 transition-all"
               >
                 <Users size={14} />
@@ -139,14 +158,14 @@ export default function Navbar() {
             </nav>
 
             {/* Right side */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {/* Language Selector */}
               <LanguageSwitcher />
 
               {user ? (
                 <>
                   {/* Credits badge */}
-                  <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5">
+                  <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 shrink-0">
                     <Zap size={13} className="text-violet-400" />
                     <span className="text-xs font-bold text-violet-300">{userCredits} 크레딧</span>
                   </div>
@@ -227,7 +246,7 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-white/8 glass px-4 py-4 space-y-1 fade-in-up">
             {[
-              { label: '대본 생성기', href: '/generator' },
+              { label: '대본 생성', href: '/generator' },
               { label: '크레딧', href: '/pricing' },
               { label: '최신 트렌드', href: '/trends' },
             ].map((item) => (
@@ -241,7 +260,14 @@ export default function Navbar() {
               </a>
             ))}
             <div className="h-px bg-white/8 my-2" />
-            <button onClick={() => { setReferralOpen(true); setMobileMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-emerald-400/70 hover:text-emerald-300 rounded-xl hover:bg-emerald-500/8 transition-all">
+            <button onClick={() => { 
+              if (user) {
+                setReferralOpen(true);
+              } else {
+                openLogin();
+              }
+              setMobileMenuOpen(false); 
+            }} className="w-full text-left px-4 py-2.5 text-sm text-emerald-400/70 hover:text-emerald-300 rounded-xl hover:bg-emerald-500/8 transition-all">
               👥 친구 초대하기
             </button>
             <button onClick={openLogin} className="w-full text-left px-4 py-2.5 text-sm text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition-all">
@@ -265,4 +291,9 @@ export default function Navbar() {
       />
     </>
   );
+});
+
+Navbar.displayName = 'Navbar';
+
+export default Navbar;
 }

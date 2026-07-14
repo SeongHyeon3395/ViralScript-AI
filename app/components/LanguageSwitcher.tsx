@@ -32,14 +32,14 @@ export const T: Record<Lang, Record<string, string>> = {
     pricing_desc: '광고 시청 · 출석 룰렛 · 친구 초대로 무료 크레딧을 충전하세요',
     login: '로그인',
     signup: '회원가입',
-    generator: '대본 생성기',
+    generator: '대본 생성',
     credits: '크레딧',
     trends: '최신 트렌드',
     invite: '초대하기',
     nav_features: '기능 소개',
     nav_pricing: '크레딧',
     nav_trends: '트렌드',
-    nav_generator: '대본 생성기',
+    nav_generator: '대본 생성',
   },
   en: {
     hero_tag: 'AI-Powered Short-Form Marketing Analysis',
@@ -138,6 +138,7 @@ export function t(key: string): string {
 
 export default function LanguageSwitcher() {
   const [lang, setLang] = useState<Lang>('ko');
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setLang(getLang());
@@ -146,28 +147,44 @@ export default function LanguageSwitcher() {
   function switchLang(code: Lang) {
     localStorage.setItem(LANG_KEY, code);
     setLang(code);
+    setIsOpen(false);
     window.location.reload();
   }
 
   const current = LANGS.find(l => l.code === lang) ?? LANGS[0];
 
   return (
-    <div className="relative group">
-      <button className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs text-white/40 hover:text-white hover:bg-white/5 transition-all">
-        <Globe size={14} />
-        <span className="hidden sm:inline">{current.flag}</span>
+    <div className="relative shrink-0">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/8 transition-all border border-white/10 hover:border-white/20 w-[90px] sm:w-[120px] justify-between"
+      >
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Globe size={14} className="sm:w-4 sm:h-4" />
+          <span className="text-sm sm:text-base">{current.flag}</span>
+        </div>
+        <svg className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
-      <div className="absolute right-0 top-full mt-1 w-32 glass-strong rounded-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-        {LANGS.map(l => (
-          <button
-            key={l.code}
-            onClick={() => switchLang(l.code)}
-            className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-all ${l.code === lang ? 'bg-violet-600/30 text-white' : 'text-white/50 hover:text-white hover:bg-white/5'}`}
-          >
-            <span>{l.flag}</span> {l.label}
-          </button>
-        ))}
-      </div>
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 w-48 glass-strong rounded-xl overflow-hidden shadow-xl shadow-black/40 fade-in-up z-50">
+            {LANGS.map(l => (
+              <button
+                key={l.code}
+                onClick={() => switchLang(l.code)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all ${l.code === lang ? 'bg-violet-600/40 text-white' : 'text-white/60 hover:text-white hover:bg-white/8'}`}
+              >
+                <span className="text-xl">{l.flag}</span> 
+                <span className="flex-1 text-left">{l.label}</span>
+                {l.code === lang && <span className="text-violet-400">✓</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

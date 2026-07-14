@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { AnalyzeResponse, GenerationOutput, SceneScript } from '@/types';
 import Navbar from '@/app/components/Navbar';
+import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import RemixPanel from '@/app/components/RemixPanel';
 import RewardedAdPopup from '@/app/components/RewardedAdPopup';
@@ -10,9 +11,9 @@ import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Link2, ShoppingBag, SlidersHorizontal, Rocket, Loader2, Zap,
-  Film, Clock, TrendingUp, Music, Camera, Play, ChevronDown, ChevronUp,
-  Sparkles, BarChart3, Globe, ArrowRight, Gift, RefreshCw, Shuffle,
-  Star, X, CheckCircle2, AlertCircle, Shield, LogIn,
+  Film, Clock, TrendingUp, ChevronDown, ChevronUp,
+  Sparkles, BarChart3, ArrowRight, Gift, RefreshCw, Shuffle,
+  CheckCircle2, Shield, LogIn,
 } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -102,6 +103,7 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
 }
 
 export default function GeneratorPage() {
+  const navbarRef = useRef<NavbarRef>(null);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [url, setUrl] = useState('');
   const [targetProduct, setTargetProduct] = useState('');
@@ -117,11 +119,15 @@ export default function GeneratorPage() {
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
 
   // 세션 확인
-  useState(() => {
+  useEffect(() => {
     getSupabaseBrowserClient().auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
     });
-  });
+    const { data: { subscription } } = getSupabaseBrowserClient().auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const DEMO_TOKEN = process.env.NEXT_PUBLIC_DEMO_TOKEN ?? '';
 
@@ -154,40 +160,40 @@ export default function GeneratorPage() {
 
   return (
     <>
-      <Navbar />
+      <Navbar ref={navbarRef} />
       <main className="flex-1">
         {!user ? (
           <section className="pt-32 pb-20 px-4 sm:px-6">
             <div className="mx-auto max-w-md text-center space-y-6">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg"><LogIn size={28} className="text-white" /></div>
               <h2 className="text-2xl font-bold text-white">로그인이 필요합니다</h2>
-              <p className="text-sm text-white/40">대본 생성기를 사용하려면 로그인 또는 회원가입을 해주세요.</p>
-              <a href="/" className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />로그인하러 가기<ArrowRight size={15} /></a>
+              <p className="text-sm text-white/40">대본 생성을 사용하려면 로그인 또는 회원가입을 해주세요.</p>
+              <button onClick={() => navbarRef.current?.openLoginModal()} className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />로그인하기<ArrowRight size={15} /></button>
             </div>
           </section>
         ) : (
           <>
-          <section className="pt-24 pb-20 px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl space-y-8">
-            <div className="text-center space-y-2">
-              <span className="badge badge-purple inline-flex"><Sparkles size={11} /> 대본 생성기</span>
-              <h2 className="text-2xl font-bold text-white">바이럴 대본 생성기</h2>
-              <p className="text-sm text-white/40">URL을 입력하면 AI가 구조를 분석하고 3개국 대본을 생성합니다</p>
+          <section className="pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl space-y-6 sm:space-y-8">
+            <div className="text-center space-y-2 px-4">
+              <span className="badge badge-purple inline-flex"><Sparkles size={11} /> 대본 생성</span>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">바이럴 대본 생성</h2>
+              <p className="text-xs sm:text-sm text-white/40">URL을 입력하면 AI가 구조를 분석하고 3개국 대본을 생성합니다</p>
             </div>
 
-            <div className="rounded-2xl p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+            <div className="rounded-2xl p-5 sm:p-7 space-y-4 sm:space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />숏폼 영상 URL</label>
-                <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder="https://www.tiktok.com/@... 또는 YouTube Shorts, Instagram Reels URL" className={`w-full rounded-xl px-4 py-3 text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />숏폼 영상 URL</label>
+                <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder="https://www.tiktok.com/@... 또는 YouTube Shorts, Instagram Reels URL" className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
                 {urlError && <p className="flex items-center gap-1.5 text-xs text-red-400 fade-in-up"><span>⚠️</span> {urlError}</p>}
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-white/70"><ShoppingBag size={14} className="text-emerald-400" />홍보할 상품 / 서비스명</label>
-                <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder="예: 제주 감귤 착즙 주스, 무소음 청소기, SaaS 구독 플랜..." className="w-full rounded-xl px-4 py-3 text-sm input-dark" />
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><ShoppingBag size={14} className="text-emerald-400" />홍보할 상품 / 서비스명</label>
+                <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder="예: 제주 감귤 착즙 주스, 무소음 청소기, SaaS 구독 플랜..." className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-white/70"><SlidersHorizontal size={14} className="text-amber-400" />추가 요청사항 <span className="text-xs text-white/25 font-normal">(선택)</span></label>
-                <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder="예: 20대 여성 타겟, MZ 감성, 유머러스한 톤, 전환율 극대화..." className="w-full rounded-xl px-4 py-3 text-sm input-dark resize-none" />
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><SlidersHorizontal size={14} className="text-amber-400" />추가 요청사항 <span className="text-xs text-white/25 font-normal">(선택)</span></label>
+                <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder="예: 20대 여성 타겟, MZ 감성, 유머러스한 톤, 전환율 극대화..." className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
               </div>
 
               {credits < 3 && (

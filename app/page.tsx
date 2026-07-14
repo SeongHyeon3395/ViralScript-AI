@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Sparkles, Rocket, ArrowRight, Play, Globe, BarChart3, Film, Zap,
   Gift, Star, Shield, Users,
@@ -8,6 +8,8 @@ import {
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import DailyRewardWheel from './components/DailyRewardWheel';
+import TrendFeed from './components/TrendFeed';
+import { t } from './components/LanguageSwitcher';
 
 const SAMPLE_URLS = [
   { label: '미국 틱톡 100만뷰 챌린지', emoji: '🔥', url: 'https://www.tiktok.com/@khaby.lame/video/7137423965982234886', product: '바이럴 마케팅 플랫폼' },
@@ -29,29 +31,37 @@ const STATS = [
 
 export default function Home() {
   const [credits, setCredits] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
   function handleRewardClaimed(amount: number) { setCredits(c => c + amount); }
+  
+  if (!mounted) return null;
 
   return (
     <>
       <Navbar />
       <main className="flex-1">
         {/* HERO */}
-        <section className="relative pt-20 pb-16 px-4 sm:px-6 overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
-          <div className="absolute top-40 left-1/3 w-[300px] h-[300px] rounded-full bg-cyan-500/8 blur-3xl pointer-events-none" />
-          <div className="relative mx-auto max-w-4xl text-center space-y-6">
-            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.1] text-white">
-              숏폼 URL 하나로<br /><span className="gradient-text">3개국 바이럴 대본</span> 생성
+        <section className="relative pt-16 sm:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[900px] h-[400px] sm:h-[500px] rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
+          <div className="absolute top-40 left-1/3 w-[200px] sm:w-[300px] h-[200px] sm:h-[300px] rounded-full bg-cyan-500/8 blur-3xl pointer-events-none" />
+          <div className="relative mx-auto max-w-4xl text-center space-y-6 px-4">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] text-white">
+              {t('hero_title')}<br /><span className="gradient-text">{t('hero_title2')}</span>
             </h1>
-            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">
-              AI가 영상 구조를 분석하고 귀사의 상품에 맞춘 한국·미국·일본 현지화 대본을 1분 만에 완성합니다.
+            <p className="text-sm sm:text-base lg:text-lg text-white/50 max-w-2xl mx-auto leading-relaxed px-4">
+              {t('hero_desc')}
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <a href="/generator" className="btn-primary flex items-center gap-2 px-6 py-3"><Rocket size={16} />지금 무료로 시작<ArrowRight size={15} /></a>
-              <a href="/pricing" className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white border border-white/10 hover:bg-white/5 transition-all"><Play size={14} />크레딧 보기</a>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2 w-full sm:w-auto">
+              <a href="/generator" className="btn-primary flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto"><Rocket size={16} />{t('cta_start')}<ArrowRight size={15} /></a>
+              <a href="/pricing" className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white border border-white/10 hover:bg-white/5 transition-all w-full sm:w-auto"><Play size={14} />{t('cta_credits')}</a>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
-              <span className="text-xs text-white/25 font-medium">원클릭 샘플:</span>
+              <span className="text-xs text-white/25 font-medium">{t('sample')}</span>
               {SAMPLE_URLS.map((s) => (
                 <a key={s.label} href={`/generator?url=${encodeURIComponent(s.url)}&product=${encodeURIComponent(s.product)}`}
                   className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all">{s.emoji} {s.label}</a>
@@ -63,21 +73,26 @@ export default function Home() {
         {/* STATS */}
         <section className="border-y border-white/6 py-10 px-4 sm:px-6">
           <div className="mx-auto max-w-4xl grid grid-cols-2 sm:grid-cols-4 gap-6">
-            {STATS.map((s) => (
-              <div key={s.label} className="text-center"><p className="text-3xl font-extrabold gradient-text">{s.value}</p><p className="text-xs text-white/40 mt-1 font-medium">{s.label}</p></div>
+            {[
+              { value: t('stats_gen'), label: t('stats_gen') },
+              { value: t('stats_locale'), label: t('stats_locale') },
+              { value: '99.9%', label: t('stats_uptime') },
+              { value: '50K+', label: t('stats_scripts') },
+            ].map((s, i) => (
+              <div key={i} className="text-center"><p className="text-3xl font-extrabold gradient-text">{i === 0 ? '1분' : i === 1 ? '3개국' : s.value}</p><p className="text-xs text-white/40 mt-1 font-medium">{s.label}</p></div>
             ))}
           </div>
         </section>
 
         {/* FEATURES */}
-        <section className="py-16 px-4 sm:px-6">
+        <section className="py-12 sm:py-16 px-4 sm:px-6">
           <div className="mx-auto max-w-5xl">
-            <div className="text-center mb-12 space-y-3">
-              <span className="badge badge-purple inline-flex"><Sparkles size={11} />Features</span>
-              <h2 className="text-3xl font-bold text-white">왜 ViralScript AI인가요?</h2>
-              <p className="text-white/40 max-w-lg mx-auto text-sm">단순한 번역이 아닙니다. 각국의 트렌드와 감성을 이해한 AI가 진짜 바이럴을 만듭니다.</p>
+            <div className="text-center mb-8 sm:mb-12 space-y-3 px-4">
+              <span className="badge badge-purple inline-flex"><Sparkles size={11} />{t('nav_features')}</span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('features_title')}</h2>
+              <p className="text-white/40 max-w-lg mx-auto text-xs sm:text-sm">{t('features_desc')}</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {FEATURES.map((f) => (
                 <div key={f.title} className="rounded-2xl p-6 card-hover" style={{ background: f.bg, border: `1px solid ${f.border}` }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(255,255,255,0.05)' }}><f.icon size={20} className={f.color} /></div>
@@ -89,15 +104,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* PRICING */}
-        <section id="pricing" className="py-16 px-4 sm:px-6 border-t border-white/5 scroll-mt-20">
+        {/* TREND FEED */}
+        <section className="py-12 sm:py-16 px-4 sm:px-6 border-t border-white/5">
           <div className="mx-auto max-w-5xl">
-            <div className="text-center mb-10 space-y-3">
-              <span className="badge badge-amber inline-flex"><Star size={11} />크레딧</span>
-              <h2 className="text-3xl font-bold text-white">무료로 시작하세요</h2>
-              <p className="text-white/40 text-sm">광고 시청 · 출석 룰렛 · 친구 초대로 무료 크레딧을 충전하세요</p>
+            <TrendFeed />
+          </div>
+        </section>
+
+        {/* PRICING */}
+        <section id="pricing" className="py-12 sm:py-16 px-4 sm:px-6 border-t border-white/5 scroll-mt-20">
+          <div className="mx-auto max-w-5xl">
+            <div className="text-center mb-8 sm:mb-10 space-y-3 px-4">
+              <span className="badge badge-amber inline-flex"><Star size={11} />{t('credits')}</span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_title')}</h2>
+              <p className="text-white/40 text-xs sm:text-sm">{t('pricing_desc')}</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
               {[
                 { icon: Gift, title: '출석 룰렛', desc: '매일 접속하고 룰렛을 돌려 최대 10 크레딧 획득', badge: '매일 무료', badgeClass: 'badge-green', highlight: false },
                 { icon: Play, title: '광고 보상 충전', desc: '30초 광고를 보고 즉시 3 크레딧 무료 충전 (하루 최대 5회)', badge: '하루 5회', badgeClass: 'badge-amber', highlight: true },

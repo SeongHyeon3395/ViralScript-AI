@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, Shield, Zap, Check, ArrowRight, Sparkles, Gift, Play, Users } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Star, Shield, Zap, Check, ArrowRight, Sparkles, Gift, Play, Users, LogIn } from 'lucide-react';
 import { CREDIT_PLANS } from '@/lib/credits';
 import Navbar from '@/app/components/Navbar';
+import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -11,30 +12,35 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
 
 export default function PricingPage() {
+  const navbarRef = useRef<NavbarRef>(null);
   const [user, setUser] = useState<SupabaseUser | null>(null);
 
-  useState(() => {
+  useEffect(() => {
     getSupabaseBrowserClient().auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
     });
-  });
+    const { data: { subscription } } = getSupabaseBrowserClient().auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <>
-      <Navbar />
-      <main className="flex-1 pt-24 pb-20 px-4 sm:px-6">
+      <Navbar ref={navbarRef} />
+      <main className="flex-1 pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 sm:px-6">
         <div className="mx-auto max-w-5xl">
-          <div className="text-center mb-14 space-y-3">
+          <div className="text-center mb-10 sm:mb-14 space-y-3 px-4">
             <span className="badge badge-amber inline-flex"><Star size={11} /> 크레딧</span>
             {PAYMENT_ENABLED ? (
               <>
-                <h2 className="text-3xl font-bold text-white">크레딧 충전 플랜</h2>
-                <p className="text-white/40 text-sm">필요할 때만 충전하세요. 구독 없음, 만료 없음.</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">크레딧 충전 플랜</h2>
+                <p className="text-white/40 text-xs sm:text-sm">필요할 때만 충전하세요. 구독 없음, 만료 없음.</p>
               </>
             ) : (
               <>
-                <h2 className="text-3xl font-bold text-white">무료로 시작하세요</h2>
-                <p className="text-white/40 text-sm">광고 시청으로 크레딧을 충전하고 무한 분석을 즐기세요.</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">무료로 시작하세요</h2>
+                <p className="text-white/40 text-xs sm:text-sm">광고 시청으로 크레딧을 충전하고 무한 분석을 즐기세요.</p>
               </>
             )}
           </div>
@@ -70,7 +76,7 @@ export default function PricingPage() {
             <>
               {/* 로그인 유저에게만 무료 충전 카드 표시 */}
               {user ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                   {[
                     { icon: Gift, title: '출석 룰렛', desc: '매일 접속하고 룰렛을 돌려 최대 10 크레딧을 획득하세요.', badge: '매일 무료', badgeClass: 'badge-green', action: '룰렛 돌리기', href: '/generator', highlight: false },
                     { icon: Play, title: '광고 보상 충전', desc: '30초 광고를 보고 즉시 3 크레딧을 무료로 받으세요. 하루 최대 5회.', badge: '하루 5회', badgeClass: 'badge-amber', action: '광고 보고 충전하기', href: '/generator', highlight: true },
@@ -91,10 +97,10 @@ export default function PricingPage() {
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto mb-4"><Sparkles size={28} className="text-white" /></div>
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto mb-4"><LogIn size={28} className="text-white" /></div>
                   <h3 className="text-xl font-bold text-white mb-2">로그인이 필요합니다</h3>
                   <p className="text-sm text-white/40 mb-6">로그인 후 무료 크레딧 충전 방법을 확인하세요.</p>
-                  <a href="/" className="btn-primary inline-flex items-center gap-2 px-6 py-3">로그인하러 가기<ArrowRight size={15} /></a>
+                  <button onClick={() => navbarRef.current?.openLoginModal()} className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />로그인하기<ArrowRight size={15} /></button>
                 </div>
               )}
 
