@@ -296,4 +296,3 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
 Navbar.displayName = 'Navbar';
 
 export default Navbar;
-}
