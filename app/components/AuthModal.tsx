@@ -155,7 +155,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         options: { data: { name: name || undefined } },
       });
       if (error) {
-        setOtpError(error.message);
+        const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
+        setOtpError(msg || t('auth_network_error'));
       } else {
         setOtpCountdown(OTP_EXPIRY_SECONDS);
         setOtpExpired(false);
@@ -212,30 +213,37 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       const supabase = getSupabaseBrowserClient();
 
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { name: name || undefined } },
         });
 
         if (error) {
-          setMessage({ type: 'error', text: error.message });
-        } else {
-          // OTP 단계로 전환
-          setMode('otp');
-          setOtpCountdown(OTP_EXPIRY_SECONDS);
-          setOtpExpired(false);
-          setResendCooldown(RESEND_COOLDOWN_SECONDS);
-          setMessage(null);
+          const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
+          setMessage({ type: 'error', text: msg || t('auth_network_error') });
+          setLoading(false);
+          return;
         }
+
+        // signUp 성공 → OTP 단계로 전환
+        setMode('otp');
+        setOtpCountdown(OTP_EXPIRY_SECONDS);
+        setOtpExpired(false);
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
+        setMessage(null);
+        setLoading(false);
+        return;
+      }
       } else if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
-          if (error.message?.toLowerCase().includes('email not confirmed')) {
+          const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
+          if (msg.toLowerCase().includes('email not confirmed')) {
             setMessage({ type: 'error', text: t('auth_email_not_confirmed') });
           } else {
-            setMessage({ type: 'error', text: error.message });
+            setMessage({ type: 'error', text: msg || t('auth_network_error') });
           }
         } else {
           setMessage({ type: 'success', text: t('auth_login_success') });
@@ -247,7 +255,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         });
 
         if (error) {
-          setMessage({ type: 'error', text: error.message });
+          const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
+          setMessage({ type: 'error', text: msg || t('auth_network_error') });
         } else {
           setEmailSent(true);
           setMessage({ type: 'success', text: t('auth_signup_success') });
