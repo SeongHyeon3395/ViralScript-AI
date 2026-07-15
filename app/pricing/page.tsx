@@ -100,13 +100,6 @@ export default function PricingPage() {
                   </div>
                 </section>
               )}
-
-              {user && (
-                <div className="mt-8 rounded-2xl px-6 py-4 flex items-center gap-4 text-sm" style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)' }}>
-                  <Shield size={16} className="text-violet-400 shrink-0" />
-                  <span className="text-white/40">유료 크레딧 플랜은 서비스 안정화 후 순차적으로 오픈될 예정입니다. 지금은 <span className="text-violet-300 font-medium">광고 보상 · 출석 룰렛 · 친구 초대</span>로 무료 크레딧을 무제한 충전하세요.</span>
-                </div>
-              )}
             </>
           )}
         </div>
