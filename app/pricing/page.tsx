@@ -90,6 +90,7 @@ export default function PricingPage() {
                     </div>
                   ))}
                 </div>
+                </>
               ) : (
                 <section className="pt-16 pb-20 px-4">
                   <div className="mx-auto max-w-md text-center space-y-6">
