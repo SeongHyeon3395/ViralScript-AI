@@ -19,8 +19,10 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: '1분', labelKey: 'stats_gen' }, { value: '3개국', labelKey: 'stats_locale' },
-  { value: '99.9%', labelKey: 'stats_uptime' }, { value: '50K+', labelKey: 'stats_scripts' },
+  { valueKey: 'stats_gen_value', labelKey: 'stats_gen' },
+  { valueKey: 'stats_locale_value', labelKey: 'stats_locale' },
+  { valueKey: 'stats_uptime_value', labelKey: 'stats_uptime' },
+  { valueKey: 'stats_scripts_value', labelKey: 'stats_scripts' },
 ];
 
 export default function Home() {
@@ -61,7 +63,7 @@ export default function Home() {
         <section className="border-y border-white/6 py-10 px-4 sm:px-6">
           <div className="mx-auto max-w-4xl grid grid-cols-2 sm:grid-cols-4 gap-6">
             {STATS.map((s, i) => (
-              <div key={i} className="text-center"><p className="text-3xl font-extrabold gradient-text">{s.value}</p><p className="text-xs text-white/40 mt-1 font-medium">{t(s.labelKey)}</p></div>
+              <div key={i} className="text-center"><p className="text-3xl font-extrabold gradient-text">{t(s.valueKey)}</p><p className="text-xs text-white/40 mt-1 font-medium">{t(s.labelKey)}</p></div>
             ))}
           </div>
         </section>

@@ -44,9 +44,13 @@ export const T: Record<Lang, Record<string, string>> = {
     cta_credits: '크레딧 보기',
 
     // ─── Stats ───
+    stats_gen_value: '약 2분',
     stats_gen: '평균 생성 시간',
+    stats_locale_value: '3개국',
     stats_locale: '동시 현지화',
-    stats_uptime: '업타임 SLA',
+    stats_uptime_value: '베타',
+    stats_uptime: '서비스 상태',
+    stats_scripts_value: '100+',
     stats_scripts: '생성된 대본',
 
     // ─── Features ───
@@ -93,7 +97,7 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_forgot_password_link: '비밀번호를 잊으셨나요?',
     auth_forgot_email_link: '이메일을 잊으셨나요?',
     auth_login_btn: '로그인',
-    auth_signup_btn: '무료 계정 만들기',
+    auth_signup_btn: '회원가입 하기',
     auth_reset_btn: '재설정 링크 발송',
     auth_no_account: '계정이 없으신가요?',
     auth_has_account: '이미 계정이 있으신가요?',
@@ -106,6 +110,19 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_login_success: '로그인 성공! 잠시 후 이동합니다.',
     auth_signup_success: '가입 완료! 이메일 인증 후 로그인해 주세요. 📧',
     auth_close: '닫기',
+
+    // ─── OTP Email Verification ───
+    otp_title: '이메일 인증',
+    otp_desc: '{email}로 6자리 인증번호를 발송했습니다',
+    otp_placeholder: '인증번호 6자리',
+    otp_verify_btn: '인증 완료',
+    otp_resend_btn: '인증번호 재발송',
+    otp_resend_cooldown: '{seconds}초 후 재발송 가능',
+    otp_expired: '인증번호가 만료되었습니다. 재발송 버튼을 눌러주세요.',
+    otp_invalid: '인증번호가 일치하지 않거나 만료되었습니다. 다시 확인해 주세요.',
+    otp_sending: '인증번호 발송 중...',
+    otp_verified: '인증 완료! 잠시 후 이동합니다.',
+    otp_change_email: '이메일 변경',
 
     // ─── Daily Reward Wheel ───
     daily_bonus: '데일리 보너스',
@@ -265,9 +282,13 @@ export const T: Record<Lang, Record<string, string>> = {
     cta_credits: 'View Credits',
 
     // ─── Stats ───
+    stats_gen_value: '~2min',
     stats_gen: 'Avg Generation Time',
+    stats_locale_value: '3 Countries',
     stats_locale: 'Simultaneous Locales',
-    stats_uptime: 'Uptime SLA',
+    stats_uptime_value: 'Beta',
+    stats_uptime: 'Service Status',
+    stats_scripts_value: '100+',
     stats_scripts: 'Scripts Generated',
 
     // ─── Features ───
@@ -314,7 +335,7 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_forgot_password_link: 'Forgot password?',
     auth_forgot_email_link: 'Forgot email?',
     auth_login_btn: 'Log In',
-    auth_signup_btn: 'Create Free Account',
+    auth_signup_btn: 'Sign Up',
     auth_reset_btn: 'Send Reset Link',
     auth_no_account: "Don't have an account?",
     auth_has_account: 'Already have an account?',
@@ -327,6 +348,19 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_login_success: 'Login successful! Redirecting...',
     auth_signup_success: 'Signup complete! Please verify your email and log in. 📧',
     auth_close: 'Close',
+
+    // ─── OTP Email Verification ───
+    otp_title: 'Email Verification',
+    otp_desc: 'A 6-digit verification code has been sent to {email}',
+    otp_placeholder: '6-digit code',
+    otp_verify_btn: 'Verify',
+    otp_resend_btn: 'Resend Code',
+    otp_resend_cooldown: 'Resend in {seconds}s',
+    otp_expired: 'Verification code has expired. Please request a new one.',
+    otp_invalid: 'The code is incorrect or has expired. Please try again.',
+    otp_sending: 'Sending code...',
+    otp_verified: 'Verified! Redirecting...',
+    otp_change_email: 'Change Email',
 
     // ─── Daily Reward Wheel ───
     daily_bonus: 'Daily Bonus',
@@ -486,9 +520,13 @@ export const T: Record<Lang, Record<string, string>> = {
     cta_credits: '查看积分',
 
     // ─── Stats ───
+    stats_gen_value: '约2分钟',
     stats_gen: '平均生成时间',
+    stats_locale_value: '3个国家',
     stats_locale: '同步本地化',
-    stats_uptime: '运行时间SLA',
+    stats_uptime_value: '测试版',
+    stats_uptime: '服务状态',
+    stats_scripts_value: '100+',
     stats_scripts: '已生成脚本',
 
     // ─── Features ───
@@ -535,7 +573,7 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_forgot_password_link: '忘记密码？',
     auth_forgot_email_link: '忘记邮箱？',
     auth_login_btn: '登录',
-    auth_signup_btn: '创建免费账户',
+    auth_signup_btn: '注册',
     auth_reset_btn: '发送重置链接',
     auth_no_account: '还没有账户？',
     auth_has_account: '已有账户？',
@@ -548,6 +586,19 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_login_success: '登录成功！正在跳转...',
     auth_signup_success: '注册完成！请验证邮箱后登录。📧',
     auth_close: '关闭',
+
+    // ─── OTP Email Verification ───
+    otp_title: '邮箱验证',
+    otp_desc: '6位验证码已发送至 {email}',
+    otp_placeholder: '6位验证码',
+    otp_verify_btn: '验证',
+    otp_resend_btn: '重新发送',
+    otp_resend_cooldown: '{seconds}秒后可重新发送',
+    otp_expired: '验证码已过期，请重新获取。',
+    otp_invalid: '验证码不正确或已过期，请重试。',
+    otp_sending: '发送中...',
+    otp_verified: '验证成功！正在跳转...',
+    otp_change_email: '更换邮箱',
 
     // ─── Daily Reward Wheel ───
     daily_bonus: '每日奖励',
@@ -707,9 +758,13 @@ export const T: Record<Lang, Record<string, string>> = {
     cta_credits: 'クレジットを見る',
 
     // ─── Stats ───
+    stats_gen_value: '約2分',
     stats_gen: '平均生成時間',
+    stats_locale_value: '3ヶ国',
     stats_locale: '同時ローカライズ',
-    stats_uptime: 'アップタイムSLA',
+    stats_uptime_value: 'ベータ版',
+    stats_uptime: 'サービス状態',
+    stats_scripts_value: '100+',
     stats_scripts: '生成スクリプト数',
 
     // ─── Features ───
@@ -756,7 +811,7 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_forgot_password_link: 'パスワードをお忘れですか？',
     auth_forgot_email_link: 'メールアドレスをお忘れですか？',
     auth_login_btn: 'ログイン',
-    auth_signup_btn: '無料アカウント作成',
+    auth_signup_btn: '会員登録',
     auth_reset_btn: 'リセットリンクを送信',
     auth_no_account: 'アカウントをお持ちでないですか？',
     auth_has_account: 'すでにアカウントをお持ちですか？',
@@ -769,6 +824,19 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_login_success: 'ログイン成功！リダイレクト中...',
     auth_signup_success: '登録完了！メール認証後にログインしてください。📧',
     auth_close: '閉じる',
+
+    // ─── OTP Email Verification ───
+    otp_title: 'メール認証',
+    otp_desc: '{email}に6桁の認証コードを送信しました',
+    otp_placeholder: '6桁の認証コード',
+    otp_verify_btn: '認証する',
+    otp_resend_btn: 'コードを再送信',
+    otp_resend_cooldown: '{seconds}秒後に再送信可能',
+    otp_expired: '認証コードの有効期限が切れました。再送信してください。',
+    otp_invalid: '認証コードが一致しないか期限切れです。もう一度お試しください。',
+    otp_sending: '送信中...',
+    otp_verified: '認証完了！リダイレクト中...',
+    otp_change_email: 'メールアドレス変更',
 
     // ─── Daily Reward Wheel ───
     daily_bonus: 'デイリーボーナス',
