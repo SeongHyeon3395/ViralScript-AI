@@ -120,15 +120,15 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
         )}
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo — 아이콘 없이 글자만 */}
-            <a href="/" className="flex items-center gap-1 group shrink-0">
+          <div className="grid grid-cols-[1fr_auto_1fr] h-16 items-center">
+            {/* Logo — left */}
+            <a href="/" className="flex items-center gap-1 group shrink-0 justify-self-start">
               <span className="text-base font-bold text-white">ViralScript</span>
               <span className="text-base font-bold gradient-text">AI</span>
             </a>
 
-            {/* Desktop Nav links — centered */}
-            <nav className="hidden md:flex items-center justify-center gap-1 flex-1 mx-4">
+            {/* Desktop Nav links — perfectly centered */}
+            <nav className="hidden md:flex items-center justify-center gap-1">
               {[
                 { label: t('nav_generator'), href: '/generator' },
                 { label: t('nav_credits'), href: '/pricing' },
@@ -158,7 +158,7 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
             </nav>
 
             {/* Right side */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center justify-end gap-2 shrink-0">
               {/* Language Selector */}
               <LanguageSwitcher />
 
