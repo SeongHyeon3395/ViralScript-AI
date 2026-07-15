@@ -11,6 +11,7 @@ import {
   Volume2,
   AlertCircle,
 } from 'lucide-react';
+import { t } from './LanguageSwitcher';
 
 // ─── Google AdSense 전역 타입 선언 ────────────────────────────
 declare global {
@@ -205,11 +206,9 @@ export default function RewardedAdPopup({
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-white">크레딧이 부족하신가요?</h2>
+              <h2 className="text-lg font-bold text-white">{t('ad_watch_title')}</h2>
               <p className="text-sm text-white/40 mt-1">
-                30초 광고를 시청하고{' '}
-                <span className="text-amber-400 font-bold">{rewardAmount} 크레딧</span>을
-                {' '}즉시 충전하세요!
+                {t('ad_watch_desc')}
               </p>
             </div>
 
@@ -226,11 +225,11 @@ export default function RewardedAdPopup({
               className="btn-primary w-full flex items-center justify-center gap-2"
             >
               <Play size={16} />
-              광고 시청하고 3 크레딧 받기
+              {t('ad_watch_btn')}
             </button>
 
             <button onClick={onClose} className="text-xs text-white/30 hover:text-white/60 transition-colors">
-              괜찮습니다, 나중에 할게요
+              {t('cancel')}
             </button>
           </div>
         )}
@@ -271,13 +270,13 @@ export default function RewardedAdPopup({
                   onClick={skipAd}
                   className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm rounded-full px-3 py-1 text-xs text-white/60 hover:text-white transition-colors"
                 >
-                  건너뛰기
+                  {t('ad_skip')}
                 </button>
               )}
             </div>
 
             <div className="p-4 text-center text-xs text-white/30">
-              광고 시청 중... 잠시만 기다려주세요 🙏
+              {t('ad_watching')}
             </div>
           </div>
         )}
@@ -300,7 +299,7 @@ export default function RewardedAdPopup({
               className="btn-primary w-full flex items-center justify-center gap-2"
             >
               <Zap size={16} />
-              크레딧 받기
+              {t('ad_claim')}
             </button>
           </div>
         )}
@@ -308,7 +307,7 @@ export default function RewardedAdPopup({
         {phase === 'loading' && (
           <div className="p-12 text-center space-y-4">
             <Loader2 size={40} className="text-amber-400 animate-spin mx-auto" />
-            <p className="text-white/60 text-sm">광고를 불러오는 중...</p>
+            <p className="text-white/60 text-sm">{t('loading')}</p>
           </div>
         )}
 
@@ -317,7 +316,7 @@ export default function RewardedAdPopup({
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
               <Loader2 size={28} className="text-white animate-spin" />
             </div>
-            <p className="text-white/60 text-sm">크레딧이 지급되었습니다! 🎉</p>
+            <p className="text-white/60 text-sm">{t('ad_complete')}</p>
           </div>
         )}
 
@@ -330,13 +329,9 @@ export default function RewardedAdPopup({
               <Clock size={28} className="text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">오늘의 보상 완료!</h2>
-              <p className="text-sm text-white/40 mt-1">
-                일일 광고 보상 한도(5회)에 도달했습니다.<br />
-                <span className="text-amber-400 font-medium">내일 UTC 자정</span> 이후 다시 이용하세요.
-              </p>
+              <h2 className="text-lg font-bold text-white">{t('ad_limit_reached')}</h2>
             </div>
-            <button onClick={onClose} className="btn-primary w-full">확인</button>
+            <button onClick={onClose} className="btn-primary w-full">{t('confirm')}</button>
           </div>
         )}
 
@@ -349,12 +344,12 @@ export default function RewardedAdPopup({
               <AlertCircle size={28} className="text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">오류가 발생했습니다</h2>
-              <p className="text-sm text-white/40 mt-1">{errorMessage || '잠시 후 다시 시도해주세요.'}</p>
+              <h2 className="text-lg font-bold text-white">{t('ad_error')}</h2>
+              <p className="text-sm text-white/40 mt-1">{errorMessage || t('retry')}</p>
             </div>
             <div className="flex gap-3">
-              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-all">닫기</button>
-              <button onClick={() => { setPhase('idle'); setErrorMessage(''); }} className="flex-1 btn-primary">다시 시도</button>
+              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-all">{t('close')}</button>
+              <button onClick={() => { setPhase('idle'); setErrorMessage(''); }} className="flex-1 btn-primary">{t('retry')}</button>
             </div>
           </div>
         )}

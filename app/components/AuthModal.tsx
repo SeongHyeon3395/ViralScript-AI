@@ -16,6 +16,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { t } from './LanguageSwitcher';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -59,7 +60,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
     // 비밀번호 특수문자 검증
     if ((mode === 'signup' || mode === 'login') && password && !/[!@#$%^&*(),.?":{}|<>~`_\-+=\[\]\\;'/]/.test(password)) {
-      setPasswordError('비밀번호는 최소 1개의 특수문자(!@#$%^&*)를 포함해야 합니다.');
+      setPasswordError(t('auth_password_special_char'));
       return;
     }
 
@@ -84,7 +85,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           setMessage({ type: 'error', text: error.message });
         } else {
           setEmailSent(true);
-          setMessage({ type: 'success', text: '가입 완료! 이메일 인증 후 로그인해 주세요. 📧' });
+          setMessage({ type: 'success', text: t('auth_signup_success') });
         }
       } else if (mode === 'login') {
         // ── 로그인 ──
@@ -92,12 +93,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
         if (error) {
           if (error.message?.toLowerCase().includes('email not confirmed')) {
-            setMessage({ type: 'error', text: '이메일 인증을 완료해야 로그인할 수 있습니다. 메일함을 확인해 주세요.' });
+            setMessage({ type: 'error', text: t('auth_email_not_confirmed') });
           } else {
             setMessage({ type: 'error', text: error.message });
           }
         } else {
-          setMessage({ type: 'success', text: '로그인 성공! 잠시 후 이동합니다.' });
+          setMessage({ type: 'success', text: t('auth_login_success') });
           setTimeout(onClose, 1200);
         }
       } else if (mode === 'forgot') {
@@ -110,11 +111,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           setMessage({ type: 'error', text: error.message });
         } else {
           setEmailSent(true);
-          setMessage({ type: 'success', text: '비밀번호 재설정 링크를 이메일로 발송했습니다. 📧' });
+          setMessage({ type: 'success', text: t('auth_signup_success') });
         }
       }
     } catch {
-      setMessage({ type: 'error', text: '네트워크 오류가 발생했습니다. 다시 시도해 주세요.' });
+      setMessage({ type: 'error', text: t('auth_network_error') });
     } finally {
       setLoading(false);
     }
@@ -144,20 +145,20 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               <span className="text-xs font-semibold text-violet-400 tracking-widest uppercase">ViralScript AI</span>
             </div>
             <h2 className="text-2xl font-bold text-white mt-3">
-              {mode === 'login' && '다시 오신 걸 환영해요'}
-              {mode === 'signup' && '만나서 반가워요! 🎉'}
-              {mode === 'forgot' && '비밀번호 재설정'}
+              {mode === 'login' && t('auth_welcome_back')}
+              {mode === 'signup' && t('auth_nice_to_meet')}
+              {mode === 'forgot' && t('auth_reset_password')}
             </h2>
             <p className="text-sm text-white/40 mt-1">
-              {mode === 'login' && '계속하려면 로그인해 주세요'}
-              {mode === 'signup' && '지금 가입하고 크레딧 10개를 바로 받아가세요 ✨'}
-              {mode === 'forgot' && '가입한 이메일 주소를 입력해 주세요'}
+              {mode === 'login' && t('auth_login_desc')}
+              {mode === 'signup' && t('auth_signup_desc')}
+              {mode === 'forgot' && t('auth_forgot_desc')}
             </p>
           </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all"
-            aria-label="닫기"
+            aria-label={t('auth_close')}
           >
             <X size={18} />
           </button>
@@ -173,7 +174,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="이름"
+                  placeholder={t('auth_name_placeholder')}
                   required
                   className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
                 />
@@ -185,7 +186,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="이메일 주소"
+                placeholder={t('auth_email_placeholder')}
                 required
                 className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
               />
@@ -197,7 +198,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="비밀번호 (특수문자 1개 이상 포함)"
+                  placeholder={t('auth_password_placeholder')}
                   required
                   minLength={8}
                   className={`w-full pl-10 pr-11 py-3 rounded-xl text-sm ${passwordError ? 'border-red-500/60 ring-1 ring-red-500/30' : 'input-dark'}`}
@@ -221,15 +222,15 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   onClick={() => switchMode('forgot')}
                   className="text-violet-400 hover:text-violet-300 transition-colors"
                 >
-                  비밀번호를 잊으셨나요?
+                  {t('auth_forgot_password_link')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setEmail(''); setMode('forgot'); setMessage({ type: 'error', text: '가입 시 사용한 이메일 주소를 입력해 주세요.' }); }}
+                  onClick={() => { setEmail(''); setMode('forgot'); setMessage({ type: 'error', text: t('auth_forgot_desc') }); }}
                   className="text-violet-400/60 hover:text-violet-300 transition-colors flex items-center gap-1"
                 >
                   <HelpCircle size={12} />
-                  이메일을 잊으셨나요?
+                  {t('auth_forgot_email_link')}
                 </button>
               </div>
             )}
@@ -251,9 +252,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <>
-                  {mode === 'login' && '로그인'}
-                  {mode === 'signup' && '무료 계정 만들기'}
-                  {mode === 'forgot' && '재설정 링크 발송'}
+                  {mode === 'login' && t('auth_login_btn')}
+                  {mode === 'signup' && t('auth_signup_btn')}
+                  {mode === 'forgot' && t('auth_reset_btn')}
                   <ArrowRight size={15} />
                 </>
               )}
@@ -264,24 +265,24 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           <p className="text-center text-sm text-white/40">
             {mode === 'login' && (
               <>
-                계정이 없으신가요?{' '}
+                {t('auth_no_account')}{' '}
                 <button onClick={() => switchMode('signup')} className="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
-                  무료 가입
+                  {t('auth_free_signup')}
                 </button>
               </>
             )}
             {mode === 'signup' && (
               <>
-                이미 계정이 있으신가요?{' '}
+                {t('auth_has_account')}{' '}
                 <button onClick={() => switchMode('login')} className="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
-                  로그인
+                  {t('nav_login')}
                 </button>
               </>
             )}
             {mode === 'forgot' && (
               <>
                 <button onClick={() => switchMode('login')} className="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
-                  로그인으로 돌아가기
+                  {t('auth_back_to_login')}
                 </button>
               </>
             )}
@@ -290,11 +291,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           {/* Terms */}
           {mode === 'signup' && (
             <p className="text-center text-xs text-white/20">
-              가입 시{' '}
-              <span className="underline cursor-pointer hover:text-white/40 transition-colors">이용약관</span>
-              {' '}및{' '}
-              <span className="underline cursor-pointer hover:text-white/40 transition-colors">개인정보처리방침</span>
-              에 동의합니다.
+              {t('auth_agree_terms')}
             </p>
           )}
         </div>

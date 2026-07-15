@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Gift, Sparkles, X, ChevronRight, Zap, Star, Smile, Frown, RefreshCw, Trophy } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { t } from './LanguageSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const SLICES = [
@@ -118,7 +119,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
           className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-2xl shadow-violet-500/30 hover:from-violet-500 hover:to-indigo-500 transition-all hover:scale-105 active:scale-95"
         >
           <Gift size={18} />
-          <span>데일리 보너스</span>
+          <span>{t('daily_bonus')}</span>
           {hasSpunToday ? (
             <span className="ml-1 text-xs text-white/50">· {formatCooldown()}</span>
           ) : (
@@ -149,8 +150,8 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-amber-500/20">
                 <Trophy size={24} className="text-white" />
               </div>
-              <h2 className="text-xl font-bold text-white">데일리 럭키 룰렛</h2>
-              <p className="text-sm text-white/40 mt-1">매일 로그인하고 무료 크레딧을 받아보세요!</p>
+              <h2 className="text-xl font-bold text-white">{t('daily_roulette_title')}</h2>
+              <p className="text-sm text-white/40 mt-1">{t('daily_roulette_desc')}</p>
             </div>
 
             {/* Wheel */}
@@ -217,12 +218,12 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
                   {result.value > 0 ? (
                     <>
                       <Sparkles size={20} className="text-amber-400" />
-                      축하합니다! {result.value} 크레딧 획득!
+                      {t('daily_result_win').replace('{amount}', String(result.value))}
                     </>
                   ) : (
                     <>
                       <Frown size={20} />
-                      아쉽네요! 내일 다시 도전하세요!
+                      {t('daily_result_lose')}
                     </>
                   )}
                 </div>
@@ -246,12 +247,12 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
                 {spinning ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    돌리는 중...
+                    {t('loading')}
                   </>
                 ) : (
                   <>
                     <Gift size={16} />
-                    룰렛 돌리기
+                    {t('daily_spin')}
                     <ChevronRight size={15} />
                   </>
                 )}

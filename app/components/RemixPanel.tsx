@@ -15,6 +15,7 @@ import {
   Zap,
   AlertTriangle,
 } from 'lucide-react';
+import { t } from './LanguageSwitcher';
 
 const REMIX_MODES = [
   {
@@ -139,7 +140,7 @@ export default function RemixPanel({ originalPrompt, targetProduct, onRemixCompl
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Sparkles size={14} className="text-violet-400" />
-              <span className="text-xs font-bold text-white/50 uppercase tracking-widest">리믹스 결과</span>
+              <span className="text-xs font-bold text-white/50 uppercase tracking-widest">{t('remix_title')}</span>
             </div>
             <button
               onClick={copyResult}
@@ -148,12 +149,12 @@ export default function RemixPanel({ originalPrompt, targetProduct, onRemixCompl
               {copied ? (
                 <>
                   <Check size={13} className="text-emerald-400" />
-                  복사됨
+                  {t('gen_copied')}
                 </>
               ) : (
                 <>
                   <Copy size={13} />
-                  복사
+                  {t('gen_copy')}
                 </>
               )}
             </button>

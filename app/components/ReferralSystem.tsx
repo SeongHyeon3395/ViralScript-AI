@@ -6,6 +6,7 @@ import {
   ChevronRight, X, Zap,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { t } from './LanguageSwitcher';
 import type { User } from '@supabase/supabase-js';
 
 function TwitterIcon({ size = 16 }: { size?: number }) {
@@ -76,18 +77,18 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/20">
               <Users size={26} className="text-white" />
             </div>
-            <h2 className="text-xl font-bold text-white">친구 초대하고 크레딧 받기</h2>
+            <h2 className="text-xl font-bold text-white">{t('referral_title')}</h2>
             <p className="text-sm text-white/40 mt-1">
-              친구를 초대하면 <span className="text-emerald-400 font-semibold">당신과 친구 모두 3 크레딧</span>을 받습니다!
+              {t('referral_desc')}
             </p>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: '초대한 친구', value: '0명', icon: Users, color: 'text-violet-400' },
-              { label: '받은 크레딧', value: '0개', icon: Zap, color: 'text-amber-400' },
-              { label: '최대 적립', value: '∞', icon: Sparkles, color: 'text-emerald-400' },
+              { label: t('referral_invited_friends'), value: '0명', icon: Users, color: 'text-violet-400' },
+              { label: t('referral_credits_earned'), value: '0개', icon: Zap, color: 'text-amber-400' },
+              { label: t('referral_max_earn'), value: '∞', icon: Sparkles, color: 'text-emerald-400' },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <Icon size={16} className={`mx-auto mb-1 ${color}`} />
@@ -99,7 +100,7 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
 
           {/* Referral code */}
           <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <p className="text-xs text-white/40 mb-2 font-medium">내 추천인 코드</p>
+            <p className="text-xs text-white/40 mb-2 font-medium">{t('referral_my_code')}</p>
             <div className="flex items-center gap-2">
               <div className="flex-1 rounded-xl px-4 py-3 text-center" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
                 <span className="text-lg font-bold tracking-widest gradient-text">{referralCode || '----------'}</span>
@@ -113,9 +114,9 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
           {/* Share buttons */}
           <div className="grid grid-cols-3 gap-2 mb-6">
             {[
-              { icon: Share2, label: '공유하기', color: 'from-violet-600 to-indigo-600' },
-              { icon: Send, label: '카카오톡', color: 'from-yellow-500 to-yellow-600' },
-              { icon: TwitterIcon, label: '트위터', color: 'from-sky-500 to-blue-500' },
+              { icon: Share2, label: t('referral_share'), color: 'from-violet-600 to-indigo-600' },
+              { icon: Send, label: t('referral_kakao'), color: 'from-yellow-500 to-yellow-600' },
+              { icon: TwitterIcon, label: t('referral_twitter'), color: 'from-sky-500 to-blue-500' },
             ].map(({ icon: Icon, label, color }) => (
               <button key={label} onClick={copyLink} className="flex flex-col items-center gap-1.5 rounded-xl py-3 text-xs font-medium text-white/60 hover:text-white transition-all bg-white/5 hover:bg-white/10 border border-white/10">
                 <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center`}><Icon size={14} className="text-white" /></div>
@@ -126,11 +127,11 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
 
           {/* How it works */}
           <div className="space-y-3 mb-6">
-            <p className="text-xs font-bold text-white/40 uppercase tracking-widest">작동 방식</p>
+            <p className="text-xs font-bold text-white/40 uppercase tracking-widest">{t('referral_how')}</p>
             {[
-              { num: '1', title: '링크 공유', desc: '친구에게 내 추천 링크를 보내세요' },
-              { num: '2', title: '친구 가입', desc: '친구가 내 링크로 가입하면 3 크레딧 즉시 지급' },
-              { num: '3', title: '나도 3 크레딧 획득', desc: '친구가 가입할 때마다 나에게도 3 크레딧이 추가됩니다' },
+              { num: '1', title: t('referral_step1_title'), desc: t('referral_step1_desc') },
+              { num: '2', title: t('referral_step2_title'), desc: t('referral_step2_desc') },
+              { num: '3', title: t('referral_step3_title'), desc: t('referral_step3_desc') },
             ].map(({ num, title, desc }) => (
               <div key={num} className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shrink-0 mt-0.5"><span className="text-xs font-bold text-white">{num}</span></div>
@@ -140,7 +141,7 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
           </div>
 
           {/* CTA */}
-          <button onClick={copyLink} className="btn-primary w-full flex items-center justify-center gap-2"><Link2 size={16} />{copied ? '링크 복사 완료!' : '초대 링크 복사하기'}<ChevronRight size={15} /></button>
+          <button onClick={copyLink} className="btn-primary w-full flex items-center justify-center gap-2"><Link2 size={16} />{copied ? t('referral_copied') : t('referral_copy_link')}<ChevronRight size={15} /></button>
           <div className="h-px w-full bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent mt-6" />
         </div>
       </div>

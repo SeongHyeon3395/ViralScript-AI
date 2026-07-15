@@ -7,6 +7,7 @@ import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { t } from '@/app/components/LanguageSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
@@ -31,16 +32,16 @@ export default function PricingPage() {
       <main className="flex-1 pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 sm:px-6">
         <div className="mx-auto max-w-5xl">
           <div className="text-center mb-10 sm:mb-14 space-y-3 px-4">
-            <span className="badge badge-amber inline-flex"><Star size={11} /> 크레딧</span>
+            <span className="badge badge-amber inline-flex"><Star size={11} /> {t('nav_credits')}</span>
             {PAYMENT_ENABLED ? (
               <>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">크레딧 충전 플랜</h2>
-                <p className="text-white/40 text-xs sm:text-sm">필요할 때만 충전하세요. 구독 없음, 만료 없음.</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_title')}</h2>
+                <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_desc')}</p>
               </>
             ) : (
               <>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">무료로 시작하세요</h2>
-                <p className="text-white/40 text-xs sm:text-sm">광고 시청으로 크레딧을 충전하고 무한 분석을 즐기세요.</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_free_title')}</h2>
+                <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_free_desc')}</p>
               </>
             )}
           </div>
@@ -53,7 +54,7 @@ export default function PricingPage() {
                   return (
                     <div key={plan.id} className={`relative rounded-2xl p-7 card-hover flex flex-col ${isPro ? 'glow-purple' : ''}`}
                       style={{ background: isPro ? 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(79,70,229,0.10) 100%)' : 'rgba(13,13,20,0.6)', border: isPro ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.08)' }}>
-                      {isPro && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-purple px-3 py-1 text-xs"><Star size={10} fill="currentColor" />가장 인기</span></div>}
+                      {isPro && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-purple px-3 py-1 text-xs"><Star size={10} fill="currentColor" />{t('pricing_most_popular')}</span></div>}
                       <div className="flex-1">
                         <p className="text-xs font-bold text-white/40 tracking-widest uppercase mb-3">{plan.name}</p>
                         <div className="flex items-end gap-1 mb-1"><span className="text-4xl font-extrabold text-white">{plan.credits}</span><span className="text-sm text-white/40 mb-1.5 ml-1">크레딧</span></div>
@@ -61,13 +62,13 @@ export default function PricingPage() {
                         <p className="text-xs text-white/30">${plan.priceUsd} USD</p>
                         <p className="text-sm text-white/50 mt-4 leading-relaxed">{plan.description}</p>
                       </div>
-                      <button className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${isPro ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>충전하기<ArrowRight size={14} /></button>
+                      <button className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${isPro ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{t('pricing_charge_btn')}<ArrowRight size={14} /></button>
                     </div>
                   );
                 })}
               </div>
               <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-xs text-white/30">
-                {[{ icon: Shield, text: '안전한 결제 처리' }, { icon: Zap, text: '즉시 크레딧 지급' }, { icon: Check, text: '환불 정책 보장' }].map(({ icon: Icon, text }) => (
+                {[{ icon: Shield, text: t('pricing_secure') }, { icon: Zap, text: t('pricing_instant') }, { icon: Check, text: t('pricing_refund') }].map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-1.5"><Icon size={13} />{text}</div>
                 ))}
               </div>
@@ -78,13 +79,13 @@ export default function PricingPage() {
               {user ? (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                   {[
-                    { icon: Gift, title: '출석 룰렛', desc: '매일 접속하고 룰렛을 돌려 최대 10 크레딧을 획득하세요.', badge: '매일 무료', badgeClass: 'badge-green', action: '룰렛 돌리기', href: '/generator', highlight: false },
-                    { icon: Play, title: '광고 보상 충전', desc: '30초 광고를 보고 즉시 3 크레딧을 무료로 받으세요. 하루 최대 5회.', badge: '하루 5회', badgeClass: 'badge-amber', action: '광고 보고 충전하기', href: '/generator', highlight: true },
-                    { icon: Gift, title: '친구 초대', desc: '친구가 가입하면 나도 3 크레딧, 친구도 3 크레딧.', badge: '무제한', badgeClass: 'badge-purple', action: '초대하기', href: '/generator', highlight: false },
+                    { icon: Gift, title: t('free_roulette_title'), desc: t('free_roulette_desc'), badge: t('free_roulette_badge'), badgeClass: 'badge-green', action: t('pricing_roulette_action'), href: '/generator', highlight: false },
+                    { icon: Play, title: t('free_ad_title'), desc: t('free_ad_desc'), badge: t('free_ad_badge'), badgeClass: 'badge-amber', action: t('pricing_ad_action'), href: '/generator', highlight: true },
+                    { icon: Gift, title: t('free_invite_title'), desc: t('free_invite_desc'), badge: t('free_invite_badge'), badgeClass: 'badge-purple', action: t('pricing_invite_action'), href: '/generator', highlight: false },
                   ].map(({ icon: Icon, title, desc, badge, badgeClass, action, href, highlight }) => (
                     <div key={title} className={`relative rounded-2xl p-7 card-hover flex flex-col ${highlight ? 'glow-purple' : ''}`}
                       style={{ background: highlight ? 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(79,70,229,0.10) 100%)' : 'rgba(13,13,20,0.6)', border: highlight ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.08)' }}>
-                      {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-amber px-3 py-1 text-xs"><Star size={10} fill="currentColor" />추천</span></div>}
+                      {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-amber px-3 py-1 text-xs"><Star size={10} fill="currentColor" />{t('recommended')}</span></div>}
                       <div className="flex-1">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/20 to-indigo-600/20 border border-violet-500/20 flex items-center justify-center mb-4"><Icon size={18} className="text-violet-400" /></div>
                         <p className="text-base font-bold text-white mb-1">{title}</p>
@@ -98,9 +99,9 @@ export default function PricingPage() {
               ) : (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto mb-4"><LogIn size={28} className="text-white" /></div>
-                  <h3 className="text-xl font-bold text-white mb-2">로그인이 필요합니다</h3>
-                  <p className="text-sm text-white/40 mb-6">로그인 후 무료 크레딧 충전 방법을 확인하세요.</p>
-                  <button onClick={() => navbarRef.current?.openLoginModal()} className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />로그인하기<ArrowRight size={15} /></button>
+                  <h3 className="text-xl font-bold text-white mb-2">{t('pricing_login_prompt')}</h3>
+                  <p className="text-sm text-white/40 mb-6">{t('pricing_login_desc')}</p>
+                  <button onClick={() => navbarRef.current?.openLoginModal()} className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />{t('pricing_login_btn')}<ArrowRight size={15} /></button>
                 </div>
               )}
 
