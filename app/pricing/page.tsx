@@ -38,12 +38,12 @@ export default function PricingPage() {
                 <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_title')}</h2>
                 <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_desc')}</p>
               </>
-            ) : (
+            ) : user ? (
               <>
                 <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_free_title')}</h2>
                 <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_free_desc')}</p>
               </>
-            )}
+            ) : null}
           </div>
 
           {PAYMENT_ENABLED ? (
