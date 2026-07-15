@@ -31,23 +31,13 @@ export default function PricingPage() {
       <Navbar ref={navbarRef} />
       <main className="flex-1 pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 sm:px-6">
         <div className="mx-auto max-w-5xl">
-          <div className="text-center mb-10 sm:mb-14 space-y-3 px-4">
-            <span className="badge badge-amber inline-flex"><Star size={11} /> {t('nav_credits')}</span>
-            {PAYMENT_ENABLED ? (
-              <>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_title')}</h2>
-                <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_desc')}</p>
-              </>
-            ) : user ? (
-              <>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_free_title')}</h2>
-                <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_free_desc')}</p>
-              </>
-            ) : null}
-          </div>
-
           {PAYMENT_ENABLED ? (
             <>
+              <div className="text-center mb-10 sm:mb-14 space-y-3 px-4">
+                <span className="badge badge-amber inline-flex"><Star size={11} /> {t('nav_credits')}</span>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_title')}</h2>
+                <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_desc')}</p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 {CREDIT_PLANS.map((plan, i) => {
                   const isPro = i === 1;
@@ -75,9 +65,13 @@ export default function PricingPage() {
             </>
           ) : (
             <>
-              {/* 로그인 유저에게만 무료 충전 카드 표시 */}
               {user ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+                <>
+                  <div className="text-center mb-10 sm:mb-14 space-y-3 px-4">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_free_title')}</h2>
+                    <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_free_desc')}</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                   {[
                     { icon: Gift, title: t('free_roulette_title'), desc: t('free_roulette_desc'), badge: t('free_roulette_badge'), badgeClass: 'badge-green', action: t('pricing_roulette_action'), href: '/generator', highlight: false },
                     { icon: Play, title: t('free_ad_title'), desc: t('free_ad_desc'), badge: t('free_ad_badge'), badgeClass: 'badge-amber', action: t('pricing_ad_action'), href: '/generator', highlight: true },
@@ -97,12 +91,14 @@ export default function PricingPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto mb-4"><LogIn size={28} className="text-white" /></div>
-                  <h3 className="text-xl font-bold text-white mb-2">{t('pricing_login_prompt')}</h3>
-                  <p className="text-sm text-white/40 mb-6">{t('pricing_login_desc')}</p>
-                  <button onClick={() => navbarRef.current?.openLoginModal()} className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />{t('pricing_login_btn')}<ArrowRight size={15} /></button>
-                </div>
+                <section className="pt-16 pb-20 px-4">
+                  <div className="mx-auto max-w-md text-center space-y-6">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg"><LogIn size={28} className="text-white" /></div>
+                    <h2 className="text-2xl font-bold text-white">{t('gen_login_required')}</h2>
+                    <p className="text-sm text-white/40">{t('gen_login_desc')}</p>
+                    <button onClick={() => navbarRef.current?.openLoginModal()} className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />{t('gen_login_btn')}<ArrowRight size={15} /></button>
+                  </div>
+                </section>
               )}
 
               {user && (
