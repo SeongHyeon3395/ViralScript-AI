@@ -53,8 +53,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  if (!isOpen) return null;
-
   // ─── OTP 카운트다운 타이머 ───
   useEffect(() => {
     if (mode !== 'otp' || otpExpired) return;
@@ -268,6 +266,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     const s = seconds % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }, []);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">

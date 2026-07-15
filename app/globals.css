@@ -140,6 +140,7 @@ body {
     radial-gradient(ellipse 80% 60% at 20% 0%, rgba(124,58,237,0.12) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 10%, rgba(6,182,212,0.08) 0%, transparent 50%),
     radial-gradient(ellipse 40% 40% at 50% 80%, rgba(79,70,229,0.08) 0%, transparent 60%);
+  background-attachment: fixed;
 }
 
 /* Input focus ring */

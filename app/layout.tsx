@@ -42,7 +42,7 @@ export default function RootLayout({
       lang="ko"
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col mesh-bg">{children}</body>
+      <body className="min-h-screen flex flex-col mesh-bg">{children}</body>
     </html>
   );
 }
