@@ -234,7 +234,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         setMessage(null);
         setLoading(false);
         return;
-      }
       } else if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
 
