@@ -8,6 +8,7 @@ import { t } from './LanguageSwitcher';
 interface TrendItem {
   id: string; platform: string; region: string;
   title: string; subtitle: string; views: string; likes: string; tags: string;
+  created_at?: string;
 }
 
 const PLATFORM_ICONS: Record<string, typeof Music> = { tiktok: Music, TikTok: Music, youtube: Play, 'YouTube Shorts': Play, instagram: Camera, 'Instagram Reels': Camera };
@@ -104,6 +105,26 @@ export default function TrendFeed() {
     return undefined;
   }
 
+  // KST 포맷 함수 (YYYY.MM.DD HH:mm KST 기준)
+  function formatKstTime(isoString?: string): string {
+    const date = isoString ? new Date(isoString) : new Date();
+    // UTC+9 계산
+    const kstOffset = 9 * 60;
+    const utcTime = date.getTime() + date.getTimezoneOffset() * 60000;
+    const kstDate = new Date(utcTime + kstOffset * 60000);
+
+    const yyyy = kstDate.getFullYear();
+    const mm = String(kstDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(kstDate.getDate()).padStart(2, '0');
+    const hh = String(kstDate.getHours()).padStart(2, '0');
+    const min = String(kstDate.getMinutes()).padStart(2, '0');
+
+    return `(${yyyy}.${mm}.${dd} ${hh}:${min} KST 기준)`;
+  }
+
+  const latestCreatedAt = trends[0]?.created_at;
+  const kstFormattedTime = formatKstTime(latestCreatedAt);
+
   let filtered = activeFilter === 'all' ? trends : trends.filter((t) => toFilterKey(t.platform) === activeFilter);
   if (activeRegion !== 'all') {
     filtered = filtered.filter((t) => t.region === activeRegion);
@@ -115,12 +136,12 @@ export default function TrendFeed() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-            <TrendingUp size={16} className="text-white" />
-          </div>
           <div>
-            <h3 className="text-base font-bold text-white">{t('trend_title')}</h3>
-            {loading && <p className="text-xs text-white/30 flex items-center gap-1"><Loader2 size={10} className="animate-spin" />{t('trend_curating')}</p>}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-bold text-white">{t('trend_title')}</h3>
+              <span className="text-xs font-normal text-white/50">{kstFormattedTime}</span>
+            </div>
+            {loading && <p className="text-xs text-white/30 flex items-center gap-1 mt-0.5"><Loader2 size={10} className="animate-spin" />{t('trend_curating')}</p>}
           </div>
         </div>
         {error && <span className="text-xs text-amber-400 flex items-center gap-1"><RefreshCw size={11} />{t('trend_fallback')}</span>}

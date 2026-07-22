@@ -29,23 +29,24 @@ const trendItemSchema = {
   required: ['trends'],
 };
 
-const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Your job is to produce a JSON array of exactly 6 fictitious but realistic trending short-form video summaries across US TikTok, KR YouTube Shorts, and JP Instagram Reels.
+const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Your job is to produce a JSON array of at least 36 fictitious but highly realistic trending short-form video summaries across regions (US, KR, JP) and platforms (TikTok, YouTube Shorts, Instagram Reels).
+
+Requirements:
+- Generate AT LEAST 36 items in total (12 items for US, 12 items for KR, 12 items for JP).
+- Within each region (US, KR, JP), distribute evenly across TikTok, YouTube Shorts, and Instagram Reels (4 items per platform per region).
 
 For each item, return:
 - platform: "TikTok" or "YouTube Shorts" or "Instagram Reels"
 - region: "US" or "KR" or "JP"
 - title: a compelling, clickable headline in the region's native language (Korean for KR, Japanese for JP, English for US)
 - subtitle: one-sentence description of why this trend is viral (native language)
-- views: virtual view count string, e.g. "2.3M", "890K"
-- likes: virtual like count string, e.g. "450K"
+- views: realistic high view count string, e.g. "3.2M", "1.1M", "890K"
+- likes: realistic like count string, e.g. "450K", "120K"
 - tags: 2-3 comma-separated hashtag-style tags in native language, e.g. "#AI챌린지,#숏폼대박"
 
-Ensure diversity:
-- At least 2 from each region (US, KR, JP)
-- At least 1 from each platform
-- Topics should span: AI tech, food, beauty, dance, comedy, marketing tips
+Ensure topics span diverse viral categories: AI tools & filters, K-pop/beauty/fashion, food hacks, funny skits, ASMR, tech productivity, viral dance challenges.
 
-Return ONLY valid JSON. No markdown wrappers.`;
+Return ONLY valid JSON according to the schema. No markdown wrappers.`;
 
 // ─── POST /api/cron/trend ────────────────────────────────────────
 export async function POST(req: NextRequest): Promise<NextResponse> {

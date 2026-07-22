@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import {
   X,
   Mail,
@@ -18,11 +19,13 @@ import {
   RefreshCw,
   ArrowLeft,
   Clock,
+  Phone,
+  Search,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 
-type AuthMode = 'login' | 'signup' | 'forgot' | 'otp';
+type AuthMode = 'login' | 'signup' | 'forgot' | 'otp' | 'find_email';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -40,10 +43,15 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [name, setName] = useState('');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+82');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+
+  // ─── 이메일 찾기 상태 ───
+  const [foundEmailResult, setFoundEmailResult] = useState<{ email?: string; masked_email?: string } | null>(null);
 
   // ─── OTP 상태 ───
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
@@ -85,6 +93,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setPassword('');
     setPasswordError('');
     setName('');
+    setPhoneCountryCode('+82');
+    setPhoneNumber('');
     setShowPassword(false);
     setMessage(null);
     setEmailSent(false);
@@ -93,6 +103,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setOtpCountdown(OTP_EXPIRY_SECONDS);
     setOtpExpired(false);
     setResendCooldown(0);
+    setFoundEmailResult(null);
   }
 
   function switchMode(newMode: AuthMode) {
@@ -152,7 +163,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name: name || undefined } },
+        options: {
+          data: {
+            full_name: name || undefined,
+            name: name || undefined,
+            phone_country_code: phoneCountryCode,
+            phone_number: phoneNumber,
+          },
+        },
       });
       if (error) {
         const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
@@ -216,7 +234,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { name: name || undefined } },
+          options: {
+            data: {
+              full_name: name || undefined,
+              name: name || undefined,
+              phone_country_code: phoneCountryCode,
+              phone_number: phoneNumber,
+            },
+          },
         });
 
         if (error) {
@@ -268,7 +293,35 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     }
   }
 
-  // ─── 카운트다운 포맷 ───
+  // ─── 전화번호 기반 이메일 찾기 ───
+  async function handleFindEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name || !phoneNumber) return;
+    setLoading(true);
+    setMessage(null);
+    setFoundEmailResult(null);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<{ data: Array<{ email: string; masked_email: string }> | null; error: { message: string } | null }>)('find_email_by_phone', {
+        p_full_name: name,
+        p_phone_country_code: phoneCountryCode,
+        p_phone_number: phoneNumber,
+      });
+
+      if (error) {
+        setMessage({ type: 'error', text: error.message || t('auth_network_error') });
+      } else if (data && data.length > 0) {
+        setFoundEmailResult(data[0]);
+      } else {
+        setMessage({ type: 'error', text: '일치하는 유저 정보를 찾을 수 없습니다.' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: t('auth_network_error') });
+    } finally {
+      setLoading(false);
+    }
+  }
   const formatTime = useCallback((seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -414,11 +467,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   {mode === 'login' && t('auth_welcome_back')}
                   {mode === 'signup' && t('auth_nice_to_meet')}
                   {mode === 'forgot' && t('auth_reset_password')}
+                  {mode === 'find_email' && '이메일 찾기'}
                 </h2>
                 <p className="text-sm text-white/40 mt-1">
                   {mode === 'login' && t('auth_login_desc')}
                   {mode === 'signup' && t('auth_signup_desc')}
                   {mode === 'forgot' && t('auth_forgot_desc')}
+                  {mode === 'find_email' && '가입 시 등록한 이름과 전화번호를 입력하세요.'}
                 </p>
               </div>
               <button
@@ -431,8 +486,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             </div>
 
             <div className="px-8 py-6 space-y-4">
-              <form onSubmit={handleSubmit} className="space-y-3">
-                {mode === 'signup' && (
+              {mode === 'find_email' ? (
+                <form onSubmit={handleFindEmail} className="space-y-3">
                   <div className="relative">
                     <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
                     <input
@@ -444,86 +499,181 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
                     />
                   </div>
-                )}
-                <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth_email_placeholder')}
-                    required
-                    className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
-                  />
-                </div>
-                {mode !== 'forgot' && (
-                  <div className="relative">
-                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={t('auth_password_placeholder')}
-                      required
-                      minLength={8}
-                      className={`w-full pl-10 pr-11 py-3 rounded-xl text-sm ${passwordError ? 'border-red-500/60 ring-1 ring-red-500/30' : 'input-dark'}`}
-                    />
-                    {passwordError && <p className="flex items-center gap-1.5 text-xs text-red-400 mt-1"><span>⚠️</span> {passwordError}</p>}
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                )}
 
-                {mode === 'login' && (
-                  <div className="flex items-center justify-between text-xs">
-                    <button
-                      type="button"
-                      onClick={() => switchMode('forgot')}
-                      className="text-violet-400 hover:text-violet-300 transition-colors"
+                  <div className="flex gap-2">
+                    <select
+                      value={phoneCountryCode}
+                      onChange={(e) => setPhoneCountryCode(e.target.value)}
+                      className="px-3 py-3 rounded-xl input-dark text-sm bg-zinc-900 border border-white/10 text-white"
                     >
-                      {t('auth_forgot_password_link')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setEmail(''); setMode('forgot'); setMessage({ type: 'error', text: t('auth_forgot_desc') }); }}
-                      className="text-violet-400/60 hover:text-violet-300 transition-colors flex items-center gap-1"
-                    >
-                      <HelpCircle size={12} />
-                      {t('auth_forgot_email_link')}
-                    </button>
-                  </div>
-                )}
+                      <option value="+82">🇰🇷 +82 (KR)</option>
+                      <option value="+1">🇺🇸 +1 (US)</option>
+                      <option value="+81">🇯🇵 +81 (JP)</option>
+                      <option value="+86">🇨🇳 +86 (CN)</option>
+                    </select>
 
-                {message && (
-                  <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
-                    {message.type === 'success' ? <CheckCircle2 size={15} className="shrink-0" /> : <AlertCircle size={15} className="shrink-0" />}
-                    {message.text}
+                    <div className="relative flex-1">
+                      <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="전화번호 (숫자만 입력)"
+                        required
+                        className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
+                      />
+                    </div>
                   </div>
-                )}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
-                >
-                  {loading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
+                  {foundEmailResult && (
+                    <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-center space-y-1 fade-in-up">
+                      <p className="text-xs text-white/50">조회된 이메일 계정</p>
+                      <p className="text-base font-bold text-violet-300">{foundEmailResult.masked_email}</p>
+                    </div>
+                  )}
+
+                  {message && (
+                    <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
+                      {message.type === 'success' ? <CheckCircle2 size={15} className="shrink-0" /> : <AlertCircle size={15} className="shrink-0" />}
+                      {message.text}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
+                  >
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <><Search size={15} /> 이메일 조회하기</>}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  {mode === 'signup' && (
                     <>
-                      {mode === 'login' && t('auth_login_btn')}
-                      {mode === 'signup' && t('auth_signup_btn')}
-                      {mode === 'forgot' && t('auth_reset_btn')}
-                      <ArrowRight size={15} />
+                      <div className="relative">
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder={t('auth_name_placeholder')}
+                          required
+                          className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <select
+                          value={phoneCountryCode}
+                          onChange={(e) => setPhoneCountryCode(e.target.value)}
+                          className="px-3 py-3 rounded-xl input-dark text-sm bg-zinc-900 border border-white/10 text-white"
+                        >
+                          <option value="+82">🇰🇷 +82</option>
+                          <option value="+1">🇺🇸 +1</option>
+                          <option value="+81">🇯🇵 +81</option>
+                          <option value="+86">🇨🇳 +86</option>
+                        </select>
+
+                        <div className="relative flex-1">
+                          <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                          <input
+                            type="tel"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            placeholder="전화번호"
+                            required
+                            className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-white/40 pl-1">
+                        * 전화번호는 계정 이메일 찾기 목적으로만 안전하게 사용됩니다.
+                      </p>
                     </>
                   )}
-                </button>
-              </form>
+
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t('auth_email_placeholder')}
+                      required
+                      className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
+                    />
+                  </div>
+
+                  {mode !== 'forgot' && (
+                    <div className="relative">
+                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={t('auth_password_placeholder')}
+                        required
+                        minLength={8}
+                        className={`w-full pl-10 pr-11 py-3 rounded-xl text-sm ${passwordError ? 'border-red-500/60 ring-1 ring-red-500/30' : 'input-dark'}`}
+                      />
+                      {passwordError && <p className="flex items-center gap-1.5 text-xs text-red-400 mt-1"><span>⚠️</span> {passwordError}</p>}
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  )}
+
+                  {mode === 'login' && (
+                    <div className="flex items-center justify-between text-xs">
+                      <button
+                        type="button"
+                        onClick={() => switchMode('forgot')}
+                        className="text-violet-400 hover:text-violet-300 transition-colors"
+                      >
+                        {t('auth_forgot_password_link')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => switchMode('find_email')}
+                        className="text-violet-400/60 hover:text-violet-300 transition-colors flex items-center gap-1"
+                      >
+                        <HelpCircle size={12} />
+                        {t('auth_forgot_email_link')}
+                      </button>
+                    </div>
+                  )}
+
+                  {message && (
+                    <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
+                      {message.type === 'success' ? <CheckCircle2 size={15} className="shrink-0" /> : <AlertCircle size={15} className="shrink-0" />}
+                      {message.text}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
+                  >
+                    {loading ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <>
+                        {mode === 'login' && t('auth_login_btn')}
+                        {mode === 'signup' && t('auth_signup_btn')}
+                        {mode === 'forgot' && t('auth_reset_btn')}
+                        <ArrowRight size={15} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
 
               <p className="text-center text-sm text-white/40">
                 {mode === 'login' && (
@@ -542,7 +692,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     </button>
                   </>
                 )}
-                {mode === 'forgot' && (
+                {(mode === 'forgot' || mode === 'find_email') && (
                   <>
                     <button onClick={() => switchMode('login')} className="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
                       {t('auth_back_to_login')}
@@ -552,8 +702,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               </p>
 
               {mode === 'signup' && (
-                <p className="text-center text-xs text-white/20">
-                  {t('auth_agree_terms')}
+                <p className="text-center text-xs text-white/40">
+                  가입 시{' '}
+                  <Link href="/terms" target="_blank" className="text-violet-400 underline hover:text-violet-300 transition-colors">
+                    이용약관
+                  </Link>
+                   및{' '}
+                  <Link href="/privacy" target="_blank" className="text-violet-400 underline hover:text-violet-300 transition-colors">
+                    개인정보처리방침
+                  </Link>
+                  에 동의합니다.
                 </p>
               )}
             </div>

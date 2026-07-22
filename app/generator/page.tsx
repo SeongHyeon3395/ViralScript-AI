@@ -155,9 +155,9 @@ export default function GeneratorPage() {
   return (
     <>
       <Navbar ref={navbarRef} />
-      <main className="flex-1">
+      <main className="flex-1 flex flex-col min-h-screen">
         {!user ? (
-          <section className="pt-32 pb-20 px-4 sm:px-6">
+          <section className="pt-32 pb-20 px-4 sm:px-6 flex-1">
             <div className="mx-auto max-w-md text-center space-y-6">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg"><LogIn size={28} className="text-white" /></div>
               <h2 className="text-2xl font-bold text-white">{t('gen_login_required')}</h2>
@@ -166,8 +166,7 @@ export default function GeneratorPage() {
             </div>
           </section>
         ) : (
-          <>
-          <section className="pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 sm:px-6">
+          <section className="pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 sm:px-6 flex-1">
           <div className="mx-auto max-w-2xl space-y-6 sm:space-y-8">
             <div className="text-center space-y-2 px-4">
               <span className="badge badge-purple inline-flex"><Sparkles size={11} /> {t('nav_generator')}</span>
@@ -227,9 +226,8 @@ export default function GeneratorPage() {
             {result && <ResultPanel result={result} cached={cached} />}
           </div>
         </section>
-        <Footer />
-        </>
         )}
+        <Footer />
       </main>
 
       <DailyRewardWheel onClaim={handleRewardClaimed} />
