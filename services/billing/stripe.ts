@@ -8,6 +8,7 @@
 
 import Stripe from 'stripe';
 import { CREDIT_PLANS } from '@/lib/credits';
+import { getBaseUrl } from '@/utils/baseUrl';
 
 // ─── Feature Gate ─────────────────────────────────────────────
 function isPaymentEnabled(): boolean {
@@ -46,8 +47,8 @@ export interface StripeSessionResult {
 export async function createStripeSession({
   userId,
   planId,
-  successUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/dashboard?payment=success`,
-  cancelUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/?payment=cancelled`,
+  successUrl = `${getBaseUrl() || 'https://viralscript-ai-inky.vercel.app'}/dashboard?payment=success`,
+  cancelUrl = `${getBaseUrl() || 'https://viralscript-ai-inky.vercel.app'}/?payment=cancelled`,
 }: CreateStripeSessionParams): Promise<StripeSessionResult> {
   if (!isPaymentEnabled()) {
     throw new Error('[SEALED] 결제 기능이 비활성화 상태입니다.');

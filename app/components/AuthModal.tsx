@@ -314,7 +314,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       } else if (data && data.length > 0) {
         setFoundEmailResult(data[0]);
       } else {
-        setMessage({ type: 'error', text: '일치하는 유저 정보를 찾을 수 없습니다.' });
+        setMessage({ type: 'error', text: t('find_email_not_found') });
       }
     } catch {
       setMessage({ type: 'error', text: t('auth_network_error') });
@@ -467,13 +467,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   {mode === 'login' && t('auth_welcome_back')}
                   {mode === 'signup' && t('auth_nice_to_meet')}
                   {mode === 'forgot' && t('auth_reset_password')}
-                  {mode === 'find_email' && '이메일 찾기'}
+                  {mode === 'find_email' && t('find_email_title')}
                 </h2>
                 <p className="text-sm text-white/40 mt-1">
                   {mode === 'login' && t('auth_login_desc')}
                   {mode === 'signup' && t('auth_signup_desc')}
                   {mode === 'forgot' && t('auth_forgot_desc')}
-                  {mode === 'find_email' && '가입 시 등록한 이름과 전화번호를 입력하세요.'}
+                  {mode === 'find_email' && t('find_email_desc')}
                 </p>
               </div>
               <button
@@ -518,7 +518,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         type="tel"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="전화번호 (숫자만 입력)"
+                        placeholder={t('find_email_phone_placeholder')}
                         required
                         className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
                       />
@@ -527,7 +527,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
                   {foundEmailResult && (
                     <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-center space-y-1 fade-in-up">
-                      <p className="text-xs text-white/50">조회된 이메일 계정</p>
+                      <p className="text-xs text-white/50">{t('find_email_result_label')}</p>
                       <p className="text-base font-bold text-violet-300">{foundEmailResult.masked_email}</p>
                     </div>
                   )}
@@ -544,7 +544,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     disabled={loading}
                     className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
                   >
-                    {loading ? <Loader2 size={16} className="animate-spin" /> : <><Search size={15} /> 이메일 조회하기</>}
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <><Search size={15} /> {t('find_email_search_btn')}</>}
                   </button>
                 </form>
               ) : (
@@ -581,14 +581,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                             type="tel"
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder="전화번호"
+                            placeholder={t('signup_phone_placeholder')}
                             required
                             className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
                           />
                         </div>
                       </div>
                       <p className="text-[11px] text-white/40 pl-1">
-                        * 전화번호는 계정 이메일 찾기 목적으로만 안전하게 사용됩니다.
+                        {t('signup_phone_disclaimer')}
                       </p>
                     </>
                   )}
@@ -703,15 +703,15 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
               {mode === 'signup' && (
                 <p className="text-center text-xs text-white/40">
-                  가입 시{' '}
+                  {t('auth_agree_terms_prefix')}{' '}
                   <Link href="/terms" target="_blank" className="text-violet-400 underline hover:text-violet-300 transition-colors">
-                    이용약관
+                    {t('terms_label')}
                   </Link>
-                   및{' '}
+                  {' '}{t('and_label')}{' '}
                   <Link href="/privacy" target="_blank" className="text-violet-400 underline hover:text-violet-300 transition-colors">
-                    개인정보처리방침
+                    {t('privacy_label')}
                   </Link>
-                  에 동의합니다.
+                  {t('auth_agree_terms_suffix')}
                 </p>
               )}
             </div>

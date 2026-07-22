@@ -176,39 +176,39 @@ export default function GeneratorPage() {
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-4 sm:space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />숏폼 영상 URL</label>
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')}</label>
                 <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder={t('gen_url_placeholder')} className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
                 {urlError && <p className="flex items-center gap-1.5 text-xs text-red-400 fade-in-up"><span>⚠️</span> {urlError}</p>}
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><ShoppingBag size={14} className="text-emerald-400" />홍보할 상품 / 서비스명</label>
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><ShoppingBag size={14} className="text-emerald-400" />{t('gen_product_label')}</label>
                 <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder={t('gen_product_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><SlidersHorizontal size={14} className="text-amber-400" />추가 요청사항 <span className="text-xs text-white/25 font-normal">(선택)</span></label>
-                <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder="예: 20대 여성 타겟, MZ 감성, 유머러스한 톤, 전환율 극대화..." className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><SlidersHorizontal size={14} className="text-amber-400" />{t('gen_custom_prompt_label')} <span className="text-xs text-white/25 font-normal">({t('gen_optional')})</span></label>
+                <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder={t('gen_custom_prompt_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
               </div>
 
               {credits < 3 && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                  <span>⚠️ 크레딧이 부족합니다</span>
-                  <button onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />광고 보고 무료 충전</button>
+                  <span>⚠️ {t('gen_no_credits')}</span>
+                  <button onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>
                 </div>
               )}
 
               <button onClick={handleAnalyze} disabled={loading || !url.trim() || !targetProduct.trim()} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
                 {loading ? (
-                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />AI 생성 중... (최대 30초)</span>
+                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />{t('gen_analyzing')}</span>
                 ) : (
                   <>
-                    <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />바이럴 구조 분석 및 3개국 대본 생성<ArrowRight size={15} /></span>
-                    <span className="flex items-center gap-1 text-xs text-white/60 font-normal"><Zap size={11} className="text-violet-300" />보유 <span className="text-violet-200 font-semibold">{credits}</span> 크레딧 · 생성 시 영상 길이에 따라 <span className="text-violet-200 font-semibold">1~8</span> 크레딧 소모</span>
+                    <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />{t('gen_analyze_btn')}<ArrowRight size={15} /></span>
+                    <span className="flex items-center gap-1 text-xs text-white/60 font-normal"><Zap size={11} className="text-violet-300" />{t('gen_credits_balance').replace('{credits}', String(credits))} <span className="text-violet-200 font-semibold">{t('gen_credits_cost_range')}</span></span>
                   </>
                 )}
               </button>
 
               <div className="flex items-center justify-center gap-1">
-                <button onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />크레딧이 부족한가요? 30초 광고로 무료 크레딧 받기<RefreshCw size={11} /></button>
+                <button onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('gen_credits_low_cta')}<RefreshCw size={11} /></button>
               </div>
             </div>
 
@@ -219,7 +219,7 @@ export default function GeneratorPage() {
             {result && estimatedCost !== null && (
               <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl fade-in-up" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.15)' }}>
                 <Zap size={13} className="text-violet-400 shrink-0" />
-                <p className="text-xs text-white/50">생성 완료 · <span className="text-violet-300 font-semibold">{estimatedCost} 크레딧</span> 소모 · 잔여 <span className="text-violet-300 font-semibold">{credits} 크레딧</span></p>
+                <p className="text-xs text-white/50">{t('gen_complete_msg').replace('{cost}', String(estimatedCost)).replace('{remaining}', String(credits))}</p>
               </div>
             )}
 
@@ -240,9 +240,9 @@ export default function GeneratorPage() {
             <div className="h-px w-full bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
             <div className="p-8 text-center space-y-5">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mx-auto shadow-lg shadow-orange-500/20"><Shield size={28} className="text-white" /></div>
-              <div><h2 className="text-lg font-bold text-white">광고 차단 프로그램 감지됨</h2><p className="text-sm text-white/40 mt-2 leading-relaxed">무료 크레딧을 충전하시려면<br /><span className="text-orange-400 font-semibold">광고 차단기(AdBlock)를 잠시 꺼주세요.</span></p></div>
-              <button onClick={() => { setAdBlockDetected(false); setRewardPopupOpen(true); }} className="btn-primary w-full"><Gift size={16} /> 껐어요! 광고 보고 크레딧 받기</button>
-              <button onClick={() => setAdBlockDetected(false)} className="text-xs text-white/30 hover:text-white/60">닫기</button>
+              <div><h2 className="text-lg font-bold text-white">{t('gen_adblock_title')}</h2><p className="text-sm text-white/40 mt-2 leading-relaxed">{t('gen_adblock_desc')}</p></div>
+              <button onClick={() => { setAdBlockDetected(false); setRewardPopupOpen(true); }} className="btn-primary w-full"><Gift size={16} /> {t('gen_adblock_dismiss_btn')}</button>
+              <button onClick={() => setAdBlockDetected(false)} className="text-xs text-white/30 hover:text-white/60">{t('close')}</button>
             </div>
           </div>
         </div>

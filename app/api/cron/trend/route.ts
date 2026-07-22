@@ -21,19 +21,20 @@ const trendItemSchema = {
           views: { type: 'string' as const },
           likes: { type: 'string' as const },
           tags: { type: 'string' as const },
+          url: { type: 'string' as const },
         },
-        required: ['platform', 'region', 'title', 'subtitle', 'views', 'likes', 'tags'],
+        required: ['platform', 'region', 'title', 'subtitle', 'views', 'likes', 'tags', 'url'],
       },
     },
   },
   required: ['trends'],
 };
 
-const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Your job is to produce a JSON array of at least 36 fictitious but highly realistic trending short-form video summaries across regions (US, KR, JP) and platforms (TikTok, YouTube Shorts, Instagram Reels).
+const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Your job is to produce a JSON array of at least 90 fictitious but highly realistic trending short-form video summaries across regions (US, KR, JP) and platforms (TikTok, YouTube Shorts, Instagram Reels).
 
 Requirements:
-- Generate AT LEAST 36 items in total (12 items for US, 12 items for KR, 12 items for JP).
-- Within each region (US, KR, JP), distribute evenly across TikTok, YouTube Shorts, and Instagram Reels (4 items per platform per region).
+- Generate AT LEAST 90 items in total (30 items for US, 30 items for KR, 30 items for JP).
+- Within each region (US, KR, JP), distribute evenly across TikTok, YouTube Shorts, and Instagram Reels (10 items per platform per region).
 
 For each item, return:
 - platform: "TikTok" or "YouTube Shorts" or "Instagram Reels"
@@ -43,6 +44,7 @@ For each item, return:
 - views: realistic high view count string, e.g. "3.2M", "1.1M", "890K"
 - likes: realistic like count string, e.g. "450K", "120K"
 - tags: 2-3 comma-separated hashtag-style tags in native language, e.g. "#AI챌린지,#숏폼대박"
+- url: a realistic fictional URL for the video, e.g. "https://www.tiktok.com/@trending/video/7392012345678901234" or "https://www.youtube.com/shorts/ABC123XYZ" or "https://www.instagram.com/reel/DEfGhIjKlMn/"
 
 Ensure topics span diverse viral categories: AI tools & filters, K-pop/beauty/fashion, food hacks, funny skits, ASMR, tech productivity, viral dance challenges.
 
@@ -106,6 +108,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       views: t.views,
       likes: t.likes,
       tags: t.tags,
+      url: t.url,
     }));
 
     const { error: insertErr } = await supabase.from('trend_feed').insert(rows);

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Music, Play, Camera, Eye, Heart, RefreshCw, Loader2, ChevronDown } from 'lucide-react';
+import { TrendingUp, Music, Play, Camera, Eye, Heart, RefreshCw, Loader2, ChevronDown, ExternalLink } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 
 interface TrendItem {
   id: string; platform: string; region: string;
-  title: string; subtitle: string; views: string; likes: string; tags: string;
+  title: string; subtitle: string; views: string; likes: string; tags: string; url?: string;
   created_at?: string;
 }
 
@@ -16,9 +16,9 @@ const PLATFORM_COLORS: Record<string, string> = { tiktok: 'text-pink-400', TikTo
 const REGION_FLAGS: Record<string, string> = { US: '🇺🇸', KR: '🇰🇷', JP: '🇯🇵', CN: '🇨🇳' };
 const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'trend_region_kr', US: 'trend_region_us', JP: 'trend_region_jp', CN: 'trend_region_cn' };
 
-const INITIAL_LOAD = 12;
-const LOAD_MORE_COUNT = 12;
-const MAX_TRENDS = 50;
+const INITIAL_LOAD = 30;
+const LOAD_MORE_COUNT = 30;
+const MAX_TRENDS = 100;
 
 // Fallback 데모 데이터 (DB 조회 실패 시에만 사용)
 const FALLBACK_DEMO_DATA: TrendItem[] = [
@@ -170,22 +170,34 @@ export default function TrendFeed() {
       ) : displayed.length > 0 ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {displayed.map((t) => {
-              const Icon = PLATFORM_ICONS[t.platform] ?? Play;
-              const color = PLATFORM_COLORS[t.platform] ?? 'text-white/40';
+            {displayed.map((item) => {
+              const Icon = PLATFORM_ICONS[item.platform] ?? Play;
+              const color = PLATFORM_COLORS[item.platform] ?? 'text-white/40';
               return (
-                <div key={t.id} className="rounded-2xl p-5 card-hover" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div key={item.id} className="rounded-2xl p-5 card-hover" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center"><Icon size={12} className={color} /></div>
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{t.platform}</span>
-                    <span className="text-xs ml-auto">{REGION_FLAGS[t.region] ?? t.region}</span>
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{item.platform}</span>
+                    <span className="text-xs ml-auto">{REGION_FLAGS[item.region] ?? item.region}</span>
                   </div>
-                  <p className="text-sm font-bold text-white leading-snug mb-1.5">{t.title}</p>
-                  <p className="text-xs text-white/40 leading-relaxed mb-3">{t.subtitle}</p>
+                  <p className="text-sm font-bold text-white leading-snug mb-1.5">{item.title}</p>
+                  <p className="text-xs text-white/40 leading-relaxed mb-3">{item.subtitle}</p>
                   <div className="flex items-center gap-3 text-xs text-white/30">
-                    <span className="flex items-center gap-1"><Eye size={11} />{t.views}</span>
-                    <span className="flex items-center gap-1"><Heart size={11} />{t.likes}</span>
-                    {t.tags && <span className="text-violet-400/60 truncate">{t.tags}</span>}
+                    <span className="flex items-center gap-1"><Eye size={11} />{item.views}</span>
+                    <span className="flex items-center gap-1"><Heart size={11} />{item.likes}</span>
+                    {item.tags && <span className="text-violet-400/60 truncate">{item.tags}</span>}
+                    {item.url && (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-auto flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors shrink-0"
+                        title={t('trend_visit')}
+                      >
+                        <ExternalLink size={13} />
+                        <span className="hidden sm:inline">{t('trend_visit')}</span>
+                      </a>
+                    )}
                   </div>
                 </div>
               );
