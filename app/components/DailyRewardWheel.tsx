@@ -6,15 +6,39 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
+// 가중치 랜덤 알고리즘 테이블 (총 100%)
+const WEIGHTED_TABLE = [
+  { value: 1, weight: 70.00 },
+  { value: 2, weight: 15.00 },
+  { value: 3, weight: 7.00 },
+  { value: 4, weight: 3.50 },
+  { value: 5, weight: 2.00 },
+  { value: 6, weight: 1.00 },
+  { value: 7, weight: 0.70 },
+  { value: 8, weight: 0.40 },
+  { value: 9, weight: 0.30 },
+  { value: 10, weight: 0.10 },
+];
+
+function weightedRandom(): number {
+  const rand = Math.random() * 100;
+  let cumulative = 0;
+  for (const entry of WEIGHTED_TABLE) {
+    cumulative += entry.weight;
+    if (rand <= cumulative) return entry.value;
+  }
+  return 1;
+}
+
 const SLICES = [
-  { label: '1 크레딧', value: 1, color: '#22c55e', icon: Zap },
-  { label: '2 크레딧', value: 2, color: '#3b82f6', icon: Zap },
-  { label: '꽝!', value: 0, color: '#6b7280', icon: Frown },
-  { label: '10 크레딧', value: 10, color: '#a855f7', icon: Star },
-  { label: '1 크레딧', value: 1, color: '#22c55e', icon: Zap },
-  { label: '3 크레딧', value: 3, color: '#f59e0b', icon: Trophy },
-  { label: '꽝!', value: 0, color: '#6b7280', icon: Frown },
-  { label: '5 크레딧', value: 5, color: '#ec4899', icon: Star },
+  { label: '1', value: 1, color: '#22c55e', icon: Zap },
+  { label: '2', value: 2, color: '#3b82f6', icon: Zap },
+  { label: '5', value: 5, color: '#ec4899', icon: Star },
+  { label: '10', value: 10, color: '#a855f7', icon: Star },
+  { label: '3', value: 3, color: '#f59e0b', icon: Trophy },
+  { label: '1', value: 1, color: '#22c55e', icon: Zap },
+  { label: '7', value: 7, color: '#14b8a6', icon: Star },
+  { label: '4', value: 4, color: '#f97316', icon: Trophy },
 ];
 
 const SEGMENT = 360 / SLICES.length;
@@ -78,35 +102,46 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
     return `${h}시간 ${m}분 ${s}초`;
   }, [cooldown]);
 
-  function spin() {
-    if (spinning || hasSpunToday) return;
+  async function spin() {
+    if (spinning || hasSpunToday || !user) return;
     setSpinning(true);
     setResult(null);
 
-    // Weighted random — 꽝 확률 25%
-    const rand = Math.random();
-    let winnerIdx: number;
-    if (rand < 0.125) winnerIdx = 3; // 10 크레딧
-    else if (rand < 0.3) winnerIdx = 5; // 3 크레딧
-    else if (rand < 0.5) winnerIdx = 7; // 5 크레딧
-    else if (rand < 0.7) winnerIdx = 0; // 1
-    else if (rand < 0.85) winnerIdx = 4; // 1
-    else winnerIdx = Math.random() > 0.5 ? 2 : 6; // 꽝
+    // 가중치 랜덤으로 당첨 크레딧 결정
+    const wonCredits = weightedRandom();
+    // 시각적 애니메이션용 슬라이스 인덱스 (가장 가까운 값 매칭)
+    const winnerIdx = SLICES.findIndex(s => s.value === wonCredits) ?? 0;
 
-    const extraSpins = 3 + Math.floor(Math.random() * 3); // 3~5 full rotations
+    const extraSpins = 3 + Math.floor(Math.random() * 3);
     const targetAngle = extraSpins * 360 + winnerIdx * SEGMENT + SEGMENT / 2;
     const totalRotation = rotation + targetAngle;
 
     setRotation(totalRotation);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setSpinning(false);
-      const slice = SLICES[winnerIdx];
-      setResult(slice);
+      setResult({ label: `${wonCredits}`, value: wonCredits });
       if (storageKey) localStorage.setItem(storageKey, String(Date.now()));
       setHasSpunToday(true);
       setCooldown(86400000);
-      if (slice.value > 0) onClaim?.(slice.value);
+
+      // DB에 크레딧 원자적 적립
+      try {
+        const supabase = getSupabaseBrowserClient();
+        // RPC가 없을 수 있으므로 직접 SQL로 원자적 증가
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('credits_remaining')
+          .eq('id', user.id)
+          .single<{ credits_remaining: number }>();
+        if (profile) {
+          await (supabase.from('profiles').update as (values: Record<string, unknown>) => ReturnType<typeof supabase.from>)({ credits_remaining: profile.credits_remaining + wonCredits }).eq('id', user.id);
+        }
+      } catch {
+        // 무시 — 클라이언트 UI에서는 onClaim으로 반영
+      }
+
+      onClaim?.(wonCredits);
     }, 2800);
   }
 

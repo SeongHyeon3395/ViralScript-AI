@@ -7,10 +7,16 @@ export default function PrivacyPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 pt-24 pb-20 px-4 sm:px-6">
-        <div className="mx-auto max-w-3xl prose prose-invert prose-sm">
-          <h1>개인정보처리방침 (Privacy Policy)</h1>
-          <p><strong>시행일자: 2026년 7월 14일</strong></p>
+      <main className="flex-1 pt-28 pb-20 px-4 sm:px-6">
+        <div className="mx-auto max-w-3xl space-y-6">
+          <div className="text-center space-y-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-8">
+            <h1 className="text-3xl font-extrabold text-white">개인정보처리방침</h1>
+            <p className="text-sm text-white/50">Privacy Policy</p>
+            <div className="h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
+            <p className="text-xs text-white/30">시행일자: 2026년 7월 14일</p>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 prose prose-invert prose-sm max-w-none [&_h3]:text-violet-300 [&_h3]:font-bold [&_h3]:text-base [&_strong]:text-white/80 [&_li]:text-white/60 [&_p]:text-white/60 [&_td]:text-white/50 [&_th]:text-white/70 [&_table]:border-slate-700 [&_th]:bg-slate-800/50 [&_td]:border-t [&_td]:border-slate-700/50 [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2">
           <p>ViralScript AI(이하 "회사" 또는 "플랫폼")은 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」 등 관련 법령을 철저히 준수합니다. 본 방침은 플랫폼이 어떠한 정보를 수집하고, 어떻게 이용하며, 안전하게 보호하는지 안내합니다.</p>
 
           <h3>1. 수집하는 개인정보의 항목 및 수집 방법</h3>
@@ -67,6 +73,7 @@ export default function PrivacyPage() {
           <strong>응답 시간:</strong> 평일 10:00 ~ 18:00 (KST 기준)</p>
 
           <p><strong>부칙</strong><br />본 방침은 2026년 7월 14일부터 적용됩니다.</p>
+          </div>
         </div>
       </main>
       <Footer />

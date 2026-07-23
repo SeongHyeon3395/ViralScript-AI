@@ -10,10 +10,11 @@ export default function TermsPage() {
       <main className="flex-1 pt-28 pb-20 px-4 sm:px-6">
         <div className="mx-auto max-w-3xl space-y-8">
           {/* Header */}
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-8">
             <h1 className="text-3xl font-extrabold text-white">이용약관</h1>
-            <p className="text-sm text-white/40">Terms of Service</p>
-            <p className="text-xs text-white/20">제정 및 시행일: 2026년 7월 14일</p>
+            <p className="text-sm text-white/50">Terms of Service</p>
+            <div className="h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
+            <p className="text-xs text-white/30">제정 및 시행일: 2026년 7월 14일</p>
           </div>
 
           {/* Sections */}
@@ -71,13 +72,14 @@ export default function TermsPage() {
 
 function Section({ num, title, content, children }: { num: string; title: string; content?: string; children?: React.ReactNode }) {
   return (
-    <div className="rounded-2xl p-6 space-y-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+    <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 space-y-5">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shrink-0">
           <span className="text-sm font-extrabold text-white">{num}</span>
         </div>
         <h3 className="text-lg font-bold text-white">{title}</h3>
       </div>
+      <div className="h-px bg-slate-700/50" />
       {content && <p className="text-sm text-white/60 leading-7">{content}</p>}
       {children && <div className="space-y-4">{children}</div>}
     </div>

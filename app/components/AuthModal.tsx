@@ -15,27 +15,25 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
-  ShieldCheck,
-  RefreshCw,
-  ArrowLeft,
-  Clock,
   Phone,
   Search,
+  Send,
+  RefreshCw,
+  Clock,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 
-type AuthMode = 'login' | 'signup' | 'forgot' | 'otp' | 'find_email';
+type AuthMode = 'login' | 'signup' | 'forgot' | 'find_email';
+
+const VERIFY_TIMEOUT = 180; // 3분
+const RESEND_AFTER = 60; // 1분 후 재전송 활성화
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: AuthMode;
 }
-
-const OTP_LENGTH = 6;
-const OTP_EXPIRY_SECONDS = 180; // 3분
-const RESEND_COOLDOWN_SECONDS = 60; // 1분
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -53,40 +51,50 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   // ─── 이메일 찾기 상태 ───
   const [foundEmailResult, setFoundEmailResult] = useState<{ email?: string; masked_email?: string } | null>(null);
 
-  // ─── OTP 상태 ───
-  const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
-  const [otpError, setOtpError] = useState('');
-  const [otpCountdown, setOtpCountdown] = useState(OTP_EXPIRY_SECONDS);
-  const [otpExpired, setOtpExpired] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // ─── 이메일 인증 타이머 상태 ───
+  const [verifyCountdown, setVerifyCountdown] = useState(VERIFY_TIMEOUT);
+  const [verifyExpired, setVerifyExpired] = useState(false);
+  const [resendEnabled, setResendEnabled] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ─── OTP 카운트다운 타이머 ───
+  // initialMode가 바뀌면 mode도 동기화
   useEffect(() => {
-    if (mode !== 'otp' || otpExpired) return;
-    const id = setInterval(() => {
-      setOtpCountdown((c) => {
+    if (isOpen) {
+      resetForm();
+      setMode(initialMode);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialMode]);
+
+  // 인증 카운트다운 타이머
+  useEffect(() => {
+    if (!emailSent) return;
+    setVerifyCountdown(VERIFY_TIMEOUT);
+    setVerifyExpired(false);
+    setResendEnabled(false);
+
+    timerRef.current = setInterval(() => {
+      setVerifyCountdown((c) => {
         if (c <= 1) {
-          setOtpExpired(true);
+          setVerifyExpired(true);
+          if (timerRef.current) clearInterval(timerRef.current);
           return 0;
         }
+        if (c <= VERIFY_TIMEOUT - RESEND_AFTER) setResendEnabled(true);
         return c - 1;
       });
     }, 1000);
-    return () => clearInterval(id);
-  }, [mode, otpExpired]);
 
-  // ─── 재발송 쿨다운 타이머 ───
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const id = setInterval(() => {
-      setResendCooldown((c) => {
-        if (c <= 1) return 0;
-        return c - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [resendCooldown]);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [emailSent]);
+
+  const formatTime = useCallback((s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  }, []);
 
   function resetForm() {
     setEmail('');
@@ -98,120 +106,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setShowPassword(false);
     setMessage(null);
     setEmailSent(false);
-    setOtpDigits(Array(OTP_LENGTH).fill(''));
-    setOtpError('');
-    setOtpCountdown(OTP_EXPIRY_SECONDS);
-    setOtpExpired(false);
-    setResendCooldown(0);
     setFoundEmailResult(null);
+    setVerifyCountdown(VERIFY_TIMEOUT);
+    setVerifyExpired(false);
+    setResendEnabled(false);
+    if (timerRef.current) clearInterval(timerRef.current);
   }
 
   function switchMode(newMode: AuthMode) {
     resetForm();
     setMode(newMode);
-  }
-
-  // ─── OTP 입력 핸들러 ───
-  function handleOtpChange(index: number, value: string) {
-    if (!/^\d*$/.test(value)) return;
-    const newDigits = [...otpDigits];
-    newDigits[index] = value.slice(-1);
-    setOtpDigits(newDigits);
-    setOtpError('');
-
-    // 다음 칸으로 자동 포커스
-    if (value && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  }
-
-  function handleOtpKeyDown(index: number, e: React.KeyboardEvent) {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-    if (e.key === 'ArrowLeft' && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-    if (e.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  }
-
-  function handleOtpPaste(e: React.ClipboardEvent) {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
-    if (!pasted) return;
-    const newDigits = Array(OTP_LENGTH).fill('');
-    for (let i = 0; i < pasted.length; i++) {
-      newDigits[i] = pasted[i];
-    }
-    setOtpDigits(newDigits);
-    const focusIdx = Math.min(pasted.length, OTP_LENGTH - 1);
-    inputRefs.current[focusIdx]?.focus();
-  }
-
-  const otpToken = otpDigits.join('');
-  const isOtpComplete = otpToken.length === OTP_LENGTH;
-
-  // ─── OTP 인증번호 재발송 ───
-  async function handleResendOtp() {
-    if (resendCooldown > 0 || loading) return;
-    setLoading(true);
-    setOtpError('');
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name || undefined,
-            name: name || undefined,
-            phone_country_code: phoneCountryCode,
-            phone_number: phoneNumber,
-          },
-        },
-      });
-      if (error) {
-        const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
-        setOtpError(msg || t('auth_network_error'));
-      } else {
-        setOtpCountdown(OTP_EXPIRY_SECONDS);
-        setOtpExpired(false);
-        setResendCooldown(RESEND_COOLDOWN_SECONDS);
-        setOtpDigits(Array(OTP_LENGTH).fill(''));
-        setMessage({ type: 'success', text: t('otp_desc').replace('{email}', email) });
-      }
-    } catch {
-      setOtpError(t('auth_network_error'));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // ─── OTP 인증 검증 ───
-  async function handleVerifyOtp() {
-    if (!isOtpComplete || otpExpired || loading) return;
-    setLoading(true);
-    setOtpError('');
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otpToken,
-        type: 'signup',
-      });
-      if (error) {
-        setOtpError(t('otp_invalid'));
-      } else {
-        setMessage({ type: 'success', text: t('otp_verified') });
-        setTimeout(onClose, 1200);
-      }
-    } catch {
-      setOtpError(t('auth_network_error'));
-    } finally {
-      setLoading(false);
-    }
   }
 
   // ─── 메인 폼 제출 ───
@@ -231,13 +135,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       const supabase = getSupabaseBrowserClient();
 
       if (mode === 'signup') {
+        // 이메일 중복 체크: Supabase signUp은 기존 이메일에 대해 identities가 빈 배열을 반환
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : 'https://viralscript-ai-inky.vercel.app'}/auth/callback`,
             data: {
               full_name: name || undefined,
-              name: name || undefined,
               phone_country_code: phoneCountryCode,
               phone_number: phoneNumber,
             },
@@ -251,12 +156,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           return;
         }
 
-        // signUp 성공 → OTP 단계로 전환
-        setMode('otp');
-        setOtpCountdown(OTP_EXPIRY_SECONDS);
-        setOtpExpired(false);
-        setResendCooldown(RESEND_COOLDOWN_SECONDS);
-        setMessage(null);
+        // Supabase v2: 이미 가입된 이메일이면 user.identities가 빈 배열
+        if (data?.user && data.user.identities && data.user.identities.length === 0) {
+          setMessage({ type: 'error', text: t('auth_email_already_exists') });
+          setLoading(false);
+          return;
+        }
+
+        // signUp 성공 → 이메일 인증 안내 화면 + 타이머 시작
+        setEmailSent(true);
+        setMessage({ type: 'success', text: t('auth_email_sent_desc') });
         setLoading(false);
         return;
       } else if (mode === 'login') {
@@ -322,11 +231,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       setLoading(false);
     }
   }
-  const formatTime = useCallback((seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }, []);
 
   if (!isOpen) return null;
 
@@ -341,115 +245,84 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       <div className="relative w-full max-w-md glass-strong rounded-2xl shadow-2xl fade-in-up overflow-hidden">
         <div className="h-px w-full bg-gradient-to-r from-transparent via-violet-500 to-transparent" />
 
-        {/* ─── OTP 인증 화면 ─── */}
-        {mode === 'otp' ? (
-          <div className="px-8 py-8 space-y-6">
-            {/* Back button */}
-            <button
-              onClick={() => switchMode('signup')}
-              className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
-            >
-              <ArrowLeft size={14} />
-              {t('otp_change_email')}
-            </button>
-
-            {/* Header */}
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg shadow-violet-500/20">
-                <ShieldCheck size={26} className="text-white" />
-              </div>
-              <h2 className="text-xl font-bold text-white">{t('otp_title')}</h2>
-              <p className="text-sm text-white/40">
-                {t('otp_desc').replace('{email}', email)}
-              </p>
+        {/* ─── 이메일 인증 발송 완료 화면 + 타이머 ─── */}
+        {emailSent && mode === 'signup' ? (
+          <div className="px-8 py-8 space-y-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+              <Send size={26} className="text-white" />
             </div>
+            <h2 className="text-xl font-bold text-white">{t('auth_email_sent_title')}</h2>
+            <p className="text-sm text-white/50 leading-relaxed">
+              {t('auth_email_sent_desc')}
+            </p>
 
-            {/* 6-digit OTP input */}
-            <div className="flex justify-center gap-2 sm:gap-3" onPaste={handleOtpPaste}>
-              {otpDigits.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(i, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  disabled={otpExpired}
-                  className={`w-11 h-14 sm:w-12 sm:h-16 rounded-xl text-center text-xl font-bold transition-all outline-none ${
-                    otpExpired
-                      ? 'bg-white/5 border border-red-500/30 text-white/20 cursor-not-allowed'
-                      : otpError
-                      ? 'bg-white/5 border-2 border-red-500/60 text-white ring-1 ring-red-500/20'
-                      : 'bg-white/5 border-2 border-white/10 text-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Timer */}
+            {/* 3분 카운트다운 타이머 */}
             <div className="flex items-center justify-center gap-2">
-              <Clock size={14} className={otpExpired ? 'text-red-400' : 'text-white/40'} />
-              <span className={`text-sm font-mono font-bold ${otpExpired ? 'text-red-400' : 'text-white/50'}`}>
-                {formatTime(otpCountdown)}
+              <Clock size={14} className={verifyExpired ? 'text-red-400' : 'text-white/40'} />
+              <span className={`text-lg font-mono font-bold ${verifyExpired ? 'text-red-400' : 'text-white/60'}`}>
+                {formatTime(verifyCountdown)}
               </span>
             </div>
 
-            {/* OTP Error */}
-            {otpError && (
+            {/* 만료 경고 */}
+            {verifyExpired && (
               <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm bg-red-500/10 border border-red-500/20 text-red-300 fade-in-up">
                 <AlertCircle size={15} className="shrink-0" />
-                {otpError}
+                {t('auth_verify_expired')}
               </div>
             )}
 
-            {/* Expired warning */}
-            {otpExpired && (
-              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm bg-amber-500/10 border border-amber-500/20 text-amber-300 fade-in-up">
-                <AlertCircle size={15} className="shrink-0" />
-                {t('otp_expired')}
-              </div>
-            )}
-
-            {/* Verify button */}
-            <button
-              onClick={handleVerifyOtp}
-              disabled={!isOtpComplete || otpExpired || loading}
-              className="btn-primary w-full flex items-center justify-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <>
-                  {t('otp_verify_btn')}
-                  <ArrowRight size={15} />
-                </>
-              )}
-            </button>
-
-            {/* Resend button */}
-            <div className="text-center">
-              <button
-                onClick={handleResendOtp}
-                disabled={resendCooldown > 0 || loading}
-                className="inline-flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 disabled:text-white/20 disabled:cursor-not-allowed transition-colors"
-              >
-                <RefreshCw size={12} className={resendCooldown > 0 ? '' : ''} />
-                {resendCooldown > 0
-                  ? t('otp_resend_cooldown').replace('{seconds}', String(resendCooldown))
-                  : t('otp_resend_btn')}
-              </button>
-            </div>
-
-            {/* Success message */}
-            {message && (
-              <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${
-                message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'
-              }`}>
+            {message && !verifyExpired && (
+              <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
                 {message.type === 'success' ? <CheckCircle2 size={15} className="shrink-0" /> : <AlertCircle size={15} className="shrink-0" />}
                 {message.text}
               </div>
+            )}
+
+            {/* 재전송 버튼 (1분 후 활성화) */}
+            <button
+              onClick={async () => {
+                if (!resendEnabled || loading) return;
+                setLoading(true);
+                try {
+                  const supabase = getSupabaseBrowserClient();
+                  await supabase.auth.resend({ type: 'signup', email });
+                  setVerifyCountdown(VERIFY_TIMEOUT);
+                  setVerifyExpired(false);
+                  setResendEnabled(false);
+                  if (timerRef.current) clearInterval(timerRef.current);
+                  // re-trigger timer
+                  setEmailSent(false);
+                  setTimeout(() => setEmailSent(true), 50);
+                  setMessage({ type: 'success', text: t('auth_email_resent') });
+                } catch {
+                  setMessage({ type: 'error', text: t('auth_network_error') });
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={!resendEnabled || loading}
+              className="inline-flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 disabled:text-white/20 disabled:cursor-not-allowed transition-colors"
+            >
+              <RefreshCw size={12} />
+              {resendEnabled ? t('auth_resend_email') : t('auth_resend_wait')}
+            </button>
+
+            {/* 만료 시 처음부터 다시 */}
+            {verifyExpired ? (
+              <button
+                onClick={() => switchMode('signup')}
+                className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
+              >
+                {t('auth_retry_signup')}
+              </button>
+            ) : (
+              <button
+                onClick={onClose}
+                className="w-full flex items-center justify-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors py-2"
+              >
+                {t('close')}
+              </button>
             )}
           </div>
         ) : (
@@ -504,8 +377,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     <select
                       value={phoneCountryCode}
                       onChange={(e) => setPhoneCountryCode(e.target.value)}
-                      className="px-3 py-3 rounded-xl input-dark text-sm bg-zinc-900 border border-white/10 text-white"
-                    >
+                      className="px-3 py-3 rounded-xl input-dark text-base bg-zinc-900 border border-white/10 text-white min-w-[120px]"
+                      >
                       <option value="+82">🇰🇷 +82 (KR)</option>
                       <option value="+1">🇺🇸 +1 (US)</option>
                       <option value="+81">🇯🇵 +81 (JP)</option>
@@ -567,7 +440,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         <select
                           value={phoneCountryCode}
                           onChange={(e) => setPhoneCountryCode(e.target.value)}
-                          className="px-3 py-3 rounded-xl input-dark text-sm bg-zinc-900 border border-white/10 text-white"
+                          className="px-3 py-3 rounded-xl input-dark text-base bg-zinc-900 border border-white/10 text-white min-w-[120px]"
                         >
                           <option value="+82">🇰🇷 +82</option>
                           <option value="+1">🇺🇸 +1</option>

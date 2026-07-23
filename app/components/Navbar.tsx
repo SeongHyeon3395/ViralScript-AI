@@ -187,16 +187,17 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
                       <div className="absolute right-0 mt-2 w-52 glass-strong rounded-2xl overflow-hidden shadow-xl shadow-black/40 fade-in-up">
                         <div className="px-4 py-3 border-b border-white/8">
                           <p className="text-xs text-white/40">{t('nav_logged_in_as')}</p>
-                          <p className="text-sm font-semibold text-white mt-0.5">user@example.com</p>
+                          <p className="text-sm font-semibold text-white mt-0.5 truncate">{user?.email ?? '—'}</p>
                         </div>
                         <div className="p-1.5">
                           {[
-                            { icon: History, label: t('nav_history'), shortcut: '' },
-                            { icon: CreditCard, label: t('nav_charge'), shortcut: '' },
-                            { icon: Settings, label: t('nav_settings'), shortcut: '' },
-                          ].map(({ icon: Icon, label }) => (
+                            { icon: History, label: t('nav_history'), action: () => { setUserMenuOpen(false); window.location.href = '/generator'; } },
+                            { icon: CreditCard, label: t('nav_charge'), action: () => { setUserMenuOpen(false); window.location.href = '/pricing'; } },
+                            { icon: Settings, label: t('nav_settings'), action: () => { setUserMenuOpen(false); /* TODO: AccountSettingsModal */ } },
+                          ].map(({ icon: Icon, label, action }) => (
                             <button
                               key={label}
+                              onClick={action}
                               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/8 transition-all"
                             >
                               <Icon size={15} />

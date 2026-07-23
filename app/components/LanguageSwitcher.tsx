@@ -109,6 +109,14 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_network_error: '네트워크 오류가 발생했습니다. 다시 시도해 주세요.',
     auth_login_success: '로그인 성공! 잠시 후 이동합니다.',
     auth_signup_success: '가입 완료! 이메일 인증 후 로그인해 주세요. 📧',
+    auth_email_sent_title: '인증 이메일 발송 완료',
+    auth_email_sent_desc: '인증 이메일이 발송되었습니다. 이메일 수신함(스팸함 포함)에서 인증 링크를 클릭해 가입을 완료해 주세요.',
+    auth_email_already_exists: '이미 가입된 이메일 주소입니다.',
+    auth_verify_expired: '인증 시간이 만료되었습니다. 회원가입을 처음부터 다시 시도해 주세요.',
+    auth_resend_email: '인증 이메일 재발송',
+    auth_resend_wait: '1분 후 재발송 가능',
+    auth_email_resent: '인증 이메일이 재발송되었습니다.',
+    auth_retry_signup: '처음부터 다시 가입하기',
     auth_close: '닫기',
 
     // ─── Find Email ───
@@ -377,6 +385,14 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_network_error: 'A network error occurred. Please try again.',
     auth_login_success: 'Login successful! Redirecting...',
     auth_signup_success: 'Signup complete! Please verify your email and log in. 📧',
+    auth_email_sent_title: 'Verification Email Sent',
+    auth_email_sent_desc: 'A verification email has been sent. Please check your inbox (including spam) and click the confirmation link to complete your registration.',
+    auth_email_already_exists: 'This email is already registered.',
+    auth_verify_expired: 'Verification time has expired. Please try signing up again from the beginning.',
+    auth_resend_email: 'Resend verification email',
+    auth_resend_wait: 'Resend available after 1 min',
+    auth_email_resent: 'Verification email has been resent.',
+    auth_retry_signup: 'Sign Up Again',
     auth_close: 'Close',
 
     // ─── Find Email ───
@@ -645,6 +661,14 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_network_error: '网络错误，请重试。',
     auth_login_success: '登录成功！正在跳转...',
     auth_signup_success: '注册完成！请验证邮箱后登录。📧',
+    auth_email_sent_title: '验证邮件已发送',
+    auth_email_sent_desc: '验证邮件已发送。请检查您的收件箱（包括垃圾邮件），点击确认链接完成注册。',
+    auth_email_already_exists: '该邮箱已被注册。',
+    auth_verify_expired: '验证时间已过期。请重新开始注册。',
+    auth_resend_email: '重新发送验证邮件',
+    auth_resend_wait: '1分钟后可重新发送',
+    auth_email_resent: '验证邮件已重新发送。',
+    auth_retry_signup: '重新注册',
     auth_close: '关闭',
 
     // ─── Find Email ───
@@ -913,6 +937,14 @@ export const T: Record<Lang, Record<string, string>> = {
     auth_network_error: 'ネットワークエラーが発生しました。もう一度お試しください。',
     auth_login_success: 'ログイン成功！リダイレクト中...',
     auth_signup_success: '登録完了！メール認証後にログインしてください。📧',
+    auth_email_sent_title: '認証メール送信完了',
+    auth_email_sent_desc: '認証メールが送信されました。受信トレイ（迷惑メールフォルダを含む）から認証リンクをクリックして登録を完了してください。',
+    auth_email_already_exists: 'このメールアドレスは既に登録されています。',
+    auth_verify_expired: '認証時間が切れました。最初からやり直してください。',
+    auth_resend_email: '認証メールを再送信',
+    auth_resend_wait: '1分後に再送信可能',
+    auth_email_resent: '認証メールが再送信されました。',
+    auth_retry_signup: '最初から登録し直す',
     auth_close: '閉じる',
 
     // ─── Find Email ───
