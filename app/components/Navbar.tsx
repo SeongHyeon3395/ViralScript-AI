@@ -218,13 +218,13 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
                 <>
                   <button
                     onClick={openLogin}
-                    className="hidden sm:block px-4 py-2 text-sm font-medium text-white/70 hover:text-white rounded-xl hover:bg-white/8 transition-all"
+                    className="px-3 sm:px-4 py-2 text-sm font-medium text-white/70 hover:text-white rounded-xl hover:bg-white/8 transition-all"
                   >
                     {t('nav_login')}
                   </button>
                   <button
                     onClick={openSignup}
-                    className="px-4 py-2 text-sm font-bold text-white rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all"
+                    className="hidden sm:block px-4 py-2 text-sm font-bold text-white rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all"
                   >
                     {t('nav_signup')}
                   </button>
