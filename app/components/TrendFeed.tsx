@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Music, Play, Camera, Eye, Heart, RefreshCw, Loader2, ChevronDown, ExternalLink } from 'lucide-react';
+import { Music, Play, Camera, Eye, Heart, RefreshCw, Loader2, ChevronDown, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 
@@ -20,21 +20,9 @@ const INITIAL_LOAD = 30;
 const LOAD_MORE_COUNT = 30;
 const MAX_TRENDS = 100;
 
-// Fallback 데모 데이터 (DB 조회 실패 시에만 사용)
-const FALLBACK_DEMO_DATA: TrendItem[] = [
-  { id: 'demo-1', platform: 'TikTok', region: 'US', title: 'AI Dance Challenge Goes Viral', subtitle: 'New AI-generated choreography sparks global trend', views: '4.2M', likes: '890K', tags: '#AIDance,#Viral2026' },
-  { id: 'demo-2', platform: 'YouTube Shorts', region: 'KR', title: 'AI로 만드는 1분 요리', subtitle: '인공지능이 추천한 초간단 레시피', views: '2.1M', likes: '450K', tags: '#AI요리,#숏폼레시피' },
-  { id: 'demo-3', platform: 'Instagram Reels', region: 'JP', title: 'AIメイクチュートリアル', subtitle: '最新のAI美容トレンドを紹介', views: '1.8M', likes: '320K', tags: '#AIメイク,#美容トレンド' },
-  { id: 'demo-4', platform: 'TikTok', region: 'KR', title: '부업으로 월 500만원 버는 법', subtitle: 'AI 자동화로 수익 창출하기', views: '3.5M', likes: '720K', tags: '#부업,#AI창업' },
-  { id: 'demo-5', platform: 'YouTube Shorts', region: 'US', title: 'ChatGPT Marketing Hack', subtitle: 'Triple your engagement with this AI trick', views: '2.9M', likes: '610K', tags: '#AIMarketing,#Growth' },
-  { id: 'demo-6', platform: 'Instagram Reels', region: 'JP', title: 'AI旅行プランナー', subtitle: 'AIが作る完璧な旅行計画', views: '1.5M', likes: '280K', tags: '#AI旅行,#スマート旅' },
-  { id: 'demo-7', platform: 'TikTok', region: 'CN', title: 'AI短视频创作技巧', subtitle: '用AI工具快速制作爆款短视频', views: '5.1M', likes: '1.2M', tags: '#AI创作,#短视频' },
-  { id: 'demo-8', platform: 'YouTube Shorts', region: 'CN', title: '人工智能赚钱方法', subtitle: '2026年最火的AI副业项目', views: '3.8M', likes: '890K', tags: '#AI赚钱,#副业' },
-  { id: 'demo-9', platform: 'TikTok', region: 'US', title: 'Faceless Channel Strategy', subtitle: 'How to grow without showing your face', views: '6.2M', likes: '1.5M', tags: '#Faceless,#ContentStrategy' },
-  { id: 'demo-10', platform: 'Instagram Reels', region: 'KR', title: '무자본 창업 아이디어', subtitle: 'AI로 시작하는 1인 미디어', views: '2.7M', likes: '560K', tags: '#창업,#1인미디어' },
-  { id: 'demo-11', platform: 'TikTok', region: 'JP', title: 'AIで簡単動画編集', subtitle: '初心者でもできるAI動画制作', views: '2.3M', likes: '480K', tags: '#AI動画,#編集' },
-  { id: 'demo-12', platform: 'YouTube Shorts', region: 'US', title: 'Zero to 100K in 30 Days', subtitle: 'The exact strategy I used to grow fast', views: '4.5M', likes: '980K', tags: '#Growth,#YouTubeStrategy' },
-];
+interface TrendFeedProps {
+  onGenerate: (url: string) => void;
+}
 
 function SkeletonCard() {
   return (
@@ -55,13 +43,14 @@ function SkeletonCard() {
   );
 }
 
-export default function TrendFeed() {
+export default function TrendFeed({ onGenerate }: TrendFeedProps) {
   const [trends, setTrends] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'tiktok' | 'youtube' | 'instagram'>('all');
   const [activeRegion, setActiveRegion] = useState<'all' | 'KR' | 'US' | 'JP' | 'CN'>('all');
   const [visibleCount, setVisibleCount] = useState(INITIAL_LOAD);
+  const [selectedTrendId, setSelectedTrendId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,9 +61,9 @@ export default function TrendFeed() {
         if (cancelled) return;
         
         if (dbErr || !data?.length) {
-          console.warn('[TrendFeed] DB 조회 실패 또는 데이터 없음, fallback 사용:', dbErr?.message);
+          console.warn('[TrendFeed] DB 조회 실패 또는 검증된 데이터 없음:', dbErr?.message);
           setError(true);
-          setTrends(FALLBACK_DEMO_DATA);
+          setTrends([]);
           setLoading(false);
           return;
         }
@@ -84,18 +73,13 @@ export default function TrendFeed() {
       } catch (err) {
         console.error('[TrendFeed] Fetch error:', err);
         setError(true);
-        setTrends(FALLBACK_DEMO_DATA);
+        setTrends([]);
       }
       setLoading(false);
     }
     fetchTrends();
     return () => { cancelled = true; };
   }, []);
-
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(INITIAL_LOAD);
-  }, [activeFilter, activeRegion]);
 
   function toFilterKey(platform: string): string | undefined {
     const p = platform.toLowerCase();
@@ -150,7 +134,7 @@ export default function TrendFeed() {
       {/* Platform filters */}
       <div className="flex gap-1.5">
         {(['all', 'tiktok', 'youtube', 'instagram'] as const).map((f) => (
-          <button key={f} onClick={() => setActiveFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeFilter === f ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
+          <button key={f} onClick={() => { setActiveFilter(f); setVisibleCount(INITIAL_LOAD); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeFilter === f ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
             {f === 'all' ? t('trend_filter_all') : f === 'tiktok' ? 'TikTok' : f === 'youtube' ? 'YouTube' : 'Instagram'}
           </button>
         ))}
@@ -159,7 +143,7 @@ export default function TrendFeed() {
       {/* Region filters */}
       <div className="flex gap-1.5">
         {(['all', 'KR', 'US', 'JP', 'CN'] as const).map((r) => (
-          <button key={r} onClick={() => setActiveRegion(r)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRegion === r ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
+          <button key={r} onClick={() => { setActiveRegion(r); setVisibleCount(INITIAL_LOAD); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRegion === r ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
             {r === 'all' ? t('trend_region_all') : `${REGION_FLAGS[r] ?? ''} ${t(REGION_LABELS[r])}`}
           </button>
         ))}
@@ -174,7 +158,21 @@ export default function TrendFeed() {
               const Icon = PLATFORM_ICONS[item.platform] ?? Play;
               const color = PLATFORM_COLORS[item.platform] ?? 'text-white/40';
               return (
-                <div key={item.id} className="rounded-2xl p-5 card-hover" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div
+                  key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={selectedTrendId === item.id}
+                  onClick={() => setSelectedTrendId(selectedTrendId === item.id ? null : item.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelectedTrendId(selectedTrendId === item.id ? null : item.id);
+                    }
+                  }}
+                  className="rounded-2xl p-5 card-hover cursor-pointer"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: selectedTrendId === item.id ? '1px solid rgba(34,211,238,0.45)' : '1px solid rgba(255,255,255,0.06)' }}
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center"><Icon size={12} className={color} /></div>
                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{item.platform}</span>
@@ -186,19 +184,18 @@ export default function TrendFeed() {
                     <span className="flex items-center gap-1"><Eye size={11} />{item.views}</span>
                     <span className="flex items-center gap-1"><Heart size={11} />{item.likes}</span>
                     {item.tags && <span className="text-violet-400/60 truncate">{item.tags}</span>}
-                    {item.url && (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-auto flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors shrink-0"
-                        title={t('trend_visit')}
-                      >
-                        <ExternalLink size={13} />
-                        <span className="hidden sm:inline">{t('trend_visit')}</span>
-                      </a>
-                    )}
                   </div>
+                  {selectedTrendId === item.id && item.url && (
+                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/8" onClick={(event) => event.stopPropagation()}>
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/20 transition-colors">
+                        <ExternalLink size={13} />{t('trend_visit')}
+                      </a>
+                      <button onClick={() => onGenerate(item.url!)} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-400/10 px-3 py-2 text-xs font-semibold text-violet-200 hover:bg-violet-400/20 transition-colors">
+                        <FileText size={13} />{t('trend_generate')}
+                      </button>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/80 ml-auto"><CheckCircle2 size={13} />{t('trend_verified')}</span>
+                    </div>
+                  )}
                 </div>
               );
             })}

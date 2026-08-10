@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
+import { fetchVideoMetadata } from '@/services/scraperMiddleware';
+import { normalizeAndValidateUrl } from '@/utils/urlNormalizer';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -23,14 +25,14 @@ const trendItemSchema = {
           tags: { type: 'string' as const },
           url: { type: 'string' as const },
         },
-        required: ['platform', 'region', 'title', 'subtitle', 'views', 'likes', 'tags', 'url'],
+        required: ['platform', 'region', 'title', 'subtitle', 'views', 'likes', 'tags'],
       },
     },
   },
   required: ['trends'],
 };
 
-const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Your job is to produce a JSON array of at least 90 fictitious but highly realistic trending short-form video summaries across regions (US, KR, JP) and platforms (TikTok, YouTube Shorts, Instagram Reels).
+const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Your job is to produce a JSON array of trending short-form video candidates across regions (US, KR, JP) and platforms (TikTok, YouTube Shorts, Instagram Reels). URLs will be verified by the server, so never invent a URL.
 
 Requirements:
 - Generate AT LEAST 90 items in total (30 items for US, 30 items for KR, 30 items for JP).
@@ -44,7 +46,7 @@ For each item, return:
 - views: realistic high view count string, e.g. "3.2M", "1.1M", "890K"
 - likes: realistic like count string, e.g. "450K", "120K"
 - tags: 2-3 comma-separated hashtag-style tags in native language, e.g. "#AI챌린지,#숏폼대박"
-- url: a realistic fictional URL for the video, e.g. "https://www.tiktok.com/@trending/video/7392012345678901234" or "https://www.youtube.com/shorts/ABC123XYZ" or "https://www.instagram.com/reel/DEfGhIjKlMn/"
+- url: the exact public URL of a real existing post. Never invent, fabricate, or approximate a URL. If you do not know a real URL, omit that candidate rather than guessing.
 
 Ensure topics span diverse viral categories: AI tools & filters, K-pop/beauty/fashion, food hacks, funny skits, ASMR, tech productivity, viral dance challenges.
 
@@ -71,6 +73,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       config: {
         responseMimeType: 'application/json',
         responseSchema: trendItemSchema,
+        tools: [{ googleSearch: {} }],
         temperature: 0.9,
       },
     });
@@ -90,17 +93,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       throw new Error('AI returned no trend items');
     }
 
-    // 2. Supabase Service Role 연결
+    // 실제 게시물 검증: 메타데이터 수집에 성공한 후보만 저장합니다.
+    const verified = await Promise.all(
+      trends.map(async (trend) => {
+        try {
+          const rawUrl = trend.url?.trim();
+          if (!rawUrl) return null;
+          const normalized = normalizeAndValidateUrl(rawUrl);
+          await fetchVideoMetadata(normalized.normalizedUrl, normalized.platform);
+          return trend;
+        } catch {
+          return null;
+        }
+      })
+    );
+    const verifiedTrends = verified.filter((trend): trend is Record<string, string> => trend !== null);
+    if (verifiedTrends.length === 0) {
+      throw new Error('No real public trend posts were verified; existing feed was preserved');
+    }
+
+    // Supabase Service Role 연결
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
     );
 
-    // 3. 트랜잭션: DELETE + INSERT
-    await supabase.from('trend_feed').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // 트랜잭션: DELETE + INSERT
+    const { error: deleteErr } = await supabase.from('trend_feed').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (deleteErr) throw new Error(`DB delete failed: ${deleteErr.message}`);
 
-    const rows = trends.map((t) => ({
+    const rows = verifiedTrends.map((t) => ({
       platform: t.platform,
       region: t.region,
       title: t.title,
@@ -119,4 +142,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     console.error('[cron/trend]', err instanceof Error ? err.message : err);
     return NextResponse.json({ ok: false, error: err instanceof Error ? err.message : 'Unknown' }, { status: 500 });
   }
+}
+
+// Vercel Cron은 스케줄 작업을 GET으로 호출합니다.
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  return POST(req);
 }

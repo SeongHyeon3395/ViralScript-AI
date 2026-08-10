@@ -209,6 +209,8 @@ export const T: Record<Lang, Record<string, string>> = {
     trend_views: '조회수',
     trend_likes: '좋아요',
     trend_visit: '바로가기',
+    trend_generate: '이 게시물로 대본 생성하기',
+    trend_verified: '실제 게시물 확인됨',
 
     // ─── Trends Page ───
     trends_page_title: '실시간 글로벌 트렌드',
@@ -485,6 +487,8 @@ export const T: Record<Lang, Record<string, string>> = {
     trend_views: 'Views',
     trend_likes: 'Likes',
     trend_visit: 'Visit',
+    trend_generate: 'Generate Script',
+    trend_verified: 'Verified Post',
 
     // ─── Trends Page ───
     trends_page_title: 'Real-Time Global Trends',
@@ -761,6 +765,8 @@ export const T: Record<Lang, Record<string, string>> = {
     trend_views: '观看',
     trend_likes: '点赞',
     trend_visit: '访问',
+    trend_generate: '用此帖子生成脚本',
+    trend_verified: '已验证真实帖子',
 
     // ─── Trends Page ───
     trends_page_title: '实时全球趋势',
@@ -1037,6 +1043,8 @@ export const T: Record<Lang, Record<string, string>> = {
     trend_views: '視聴',
     trend_likes: 'いいね',
     trend_visit: 'アクセス',
+    trend_generate: 'この投稿で台本を生成',
+    trend_verified: '実在する投稿を確認済み',
 
     // ─── Trends Page ───
     trends_page_title: 'リアルタイムグローバルトレンド',

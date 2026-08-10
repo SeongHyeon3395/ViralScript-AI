@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Sparkles, Rocket, ArrowRight, Play, Globe, BarChart3, Film, Zap,
   Gift, Star, Shield, Users,
@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import DailyRewardWheel from './components/DailyRewardWheel';
 import TrendFeed from './components/TrendFeed';
+import type { NavbarRef } from './components/Navbar';
 import { t } from './components/LanguageSwitcher';
 
 const FEATURES = [
@@ -26,6 +27,7 @@ const STATS = [
 ];
 
 export default function Home() {
+  const navbarRef = useRef<NavbarRef>(null);
   const [credits, setCredits] = useState(0);
   const [mounted, setMounted] = useState(false);
   
@@ -34,12 +36,20 @@ export default function Home() {
   }, []);
   
   function handleRewardClaimed(amount: number) { setCredits(c => c + amount); }
+
+  function handleTrendGenerate(url: string) {
+    if (!navbarRef.current?.getUser()) {
+      navbarRef.current?.openLoginModal();
+      return;
+    }
+    window.location.href = `/generator?url=${encodeURIComponent(url)}`;
+  }
   
   if (!mounted) return null;
 
   return (
     <>
-      <Navbar />
+      <Navbar ref={navbarRef} />
       <main className="flex-1">
         {/* HERO */}
         <section className="relative pt-16 sm:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 overflow-hidden">
@@ -91,7 +101,7 @@ export default function Home() {
         {/* TREND FEED */}
         <section className="py-12 sm:py-16 px-4 sm:px-6 border-t border-white/5">
           <div className="mx-auto max-w-5xl">
-            <TrendFeed />
+            <TrendFeed onGenerate={handleTrendGenerate} />
           </div>
         </section>
 

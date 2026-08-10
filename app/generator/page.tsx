@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, startTransition } from 'react';
 import type { AnalyzeResponse, GenerationOutput, SceneScript } from '@/types';
 import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
@@ -113,6 +113,11 @@ export default function GeneratorPage() {
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
 
   // 세션 확인
+  useEffect(() => {
+    const sourceUrl = new URLSearchParams(window.location.search).get('url');
+    if (sourceUrl) startTransition(() => setUrl(sourceUrl));
+  }, []);
+
   useEffect(() => {
     getSupabaseBrowserClient().auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
