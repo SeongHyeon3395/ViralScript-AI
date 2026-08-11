@@ -62,34 +62,65 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
   const [hasSpunToday, setHasSpunToday] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
-  // Supabase 세션 확인
+  // Supabase 세션 + DB last_roulette_spin_at 조회
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
+
+    async function initUser(uid: string) {
+      setUser({ id: uid } as SupabaseUser);
+
+      // DB에서 마지막 스핀 시간 조회 (maybeSingle로 406 방지)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('last_roulette_spin_at')
+        .eq('id', uid)
+        .maybeSingle<{ last_roulette_spin_at: string | null }>();
+
+      if (error) {
+        console.warn('[DailyReward] profile fetch error:', error.message);
+        // DB 조회 실패 시 localStorage 보조 확인
+        checkLocalStorage(uid);
+        return;
+      }
+
+      const lastSpinAt = data?.last_roulette_spin_at;
+      if (lastSpinAt) {
+        const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const lastKst = new Date(new Date(lastSpinAt).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        if (lastKst >= todayKst) {
+          setHasSpunToday(true);
+          setCooldown(msUntilKstMidnight());
+          // localStorage도 동기화
+          localStorage.setItem(`dailyReward_${uid}`, todayKst);
+          return;
+        }
+      }
+      // DB에 기록 없으면 localStorage도 확인 (오프라인 보조)
+      checkLocalStorage(uid);
+    }
+
+    function checkLocalStorage(uid: string) {
+      const lastSpinDateStr = localStorage.getItem(`dailyReward_${uid}`);
+      if (lastSpinDateStr) {
+        const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        if (lastSpinDateStr >= todayKst) {
+          setHasSpunToday(true);
+          setCooldown(msUntilKstMidnight());
+        }
+      }
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUser(session.user);
+      if (session?.user) initUser(session.user.id);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (session?.user) initUser(session.user.id);
+      else setUser(null);
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  // 유저별 localStorage 키로 데일리 제한 확인 (KST 날짜 기준)
   const storageKey = user ? `dailyReward_${user.id}` : null;
-
-  useEffect(() => {
-    if (!storageKey) return;
-    const lastSpinDateStr = localStorage.getItem(storageKey); // "YYYY-MM-DD" KST 날짜
-    if (lastSpinDateStr) {
-      // 현재 KST 날짜와 비교
-      const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-      const todayKst = nowKst.toISOString().slice(0, 10);
-      if (lastSpinDateStr === todayKst) {
-        setHasSpunToday(true);
-        setCooldown(msUntilKstMidnight());
-      }
-    }
-  }, [storageKey]);
 
   // Cooldown tick
   useEffect(() => {
@@ -134,15 +165,15 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
     setTimeout(async () => {
       setSpinning(false);
       setResult({ label: `${wonCredits}`, value: wonCredits });
+      setHasSpunToday(true);
+      setCooldown(msUntilKstMidnight());
+      // localStorage도 보조 저장 (오프라인/빠른 응답용)
       if (storageKey) {
-        // KST 오늘 날짜("YYYY-MM-DD")를 저장
         const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
         localStorage.setItem(storageKey, todayKst);
       }
-      setHasSpunToday(true);
-      setCooldown(msUntilKstMidnight());
 
-      // 서버 RPC로 원자적 적립 (claim_daily_bonus)
+      // 서버 RPC: claim_daily_bonus → profiles.last_roulette_spin_at + credits_remaining 동시 업데이트
       try {
         const supabase = getSupabaseBrowserClient();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -6,6 +6,8 @@ import Footer from '@/app/components/Footer';
 import TrendFeed from '@/app/components/TrendFeed';
 import { t } from '@/app/components/LanguageSwitcher';
 
+
+
 export default function TrendsPage() {
   const navbarRef = useRef<NavbarRef>(null);
 

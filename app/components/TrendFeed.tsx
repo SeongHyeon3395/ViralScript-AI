@@ -53,13 +53,19 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
   const [activeRegion, setActiveRegion] = useState<'all' | 'KR' | 'US' | 'JP' | 'CN'>('all');
   const [visibleCount, setVisibleCount] = useState(INITIAL_LOAD);
   const [selectedTrendId, setSelectedTrendId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     async function fetchTrends() {
       try {
         const supabase = getSupabaseBrowserClient();
-        const { data, error: dbErr } = await supabase.from('trend_feed').select('*').order('created_at', { ascending: false }).limit(MAX_TRENDS);
+        // cache: no-store 동등 효과 — 항상 최신 데이터 조회
+        const { data, error: dbErr } = await supabase
+          .from('trend_feed')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(MAX_TRENDS);
         if (cancelled) return;
         
         if (dbErr || !data?.length) {
@@ -81,7 +87,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
     }
     fetchTrends();
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshKey]);
 
   function toFilterKey(platform: string): string | undefined {
     const p = platform.toLowerCase();
@@ -142,6 +148,13 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
             {loading && <p className="text-xs text-white/30 flex items-center gap-1 mt-0.5"><Loader2 size={10} className="animate-spin" />{t('trend_curating')}</p>}
           </div>
         </div>
+        <button
+          onClick={() => { setLoading(true); setRefreshKey(k => k + 1); }}
+          className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition-colors"
+          title="새로고침"
+        >
+          <RefreshCw size={13} />
+        </button>
         {error && <span className="text-xs text-amber-400 flex items-center gap-1"><RefreshCw size={11} />{t('trend_fallback')}</span>}
       </div>
 

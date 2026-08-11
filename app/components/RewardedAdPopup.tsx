@@ -84,21 +84,18 @@ export default function RewardedAdPopup({
   // ─── AdSense 스크립트 동적 로드 ────────────────────────────
   function loadAdSenseScript(): Promise<void> {
     return new Promise((resolve) => {
-      if (window.adsbygoogle?.loaded) {
+      // 이미 로드된 경우
+      if (document.querySelector('script[src*="adsbygoogle"]')) {
         resolve();
         return;
       }
-      if (!ADSENSE_CLIENT || !document.querySelector(`script[src*="adsbygoogle"]`)) {
-        const script = document.createElement('script');
-        script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
-        script.crossOrigin = 'anonymous';
-        script.async = true;
-        script.onload = () => resolve();
-        script.onerror = () => resolve(); // 실패해도 fallback 진행
-        document.head.appendChild(script);
-      } else {
-        resolve();
-      }
+      const script = document.createElement('script');
+      script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+      script.crossOrigin = 'anonymous';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => resolve(); // 실패해도 fallback 진행
+      document.head.appendChild(script);
     });
   }
 
@@ -123,7 +120,7 @@ export default function RewardedAdPopup({
 
       window.adsbygoogle = window.adsbygoogle ?? { push: () => {} };
       window.adsbygoogle.push({
-        type: 'rewarded',
+        type: 'reward',
         adClient: ADSENSE_CLIENT,
         adSlot: ADSENSE_SLOT,
         onReady: () => {
@@ -131,6 +128,7 @@ export default function RewardedAdPopup({
           setPhase('watching');
         },
         onRewardGranted: () => {
+          // 광고 시청 완료 콜백에서만 크레딧 지급 (스킵하면 호출 안 됨)
           clearTimeout(fallbackTimer);
           if (!adCalledRef.current) {
             adCalledRef.current = true;
@@ -138,7 +136,9 @@ export default function RewardedAdPopup({
           }
         },
         onAdDismissed: () => {
+          // 스킵/얼리 닫기 시 크레딧 미지급
           clearTimeout(fallbackTimer);
+          adCalledRef.current = false;
           setPhase('idle');
         },
       });

@@ -36,7 +36,7 @@ export default function PricingPage() {
 
   async function fetchCredits(uid: string) {
     const { data } = await getSupabaseBrowserClient()
-      .from('profiles').select('credits_remaining').eq('id', uid).single<{ credits_remaining: number }>();
+      .from('profiles').select('credits_remaining').eq('id', uid).maybeSingle<{ credits_remaining: number }>();
     if (data) setUserCredits(data.credits_remaining);
   }
 
