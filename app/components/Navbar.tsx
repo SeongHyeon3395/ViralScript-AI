@@ -191,7 +191,7 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
                         </div>
                         <div className="p-1.5">
                           {[
-                            { icon: History, label: t('nav_history'), action: () => { setUserMenuOpen(false); window.location.href = '/generator'; } },
+                            { icon: History, label: t('nav_history'), action: () => { setUserMenuOpen(false); window.location.href = '/history'; } },
                             { icon: CreditCard, label: t('nav_charge'), action: () => { setUserMenuOpen(false); window.location.href = '/pricing'; } },
                             { icon: Settings, label: t('nav_settings'), action: () => { setUserMenuOpen(false); /* TODO: AccountSettingsModal */ } },
                           ].map(({ icon: Icon, label, action }) => (

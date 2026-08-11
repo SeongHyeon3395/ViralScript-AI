@@ -125,20 +125,17 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
       setHasSpunToday(true);
       setCooldown(86400000);
 
-      // DB에 크레딧 원자적 적립
+      // 서버 RPC로 원자적 적립 (claim_daily_bonus)
       try {
         const supabase = getSupabaseBrowserClient();
-        // RPC가 없을 수 있으므로 직접 SQL로 원자적 증가
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('credits_remaining')
-          .eq('id', user.id)
-          .single<{ credits_remaining: number }>();
-        if (profile) {
-          await (supabase.from('profiles').update as (values: Record<string, unknown>) => ReturnType<typeof supabase.from>)({ credits_remaining: profile.credits_remaining + wonCredits }).eq('id', user.id);
-        }
-      } catch {
-        // 무시 — 클라이언트 UI에서는 onClaim으로 반영
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.rpc as any)('claim_daily_bonus', {
+          target_user_id: user.id,
+          bonus_credits: wonCredits,
+        });
+        if (error) console.error('[DailyReward] RPC error:', error.message);
+      } catch (err) {
+        console.error('[DailyReward] 적립 실패:', err);
       }
 
       onClaim?.(wonCredits);

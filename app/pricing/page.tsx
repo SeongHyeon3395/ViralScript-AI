@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Star, Shield, Zap, Check, ArrowRight, Sparkles, Gift, Play, Users, LogIn } from 'lucide-react';
+import { Star, Shield, Zap, Check, ArrowRight, Gift, Play, Users, LogIn } from 'lucide-react';
 import { CREDIT_PLANS } from '@/lib/credits';
 import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
+import ReferralSystem from '@/app/components/ReferralSystem';
+import RewardedAdPopup from '@/app/components/RewardedAdPopup';
+import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from '@/app/components/LanguageSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -15,16 +18,27 @@ const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
 export default function PricingPage() {
   const navbarRef = useRef<NavbarRef>(null);
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [referralOpen, setReferralOpen] = useState(false);
+  const [adOpen, setAdOpen] = useState(false);
+  const [userCredits, setUserCredits] = useState(0);
 
   useEffect(() => {
-    getSupabaseBrowserClient().auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUser(session.user);
+    const supabase = getSupabaseBrowserClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) { setUser(session.user); fetchCredits(session.user.id); }
     });
-    const { data: { subscription } } = getSupabaseBrowserClient().auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) fetchCredits(session.user.id);
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  async function fetchCredits(uid: string) {
+    const { data } = await getSupabaseBrowserClient()
+      .from('profiles').select('credits_remaining').eq('id', uid).single<{ credits_remaining: number }>();
+    if (data) setUserCredits(data.credits_remaining);
+  }
 
   return (
     <>
@@ -71,12 +85,20 @@ export default function PricingPage() {
                     <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_free_title')}</h2>
                     <p className="text-white/40 text-xs sm:text-sm">{t('pricing_page_free_desc')}</p>
                   </div>
+                  {/* 현재 크레딧 표시 */}
+                  <div className="flex justify-center mb-6">
+                    <div className="flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2">
+                      <Zap size={14} className="text-violet-400" />
+                      <span className="text-sm font-bold text-violet-300">{userCredits} 크레딧 보유</span>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-                  {[
-                    { icon: Gift, title: t('free_roulette_title'), desc: t('free_roulette_desc'), badge: t('free_roulette_badge'), badgeClass: 'badge-green', action: t('pricing_roulette_action'), href: '/generator', highlight: false },
-                    { icon: Play, title: t('free_ad_title'), desc: t('free_ad_desc'), badge: t('free_ad_badge'), badgeClass: 'badge-amber', action: t('pricing_ad_action'), href: '/generator', highlight: true },
-                    { icon: Gift, title: t('free_invite_title'), desc: t('free_invite_desc'), badge: t('free_invite_badge'), badgeClass: 'badge-purple', action: t('pricing_invite_action'), href: '/generator', highlight: false },
-                  ].map(({ icon: Icon, title, desc, badge, badgeClass, action, href, highlight }) => (
+                  {([
+                    { icon: Gift, title: t('free_roulette_title'), desc: t('free_roulette_desc'), badge: t('free_roulette_badge'), badgeClass: 'badge-green', action: t('pricing_roulette_action'), onClick: () => {}, highlight: false, isRoulette: true },
+                    { icon: Play, title: t('free_ad_title'), desc: t('free_ad_desc'), badge: t('free_ad_badge'), badgeClass: 'badge-amber', action: t('pricing_ad_action'), onClick: () => setAdOpen(true), highlight: true, isRoulette: false },
+                    { icon: Users, title: t('free_invite_title'), desc: t('free_invite_desc'), badge: t('free_invite_badge'), badgeClass: 'badge-purple', action: t('pricing_invite_action'), onClick: () => setReferralOpen(true), highlight: false, isRoulette: false },
+                  ] as const).map(({ icon: Icon, title, desc, badge, badgeClass, action, onClick, highlight, isRoulette }) => (
                     <div key={title} className={`relative rounded-2xl p-7 card-hover flex flex-col ${highlight ? 'glow-purple' : ''}`}
                       style={{ background: highlight ? 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(79,70,229,0.10) 100%)' : 'rgba(13,13,20,0.6)', border: highlight ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.08)' }}>
                       {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-amber px-3 py-1 text-xs"><Star size={10} fill="currentColor" />{t('recommended')}</span></div>}
@@ -86,7 +108,12 @@ export default function PricingPage() {
                         <span className={`badge ${badgeClass} text-xs mb-3`}>{badge}</span>
                         <p className="text-sm text-white/50 leading-relaxed">{desc}</p>
                       </div>
-                      <a href={href} className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${highlight ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{action}<ArrowRight size={14} /></a>
+                      {isRoulette ? (
+                        /* 룰렛은 DailyRewardWheel 플로팅 버튼이 있으므로 안내 문구만 표시 */
+                        <p className="mt-6 text-center text-xs text-white/30">화면 우하단 🎁 버튼을 눌러 룰렛을 돌리세요</p>
+                      ) : (
+                        <button onClick={onClick} className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${highlight ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{action}<ArrowRight size={14} /></button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -106,6 +133,18 @@ export default function PricingPage() {
         </div>
       </main>
       <Footer />
+
+      {/* 어디서든 열리는 모달들 */}
+      <ReferralSystem isOpen={referralOpen} onClose={() => setReferralOpen(false)} />
+      <RewardedAdPopup
+        isOpen={adOpen}
+        onClose={() => setAdOpen(false)}
+        onRewardClaimed={(credits) => {
+          setAdOpen(false);
+          setUserCredits(prev => prev + credits);
+        }}
+      />
+      {user && <DailyRewardWheel onClaim={(credits) => setUserCredits(prev => prev + credits)} />}
     </>
   );
 }
