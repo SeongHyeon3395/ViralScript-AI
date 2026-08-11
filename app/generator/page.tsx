@@ -112,9 +112,10 @@ export default function GeneratorPage() {
   const [credits, setCredits] = useState(10);
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
 
-  // 세션 확인
+  // 트렌드 피드에서 넘어온 url/platform 쿼리파라미터 자동완성
   useEffect(() => {
-    const sourceUrl = new URLSearchParams(window.location.search).get('url');
+    const params = new URLSearchParams(window.location.search);
+    const sourceUrl = params.get('url');
     if (sourceUrl) startTransition(() => setUrl(sourceUrl));
   }, []);
 

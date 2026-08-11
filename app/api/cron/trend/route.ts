@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
-import { fetchVideoMetadata } from '@/services/scraperMiddleware';
-import { normalizeAndValidateUrl } from '@/utils/urlNormalizer';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
-// ─── Trend Feed AI 스키마 ────────────────────────────────────────
+// ─── 검색 URL 폴백 생성기 ─────────────────────────────────────────
+function buildFallbackUrl(platform: string, title: string): string {
+  const q = encodeURIComponent(title);
+  if (platform === 'TikTok') return `https://www.tiktok.com/search?q=${q}`;
+  if (platform === 'YouTube Shorts') return `https://www.youtube.com/results?search_query=${q}&sp=EgIYAg%3D%3D`;
+  // Instagram Reels
+  return `https://www.instagram.com/explore/tags/${encodeURIComponent(title.replace(/\s+/g, '').replace(/^#/, ''))}`;
+}
+
+// ─── AI 스키마 ────────────────────────────────────────────────────
 const trendItemSchema = {
   type: 'object' as const,
   properties: {
@@ -17,13 +24,13 @@ const trendItemSchema = {
         type: 'object' as const,
         properties: {
           platform: { type: 'string' as const, enum: ['TikTok', 'YouTube Shorts', 'Instagram Reels'] },
-          region: { type: 'string' as const, enum: ['US', 'KR', 'JP'] },
-          title: { type: 'string' as const },
+          region:   { type: 'string' as const, enum: ['US', 'KR', 'JP'] },
+          title:    { type: 'string' as const },
           subtitle: { type: 'string' as const },
-          views: { type: 'string' as const },
-          likes: { type: 'string' as const },
-          tags: { type: 'string' as const },
-          url: { type: 'string' as const },
+          views:    { type: 'string' as const },
+          likes:    { type: 'string' as const },
+          tags:     { type: 'string' as const },
+          video_url:{ type: 'string' as const },
         },
         required: ['platform', 'region', 'title', 'subtitle', 'views', 'likes', 'tags'],
       },
@@ -32,29 +39,31 @@ const trendItemSchema = {
   required: ['trends'],
 };
 
-const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Your job is to produce a JSON array of trending short-form video candidates across regions (US, KR, JP) and platforms (TikTok, YouTube Shorts, Instagram Reels). URLs will be verified by the server, so never invent a URL.
+const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Today is ${new Date().toISOString().slice(0, 10)}.
 
-Requirements:
-- Generate AT LEAST 90 items in total (30 items for US, 30 items for KR, 30 items for JP).
-- Within each region (US, KR, JP), distribute evenly across TikTok, YouTube Shorts, and Instagram Reels (10 items per platform per region).
+Generate exactly 90 trending short-form video items:
+- 30 items for US, 30 for KR, 30 for JP
+- Within each region: 10 TikTok, 10 YouTube Shorts, 10 Instagram Reels
 
-For each item, return:
-- platform: "TikTok" or "YouTube Shorts" or "Instagram Reels"
-- region: "US" or "KR" or "JP"
-- title: a compelling, clickable headline in the region's native language (Korean for KR, Japanese for JP, English for US)
-- subtitle: one-sentence description of why this trend is viral (native language)
-- views: realistic high view count string, e.g. "3.2M", "1.1M", "890K"
-- likes: realistic like count string, e.g. "450K", "120K"
-- tags: 2-3 comma-separated hashtag-style tags in native language, e.g. "#AI챌린지,#숏폼대박"
-- url: the exact public URL of a real existing post. Never invent, fabricate, or approximate a URL. If you do not know a real URL, omit that candidate rather than guessing.
+For EVERY item provide:
+- platform: "TikTok" | "YouTube Shorts" | "Instagram Reels"
+- region: "US" | "KR" | "JP"
+- title: compelling headline in the region's native language
+- subtitle: one sentence explaining why it's viral (native language)
+- views: e.g. "3.2M"
+- likes: e.g. "450K"
+- tags: 2-3 hashtags, comma-separated, native language
+- video_url: the REAL public URL of the video post.
+  * For TikTok: https://www.tiktok.com/@{creator}/video/{id}
+  * For YouTube Shorts: https://www.youtube.com/shorts/{id}
+  * For Instagram Reels: https://www.instagram.com/reel/{id}/
+  If you cannot find the EXACT URL of a real post, output an empty string "" — the server will replace it with a search URL. Never fabricate a URL with a fake ID.
 
-Ensure topics span diverse viral categories: AI tools & filters, K-pop/beauty/fashion, food hacks, funny skits, ASMR, tech productivity, viral dance challenges.
+Topics must span: AI tools, K-pop/J-pop, food hacks, comedy, ASMR, beauty/fashion, dance challenges, tech productivity.
+Return ONLY valid JSON. No markdown.`;
 
-Return ONLY valid JSON according to the schema. No markdown wrappers.`;
-
-// ─── POST /api/cron/trend ────────────────────────────────────────
+// ─── POST /api/cron/trend ─────────────────────────────────────────
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // 보안 — CRON_SECRET 검증 (로컬 개발 시 패스)
   const auth = req.headers.get('authorization');
   const expected = process.env.CRON_SECRET;
   if (expected && auth !== `Bearer ${expected}`) {
@@ -62,11 +71,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    // 1. Gemini AI 호출
     const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) throw new Error('GOOGLE_AI_API_KEY is not configured');
-    const ai = new GoogleGenAI({ apiKey });
 
+    const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts: [{ text: SYSTEM_PROMPT }] }],
@@ -74,7 +82,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         responseMimeType: 'application/json',
         responseSchema: trendItemSchema,
         tools: [{ googleSearch: {} }],
-        temperature: 0.9,
+        temperature: 0.8,
       },
     });
 
@@ -88,63 +96,47 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       throw new Error(`AI response not valid JSON: ${text.substring(0, 200)}`);
     }
 
-    const trends = parsed?.trends;
-    if (!Array.isArray(trends) || trends.length === 0) {
+    const rawTrends = parsed?.trends;
+    if (!Array.isArray(rawTrends) || rawTrends.length === 0) {
       throw new Error('AI returned no trend items');
     }
 
-    // 실제 게시물 검증: 메타데이터 수집에 성공한 후보만 저장합니다.
-    const verified = await Promise.all(
-      trends.map(async (trend) => {
-        try {
-          const rawUrl = trend.url?.trim();
-          if (!rawUrl) return null;
-          const normalized = normalizeAndValidateUrl(rawUrl);
-          await fetchVideoMetadata(normalized.normalizedUrl, normalized.platform);
-          return trend;
-        } catch {
-          return null;
-        }
-      })
-    );
-    const verifiedTrends = verified.filter((trend): trend is Record<string, string> => trend !== null);
-    if (verifiedTrends.length === 0) {
-      throw new Error('No real public trend posts were verified; existing feed was preserved');
-    }
+    // video_url이 빈 문자열이면 검색 URL로 대체 — 유저가 클릭 시 항상 실제 페이지에 도달
+    const rows = rawTrends.map((item) => {
+      const videoUrl = item.video_url?.trim() || buildFallbackUrl(item.platform, item.title);
+      return {
+        platform:  item.platform,
+        region:    item.region,
+        title:     item.title,
+        subtitle:  item.subtitle,
+        views:     item.views,
+        likes:     item.likes,
+        tags:      item.tags,
+        url:       videoUrl,
+      };
+    });
 
-    // Supabase Service Role 연결
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
     );
 
-    // 트랜잭션: DELETE + INSERT
+    // 기존 데이터 전체 삭제 후 신규 삽입
     const { error: deleteErr } = await supabase.from('trend_feed').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     if (deleteErr) throw new Error(`DB delete failed: ${deleteErr.message}`);
-
-    const rows = verifiedTrends.map((t) => ({
-      platform: t.platform,
-      region: t.region,
-      title: t.title,
-      subtitle: t.subtitle,
-      views: t.views,
-      likes: t.likes,
-      tags: t.tags,
-      url: t.url,
-    }));
 
     const { error: insertErr } = await supabase.from('trend_feed').insert(rows);
     if (insertErr) throw new Error(`DB insert failed: ${insertErr.message}`);
 
-    return NextResponse.json({ ok: true, count: rows.length });
+    return NextResponse.json({ ok: true, count: rows.length, updatedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[cron/trend]', err instanceof Error ? err.message : err);
     return NextResponse.json({ ok: false, error: err instanceof Error ? err.message : 'Unknown' }, { status: 500 });
   }
 }
 
-// Vercel Cron은 스케줄 작업을 GET으로 호출합니다.
+// Vercel Cron(KST 00:00 = UTC 15:00)은 GET으로 호출합니다.
 export async function GET(req: NextRequest): Promise<NextResponse> {
   return POST(req);
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Music, Play, Camera, Eye, Heart, RefreshCw, Loader2, ChevronDown, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
@@ -21,7 +22,7 @@ const LOAD_MORE_COUNT = 30;
 const MAX_TRENDS = 100;
 
 interface TrendFeedProps {
-  onGenerate: (url: string) => void;
+  onGenerate?: (url: string) => void;
 }
 
 function SkeletonCard() {
@@ -44,6 +45,7 @@ function SkeletonCard() {
 }
 
 export default function TrendFeed({ onGenerate }: TrendFeedProps) {
+  const router = useRouter();
   const [trends, setTrends] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -104,6 +106,18 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
     const min = String(kstDate.getMinutes()).padStart(2, '0');
 
     return `(${yyyy}.${mm}.${dd} ${hh}:${min} KST 기준)`;
+  }
+
+  function handleGenerate(item: TrendItem) {
+    if (onGenerate && item.url) {
+      onGenerate(item.url);
+      return;
+    }
+    // 직접 라우팅: url + platform 쿼리파라미터로 자동완성
+    const params = new URLSearchParams();
+    if (item.url) params.set('url', item.url);
+    params.set('platform', item.platform);
+    router.push(`/generator?${params.toString()}`);
   }
 
   const latestCreatedAt = trends[0]?.created_at;
@@ -190,7 +204,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
                       <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/20 transition-colors">
                         <ExternalLink size={13} />{t('trend_visit')}
                       </a>
-                      <button onClick={() => onGenerate(item.url!)} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-400/10 px-3 py-2 text-xs font-semibold text-violet-200 hover:bg-violet-400/20 transition-colors">
+                      <button onClick={() => handleGenerate(item)} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-400/10 px-3 py-2 text-xs font-semibold text-violet-200 hover:bg-violet-400/20 transition-colors">
                         <FileText size={13} />{t('trend_generate')}
                       </button>
                       <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/80 ml-auto"><CheckCircle2 size={13} />{t('trend_verified')}</span>

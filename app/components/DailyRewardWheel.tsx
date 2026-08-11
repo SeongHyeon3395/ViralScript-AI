@@ -20,6 +20,16 @@ const WEIGHTED_TABLE = [
   { value: 10, weight: 0.10 },
 ];
 
+/** KST(UTC+9) 기준 오늘 자정까지 남은 ms */
+function msUntilKstMidnight(): number {
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const kstMidnight = new Date(Date.UTC(
+    kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate() + 1,
+  ));
+  return kstMidnight.getTime() - now.getTime();
+}
+
 function weightedRandom(): number {
   const rand = Math.random() * 100;
   let cumulative = 0;
@@ -64,17 +74,19 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
     return () => subscription.unsubscribe();
   }, []);
 
-  // 유저별 localStorage 키로 데일리 제한 확인
+  // 유저별 localStorage 키로 데일리 제한 확인 (KST 날짜 기준)
   const storageKey = user ? `dailyReward_${user.id}` : null;
 
   useEffect(() => {
     if (!storageKey) return;
-    const lastSpin = localStorage.getItem(storageKey);
-    if (lastSpin) {
-      const diff = Date.now() - Number(lastSpin);
-      if (diff < 86400000) {
+    const lastSpinDateStr = localStorage.getItem(storageKey); // "YYYY-MM-DD" KST 날짜
+    if (lastSpinDateStr) {
+      // 현재 KST 날짜와 비교
+      const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      const todayKst = nowKst.toISOString().slice(0, 10);
+      if (lastSpinDateStr === todayKst) {
         setHasSpunToday(true);
-        setCooldown(86400000 - diff);
+        setCooldown(msUntilKstMidnight());
       }
     }
   }, [storageKey]);
@@ -96,10 +108,11 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
   }, [cooldown]);
 
   const formatCooldown = useCallback(() => {
-    const h = Math.floor(cooldown / 3600000);
-    const m = Math.floor((cooldown % 3600000) / 60000);
-    const s = Math.floor((cooldown % 60000) / 1000);
-    return `${h}시간 ${m}분 ${s}초`;
+    const total = Math.max(0, cooldown);
+    const h = Math.floor(total / 3600000).toString().padStart(2, '0');
+    const m = Math.floor((total % 3600000) / 60000).toString().padStart(2, '0');
+    const s = Math.floor((total % 60000) / 1000).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
   }, [cooldown]);
 
   async function spin() {
@@ -121,9 +134,13 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
     setTimeout(async () => {
       setSpinning(false);
       setResult({ label: `${wonCredits}`, value: wonCredits });
-      if (storageKey) localStorage.setItem(storageKey, String(Date.now()));
+      if (storageKey) {
+        // KST 오늘 날짜("YYYY-MM-DD")를 저장
+        const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        localStorage.setItem(storageKey, todayKst);
+      }
       setHasSpunToday(true);
-      setCooldown(86400000);
+      setCooldown(msUntilKstMidnight());
 
       // 서버 RPC로 원자적 적립 (claim_daily_bonus)
       try {
@@ -153,7 +170,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
           <Gift size={18} />
           <span>{t('daily_bonus')}</span>
           {hasSpunToday ? (
-            <span className="ml-1 text-xs text-white/50">· {formatCooldown()}</span>
+            <span className="ml-1 text-xs font-mono text-white/50">· {formatCooldown()}</span>
           ) : (
             <span className="relative flex h-2 w-2 ml-1">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -264,10 +281,13 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
 
             {/* Spin button */}
             {hasSpunToday ? (
-              <div className="text-center">
+              <div className="text-center space-y-2">
                 <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-5 py-3 text-sm text-white/40">
                   <RefreshCw size={14} />
-                  다음 기회까지 {formatCooldown()}
+                  <span>내일 KST 00:00까지</span>
+                </div>
+                <div className="font-mono text-2xl font-bold text-violet-300 tracking-widest">
+                  {formatCooldown()}
                 </div>
               </div>
             ) : (

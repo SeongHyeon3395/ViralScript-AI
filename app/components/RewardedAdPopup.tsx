@@ -107,11 +107,16 @@ export default function RewardedAdPopup({
     setPhase('loading');
     adCalledRef.current = false;
 
-    // ADS_ENABLED=false(개발/로컬) 또는 AdSense 키 미설정 시 → 시뮬레이션 모드
+    // ADS_ENABLED=false 또는 AdSense 키 미설정 → 즉시 시뮬레이션 모드
     if (!ADS_ENABLED || !ADSENSE_CLIENT || !ADSENSE_SLOT) {
       setPhase('watching');
       return;
     }
+
+    // 15초 내에 onReady가 오지 않으면 시뮬레이션 fallback
+    const fallbackTimer = setTimeout(() => {
+      setPhase('watching');
+    }, 15000);
 
     try {
       await loadAdSenseScript();
@@ -122,22 +127,23 @@ export default function RewardedAdPopup({
         adClient: ADSENSE_CLIENT,
         adSlot: ADSENSE_SLOT,
         onReady: () => {
+          clearTimeout(fallbackTimer);
           setPhase('watching');
         },
         onRewardGranted: () => {
-          // 광고 시청 완료 → 서버 크레딧 지급 트리거
+          clearTimeout(fallbackTimer);
           if (!adCalledRef.current) {
             adCalledRef.current = true;
             handleAdRewardGranted();
           }
         },
         onAdDismissed: () => {
-          // 광고를 끝까지 보지 않고 닫음 → 보상 없음
+          clearTimeout(fallbackTimer);
           setPhase('idle');
         },
       });
     } catch {
-      // AdSense 로드 실패 → 시뮬레이션 fallback
+      clearTimeout(fallbackTimer);
       setPhase('watching');
     }
   }
@@ -306,8 +312,16 @@ export default function RewardedAdPopup({
 
         {phase === 'loading' && (
           <div className="p-12 text-center space-y-4">
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all"
+              aria-label="닫기"
+            >
+              <X size={18} />
+            </button>
             <Loader2 size={40} className="text-amber-400 animate-spin mx-auto" />
             <p className="text-white/60 text-sm">{t('loading')}</p>
+            <p className="text-white/30 text-xs">광고를 불러오는 중입니다...</p>
           </div>
         )}
 

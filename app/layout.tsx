@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const inter = Inter({
@@ -42,7 +43,16 @@ export default function RootLayout({
       lang="ko"
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-screen flex flex-col mesh-bg">{children}</body>
+      <body className="min-h-screen flex flex-col mesh-bg">
+        {process.env.NEXT_PUBLIC_ENABLE_ADS_REWARD === 'true' && process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID && (
+          <Script
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}`}
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+          />
+        )}
+        {children}
+      </body>
     </html>
   );
 }
