@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
-export const maxDuration = 300;
+export const maxDuration = 30;
 
 // ─── 검색 URL 폴백 생성기 ─────────────────────────────────────────
 function buildFallbackUrl(platform: string, title: string): string {

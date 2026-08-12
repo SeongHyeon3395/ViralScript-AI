@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
+export const maxDuration = 30;
 
 // ─── Feature Gate: 광고 보상 비활성화 시 차단 ─────────────────────────────────
 

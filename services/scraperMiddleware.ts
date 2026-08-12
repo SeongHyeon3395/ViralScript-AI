@@ -3,8 +3,8 @@ import type { ScrapedMetadata, SupportedPlatform } from '@/types';
 import { ERROR_CODES } from '@/types';
 
 const APIFY_BASE_URL = 'https://api.apify.com/v2/acts';
-const SCRAPER_TIMEOUT_MS = 25_000;
-const RETRY_TIMEOUT_MS = 30_000;
+const SCRAPER_TIMEOUT_MS = 10_000;
+const RETRY_TIMEOUT_MS = 8_000;
 
 // 플랫폼별 Apify Actor ID 매핑
 const ACTOR_IDS: Record<SupportedPlatform, string> = {

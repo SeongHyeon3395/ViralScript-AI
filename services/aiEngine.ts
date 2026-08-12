@@ -62,7 +62,10 @@ export async function generateLocalizedScripts(
     throw new Error('GOOGLE_AI_API_KEY is not configured');
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: { timeout: 10_000 },
+  });
 
   try {
     const response = await ai.models.generateContent({
@@ -95,7 +98,7 @@ export async function generateLocalizedScripts(
     }
 
     // safetyRatings 체크 — 유해 콘텐츠 필터링 감지 시 즉시 에러
-    const candidates = (response as any).candidates;
+    const candidates = response.candidates;
     if (candidates?.[0]?.finishReason === 'SAFETY') {
       throw new Error(ERROR_CODES.AI_MODERATION_BLOCK);
     }

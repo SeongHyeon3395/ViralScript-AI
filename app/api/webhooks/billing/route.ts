@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { USD_TO_KRW_RATE } from '@/lib/credits';
 
 export const runtime = 'nodejs';
+export const maxDuration = 30;
 
 // ─── [SEALED] Feature Gate: 결제 비활성화 시 즉시 반환 ──────────────────────
 // Phase 1 (현재): NEXT_PUBLIC_ENABLE_PAYMENT=false → Webhook 진입 차단

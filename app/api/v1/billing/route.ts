@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
+export const maxDuration = 30;
 
 // ─── Feature Gate: 결제 비활성화 원자 차단 ──────────────────────────────────
 // Phase 1 (사업자 등록 전): NEXT_PUBLIC_ENABLE_PAYMENT=false → 즉시 403 반환

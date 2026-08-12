@@ -8,7 +8,7 @@ import { ERROR_CODES } from '@/types';
 import type { AnalyzeRequest, AnalyzeResponse, GenerationOutput, Profile } from '@/types';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 // ─── 헬퍼: 에러 코드 → HTTP 상태 코드 매핑 ─────────────────
 
@@ -159,17 +159,29 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
     if (rpcError) {
       console.error('[analyze] RPC error (cache hit):', rpcError.message);
+      if (rpcError.message?.includes('INSUFFICIENT_CREDITS')) {
+        return NextResponse.json(
+          { success: false, error: 'Insufficient credits', errorCode: ERROR_CODES.INSUFFICIENT_CREDITS },
+          { status: 402 }
+        );
+      }
       return NextResponse.json(
         { success: false, error: 'DB transaction failed', errorCode: ERROR_CODES.DB_TRANSACTION_FAIL },
         { status: 500 }
       );
     }
 
+    const { data: cachedProfile } = await supabase
+      .from('profiles')
+      .select('credits_remaining')
+      .eq('id', user.id)
+      .maybeSingle();
+
     return NextResponse.json({
       success: true,
       data: cached.analysis_result as GenerationOutput,
       cached: true,
-      creditsRemaining: profile.credits_remaining - creditCost,
+      creditsRemaining: cachedProfile?.credits_remaining ?? profile.credits_remaining - creditCost,
     });
   }
 
@@ -225,32 +237,21 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  // 9. 캐시 저장 (script_cache upsert) — Service Role로 실행
-  await supabase
-    .from('script_cache')
-    .upsert({
-      url_hash: urlHash,
-      original_url: normalizedUrl,
-      platform,
-      video_duration_sec: metadata.durationSeconds,
-      analysis_result: result,
-      hit_count: 1,
-      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    })
-    .then(() => {});
-
-  // 10. 원자적 크레딧 차감 + 히스토리 저장 (deduct_dynamic_credit RPC)
-  const { data: remainingCredits, error: rpcError } = await supabase.rpc(
-    'deduct_dynamic_credit',
-    {
-      target_user_id: user.id,
-      video_duration: metadata.durationSeconds,
-    }
-  );
+  // 9. 크레딧 차감 + 히스토리 저장을 하나의 DB 트랜잭션으로 실행한다.
+  // Gemini 호출은 이 RPC 전에 완료되므로 Gemini 실패 시 차감 자체가 발생하지 않는다.
+  // RPC 내부의 INSERT 실패도 같은 트랜잭션을 롤백하여 부분 차감을 방지한다.
+  const { error: rpcError } = await supabase.rpc('execute_script_generation', {
+    p_user_id: user.id,
+    p_source_url: normalizedUrl,
+    p_project_title: result.project_title,
+    p_target_product: targetProduct,
+    p_generated_json: result,
+    p_cost: dynamicCreditCost,
+  });
 
   if (rpcError) {
     console.error('[analyze] deduct_dynamic_credit RPC error:', rpcError.message);
-    if (rpcError.message?.includes('ERR_INSUFFICIENT_CREDITS_REQUIRED_')) {
+    if (rpcError.message?.includes('INSUFFICIENT_CREDITS')) {
       return NextResponse.json(
         { success: false, error: 'Insufficient credits', errorCode: ERROR_CODES.INSUFFICIENT_CREDITS },
         { status: 402 }
@@ -262,21 +263,32 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  // 히스토리 저장 (비동기 — 응답 지연 없음)
-  supabase.rpc('log_generation_history', {
-    p_user_id: user.id,
-    p_source_url: normalizedUrl,
-    p_project_title: result.project_title,
-    p_target_product: targetProduct,
-    p_generated_json: result,
-    p_cost: dynamicCreditCost,
-  }).then(() => {});
+  // 캐시 실패는 이미 과금/히스토리가 성공한 요청을 실패로 바꾸지 않는다.
+  // 다음 요청에서 재생성될 뿐이며, 사용자 잔액은 일관되게 유지된다.
+  const { error: cacheError } = await supabase.from('script_cache').upsert({
+    url_hash: urlHash,
+    original_url: normalizedUrl,
+    platform,
+    video_duration_sec: metadata.durationSeconds,
+    analysis_result: result,
+    hit_count: 1,
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  });
+  if (cacheError) {
+    console.error('[analyze] script_cache upsert failed after committed generation:', cacheError.message);
+  }
+
+  const { data: updatedProfile } = await supabase
+    .from('profiles')
+    .select('credits_remaining')
+    .eq('id', user.id)
+    .maybeSingle();
 
   return NextResponse.json({
     success: true,
     data: result,
     cached: false,
-    creditsRemaining: remainingCredits as number,
+    creditsRemaining: updatedProfile?.credits_remaining ?? profile.credits_remaining - dynamicCreditCost,
     creditCostApplied: dynamicCreditCost,
     durationSeconds: metadata.durationSeconds,
   });
