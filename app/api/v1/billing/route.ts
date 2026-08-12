@@ -38,7 +38,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     .from('profiles')
     .select('tier, credits, stripe_customer_id')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: '프로필 조회 실패' }, { status: 500 });

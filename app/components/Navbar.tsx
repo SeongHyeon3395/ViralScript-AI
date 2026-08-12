@@ -67,10 +67,11 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
         .from('profiles')
         .select('credits_remaining')
         .eq('id', userId)
-        .single<{ credits_remaining: number }>();
+        .maybeSingle<{ credits_remaining: number }>();
       if (data) setUserCredits(data.credits_remaining ?? 0);
-    } catch {
-      // 무시
+    } catch (error) {
+      console.warn('[Navbar] profile credits fetch failed:', error);
+      setUserCredits(0);
     }
   }
 

@@ -24,7 +24,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       'id, email, subscription_plan, credits_remaining, stripe_customer_id, created_at, updated_at'
     )
     .eq('id', userData.user.id)
-    .single();
+    .maybeSingle();
 
   if (error || !profile) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });

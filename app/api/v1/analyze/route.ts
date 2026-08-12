@@ -54,7 +54,7 @@ async function getUserFromToken(
     .from('profiles')
     .select('*')
     .eq('id', userData.user.id)
-    .single();
+    .maybeSingle();
 
   if (profileError || !profile) return null;
 

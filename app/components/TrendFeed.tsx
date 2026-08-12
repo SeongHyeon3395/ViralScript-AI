@@ -20,6 +20,7 @@ const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'tr
 const INITIAL_LOAD = 30;
 const LOAD_MORE_COUNT = 30;
 const MAX_TRENDS = 100;
+const TREND_MAX_AGE_MS = 36 * 60 * 60 * 1000;
 
 interface TrendFeedProps {
   onGenerate?: (url: string) => void;
@@ -61,9 +62,11 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
       try {
         const supabase = getSupabaseBrowserClient();
         // cache: no-store 동등 효과 — 항상 최신 데이터 조회
+        const freshnessCutoff = new Date(Date.now() - TREND_MAX_AGE_MS).toISOString();
         const { data, error: dbErr } = await supabase
           .from('trend_feed')
           .select('*')
+          .gte('created_at', freshnessCutoff)
           .order('created_at', { ascending: false })
           .limit(MAX_TRENDS);
         if (cancelled) return;
@@ -76,7 +79,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
           return;
         }
         
-        setTrends(data);
+        setTrends(data as TrendItem[]);
         setError(false);
       } catch (err) {
         console.error('[TrendFeed] Fetch error:', err);
@@ -86,7 +89,21 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
       setLoading(false);
     }
     fetchTrends();
-    return () => { cancelled = true; };
+
+    const channel = getSupabaseBrowserClient()
+      .channel('trend-feed-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trend_feed' }, () => {
+        setVisibleCount(INITIAL_LOAD);
+        fetchTrends();
+      })
+      .subscribe();
+    const refreshTimer = window.setInterval(fetchTrends, 60_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(refreshTimer);
+      void getSupabaseBrowserClient().removeChannel(channel);
+    };
   }, [refreshKey]);
 
   function toFilterKey(platform: string): string | undefined {
@@ -99,19 +116,13 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
 
   // KST 포맷 함수 (YYYY.MM.DD HH:mm KST 기준)
   function formatKstTime(isoString?: string): string {
-    const date = isoString ? new Date(isoString) : new Date();
-    // UTC+9 계산
-    const kstOffset = 9 * 60;
-    const utcTime = date.getTime() + date.getTimezoneOffset() * 60000;
-    const kstDate = new Date(utcTime + kstOffset * 60000);
-
-    const yyyy = kstDate.getFullYear();
-    const mm = String(kstDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(kstDate.getDate()).padStart(2, '0');
-    const hh = String(kstDate.getHours()).padStart(2, '0');
-    const min = String(kstDate.getMinutes()).padStart(2, '0');
-
-    return `(${yyyy}.${mm}.${dd} ${hh}:${min} KST 기준)`;
+    const parts = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(isoString ? new Date(isoString) : new Date());
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return `(${values.year}.${values.month}.${values.day} ${values.hour}:${values.minute} KST 기준)`;
   }
 
   function handleGenerate(item: TrendItem) {

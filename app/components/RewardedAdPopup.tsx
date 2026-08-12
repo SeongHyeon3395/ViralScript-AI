@@ -16,10 +16,14 @@ import { t } from './LanguageSwitcher';
 // ─── Google AdSense 전역 타입 선언 ────────────────────────────
 declare global {
   interface Window {
-    adsbygoogle: {
-      push: (config: Record<string, unknown>) => void;
-      loaded?: boolean;
-    };
+    adBreak?: (config: {
+      type: 'reward';
+      name: string;
+      beforeReward: (showAd: () => void) => void;
+      adViewed: () => void;
+      adDismissed: () => void;
+      adBreakDone?: (detail: { breakStatus?: string }) => void;
+    }) => void;
   }
 }
 
@@ -43,7 +47,6 @@ export default function RewardedAdPopup({
   const [phase, setPhase] = useState<'idle' | 'loading' | 'watching' | 'complete' | 'claimed' | 'error' | 'limit'>('idle');
   const [progress, setProgress] = useState(0);
   const [countdown, setCountdown] = useState(30);
-  const [showSkip, setShowSkip] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const adCalledRef = useRef(false);
 
@@ -53,7 +56,6 @@ export default function RewardedAdPopup({
       setPhase('idle');
       setProgress(0);
       setCountdown(30);
-      setShowSkip(false);
       setErrorMessage('');
       adCalledRef.current = false;
     }
@@ -68,8 +70,6 @@ export default function RewardedAdPopup({
       return;
     }
 
-    if (countdown <= 25) setShowSkip(true);
-
     const interval = setInterval(() => {
       setCountdown((c) => {
         const next = c - 1;
@@ -81,11 +81,10 @@ export default function RewardedAdPopup({
     return () => clearInterval(interval);
   }, [phase, countdown]);
 
-  // ─── AdSense 스크립트 동적 로드 ────────────────────────────
+  // ─── Ad Placement API 스크립트 동적 로드 ───────────────────
   function loadAdSenseScript(): Promise<void> {
     return new Promise((resolve) => {
-      // 이미 로드된 경우
-      if (document.querySelector('script[src*="adsbygoogle"]')) {
+      if (window.adBreak || document.querySelector('script[src*="adsbygoogle"]')) {
         resolve();
         return;
       }
@@ -110,7 +109,7 @@ export default function RewardedAdPopup({
       return;
     }
 
-    // 15초 내에 onReady가 오지 않으면 시뮬레이션 fallback
+    // API가 준비되지 않은 환경에서도 모달이 영원히 잠기지 않도록 표시 단계로 전환
     const fallbackTimer = setTimeout(() => {
       setPhase('watching');
     }, 15000);
@@ -118,33 +117,42 @@ export default function RewardedAdPopup({
     try {
       await loadAdSenseScript();
 
-      window.adsbygoogle = window.adsbygoogle ?? { push: () => {} };
-      window.adsbygoogle.push({
+      if (!window.adBreak) {
+        throw new Error('Ad Placement API를 불러오지 못했습니다.');
+      }
+
+      window.adBreak({
         type: 'reward',
-        adClient: ADSENSE_CLIENT,
-        adSlot: ADSENSE_SLOT,
-        onReady: () => {
+        name: `reward-${ADSENSE_SLOT}`,
+        beforeReward: (showAd) => {
           clearTimeout(fallbackTimer);
           setPhase('watching');
+          showAd();
         },
-        onRewardGranted: () => {
-          // 광고 시청 완료 콜백에서만 크레딧 지급 (스킵하면 호출 안 됨)
+        adViewed: () => {
+          // 완주 콜백에서만 서버 원자적 적립
           clearTimeout(fallbackTimer);
           if (!adCalledRef.current) {
             adCalledRef.current = true;
             handleAdRewardGranted();
           }
         },
-        onAdDismissed: () => {
-          // 스킵/얼리 닫기 시 크레딧 미지급
+        adDismissed: () => {
+          // 중도 종료는 적립하지 않고 모달만 닫음
           clearTimeout(fallbackTimer);
           adCalledRef.current = false;
+          onClose();
+        },
+        adBreakDone: ({ breakStatus }) => {
+          if (breakStatus === 'viewed') return;
+          clearTimeout(fallbackTimer);
           setPhase('idle');
         },
       });
     } catch {
       clearTimeout(fallbackTimer);
-      setPhase('watching');
+      setErrorMessage('광고를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+      setPhase('error');
     }
   }
 
@@ -167,6 +175,7 @@ export default function RewardedAdPopup({
         throw new Error(data.error ?? '크레딧 지급 실패');
       }
 
+      onRewardClaimed(rewardAmount);
       setPhase('complete');
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
@@ -174,19 +183,8 @@ export default function RewardedAdPopup({
     }
   }
 
-  function skipAd() {
-    if (!showSkip) return;
-    // 시뮬레이션 모드: 스킵 시 보상 지급 (실제 AdSense는 스킵 불가)
-    if (!ADS_ENABLED || !ADSENSE_CLIENT) {
-      handleAdRewardGranted();
-      return;
-    }
-    setPhase('idle');
-  }
-
   function claimReward() {
     setPhase('claimed');
-    onRewardClaimed(rewardAmount);
     setTimeout(onClose, 1500);
   }
 
@@ -270,15 +268,6 @@ export default function RewardedAdPopup({
                 {countdown}s
               </div>
 
-              {/* Skip button */}
-              {showSkip && (
-                <button
-                  onClick={skipAd}
-                  className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm rounded-full px-3 py-1 text-xs text-white/60 hover:text-white transition-colors"
-                >
-                  {t('ad_skip')}
-                </button>
-              )}
             </div>
 
             <div className="p-4 text-center text-xs text-white/30">
