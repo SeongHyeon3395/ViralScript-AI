@@ -74,7 +74,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const regions = ['US', 'KR', 'JP'];
     const regionalTrends = await Promise.all(regions.map(async (region) => {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         contents: [{ role: 'user', parts: [{ text: SYSTEM_PROMPT(region) }] }],
         config: {
           responseMimeType: 'application/json',
