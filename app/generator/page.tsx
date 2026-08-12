@@ -14,7 +14,7 @@ import {
   Link2, ShoppingBag, SlidersHorizontal, Rocket, Loader2, Zap,
   Film, Clock, TrendingUp, ChevronDown, ChevronUp,
   Sparkles, BarChart3, ArrowRight, Gift, RefreshCw, Shuffle,
-  CheckCircle2, Shield, LogIn,
+  CheckCircle2, Shield, LogIn, Copy,
 } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -72,6 +72,7 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
   const [activeLocale, setActiveLocale] = useState<'kr' | 'us' | 'jp'>('kr');
   const [showRemix, setShowRemix] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
   const fullText = result.scenes.map(s => `[Scene ${s.scene_number}] ${s.audio_script[activeLocale]}`).join('\n\n');
   return (
     <div className="space-y-5 fade-in-up">
@@ -85,6 +86,33 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
             <button onClick={() => setShowRemix(!showRemix)} className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white transition-all"><Shuffle size={12} />리믹스</button>
             <button onClick={() => { navigator.clipboard.writeText(fullText); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white transition-all">{copied ? <CheckCircle2 size={12} /> : <Link2 size={12} />}{copied ? '복사됨' : '복사'}</button>
           </div>
+        </div>
+        <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles size={14} className="text-cyan-300" />
+              <span className="text-xs font-bold uppercase tracking-widest text-cyan-200">모바일 복사용 프롬프트</span>
+            </div>
+            <div className="flex gap-2">
+              {result.source_url && (
+                <a href={result.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/60 hover:text-white transition-all">
+                  <Link2 size={12} />원본 링크
+                </a>
+              )}
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(result.copy_ready_prompt_ko);
+                  setPromptCopied(true);
+                  setTimeout(() => setPromptCopied(false), 2000);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 hover:bg-cyan-400/20 transition-all"
+              >
+                {promptCopied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
+                {promptCopied ? '프롬프트 복사됨' : '프롬프트 복사'}
+              </button>
+            </div>
+          </div>
+          <pre className="whitespace-pre-wrap text-xs leading-relaxed text-cyan-50/80">{result.copy_ready_prompt_ko}</pre>
         </div>
         <div className="flex gap-1 bg-white/5 rounded-xl p-1 mb-5 w-fit">{LOCALE_TABS.map(t => (
           <button key={t.key} onClick={() => setActiveLocale(t.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeLocale === t.key ? 'bg-violet-600 text-white shadow-sm' : 'text-white/40 hover:text-white/70'}`}>{t.flag} {t.label}</button>

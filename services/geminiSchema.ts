@@ -23,6 +23,11 @@ export const geminiOutputSchema: Schema = {
       type: Type.STRING,
       description: 'High-level marketing strategy explanation in Korean.',
     },
+    copy_ready_prompt_ko: {
+      type: Type.STRING,
+      description:
+        'A Korean mobile-friendly master prompt that can be pasted into other AI video generators.',
+    },
     scenes: {
       type: Type.ARRAY,
       description: 'Sequential breakdown of the short-form storyboard.',
@@ -87,6 +92,7 @@ export const geminiOutputSchema: Schema = {
     'target_product',
     'total_duration_seconds',
     'overall_viral_strategy',
+    'copy_ready_prompt_ko',
     'scenes',
   ],
 };

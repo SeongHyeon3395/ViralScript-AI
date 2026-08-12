@@ -177,9 +177,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       .eq('id', user.id)
       .maybeSingle();
 
+    const cachedResult: GenerationOutput = {
+      ...(cached.analysis_result as GenerationOutput),
+      source_url: normalizedUrl,
+    };
+
     return NextResponse.json({
       success: true,
-      data: cached.analysis_result as GenerationOutput,
+      data: cachedResult,
       cached: true,
       creditsRemaining: cachedProfile?.credits_remaining ?? profile.credits_remaining - creditCost,
     });
@@ -237,15 +242,20 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
+  const enrichedResult: GenerationOutput = {
+    ...result,
+    source_url: normalizedUrl,
+  };
+
   // 9. 크레딧 차감 + 히스토리 저장을 하나의 DB 트랜잭션으로 실행한다.
   // Gemini 호출은 이 RPC 전에 완료되므로 Gemini 실패 시 차감 자체가 발생하지 않는다.
   // RPC 내부의 INSERT 실패도 같은 트랜잭션을 롤백하여 부분 차감을 방지한다.
   const { error: rpcError } = await supabase.rpc('execute_script_generation', {
     p_user_id: user.id,
     p_source_url: normalizedUrl,
-    p_project_title: result.project_title,
+    p_project_title: enrichedResult.project_title,
     p_target_product: targetProduct,
-    p_generated_json: result,
+    p_generated_json: enrichedResult,
     p_cost: dynamicCreditCost,
   });
 
@@ -270,7 +280,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     original_url: normalizedUrl,
     platform,
     video_duration_sec: metadata.durationSeconds,
-    analysis_result: result,
+    analysis_result: enrichedResult,
     hit_count: 1,
     expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   });
@@ -286,7 +296,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   return NextResponse.json({
     success: true,
-    data: result,
+    data: enrichedResult,
     cached: false,
     creditsRemaining: updatedProfile?.credits_remaining ?? profile.credits_remaining - dynamicCreditCost,
     creditCostApplied: dynamicCreditCost,

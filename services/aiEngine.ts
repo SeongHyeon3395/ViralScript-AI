@@ -3,7 +3,7 @@ import { geminiOutputSchema } from './geminiSchema';
 import type { ScrapedMetadata, GenerationOutput } from '@/types';
 import { ERROR_CODES } from '@/types';
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-3.5-flash';
 
 function buildSystemInstruction(targetProduct: string): string {
   return `
@@ -26,6 +26,11 @@ For EACH scene, generate three fully localized audio scripts simultaneously:
 - The field 'ai_video_prompt_en' MUST be written strictly in professional English.
 - Use cinematography terms: 'extreme close-up shot', 'cinematic lighting', 'shallow depth of field', '8k resolution', 'Unreal Engine 5 photorealistic render style', 'golden hour lighting', etc.
 - Optimize for Runway Gen-3 Alpha, Luma Dream Machine, or Midjourney v6.
+
+[MOBILE COPY-PASTE PROMPT]
+- Also generate 'copy_ready_prompt_ko' as a single Korean master prompt that a user can paste into a phone note or another AI video tool.
+- It should include: source-video analysis summary, core hook, scene-by-scene shot directions, subtitle/tone guidance, aspect ratio, pacing, and a clear instruction to create an original video inspired by the mechanism but not copied.
+- Make it concise enough to copy on mobile, but detailed enough for direct AI use.
 `.trim();
 }
 

@@ -100,8 +100,10 @@ export interface SceneScript {
 export interface GenerationOutput {
   project_title: string;
   target_product: string;
+  source_url?: string;
   total_duration_seconds: number;
   overall_viral_strategy: string;
+  copy_ready_prompt_ko: string;
   scenes: SceneScript[];
 }
 
