@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import Link from 'next/link';
 import {
-  Sparkles,
   Zap,
   History,
   CreditCard,
@@ -18,6 +18,7 @@ import AuthModal from './AuthModal';
 import ReferralSystem from './ReferralSystem';
 import LanguageSwitcher, { t } from './LanguageSwitcher';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { fetchUserCredits } from '@/lib/profile';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface NavbarRef {
@@ -25,7 +26,7 @@ export interface NavbarRef {
   getUser: () => SupabaseUser | null;
 }
 
-const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
+const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -42,7 +43,7 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        fetchUserCredits(session.user.id);
+        fetchUserCredits(session.user.id, session.user.email).then(setUserCredits);
       }
     });
 
@@ -50,7 +51,7 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        fetchUserCredits(session.user.id);
+        fetchUserCredits(session.user.id, session.user.email).then(setUserCredits);
       } else {
         setUser(null);
         setUserCredits(0);
@@ -59,21 +60,6 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  async function fetchUserCredits(userId: string) {
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase
-        .from('profiles')
-        .select('credits_remaining')
-        .eq('id', userId)
-        .maybeSingle<{ credits_remaining: number }>();
-      if (data) setUserCredits(data.credits_remaining ?? 0);
-    } catch (error) {
-      console.warn('[Navbar] profile credits fetch failed:', error);
-      setUserCredits(0);
-    }
-  }
 
   async function handleLogout() {
     const supabase = getSupabaseBrowserClient();
@@ -123,10 +109,10 @@ const Navbar = forwardRef<NavbarRef, {}>((props, ref) => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid grid-cols-[1fr_auto_1fr] h-16 items-center">
             {/* Logo — left */}
-            <a href="/" className="flex items-center gap-1 group shrink-0 justify-self-start">
+            <Link href="/" className="flex items-center gap-1 group shrink-0 justify-self-start">
               <span className="text-base font-bold text-white">ViralScript</span>
               <span className="text-base font-bold gradient-text">AI</span>
-            </a>
+            </Link>
 
             {/* Desktop Nav links — perfectly centered */}
             <nav className="hidden md:flex items-center justify-center gap-1">

@@ -10,6 +10,7 @@ import ReferralSystem from '@/app/components/ReferralSystem';
 import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { fetchUserCredits } from '@/lib/profile';
 import { t } from '@/app/components/LanguageSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -22,23 +23,21 @@ export default function PricingPage() {
   const [adOpen, setAdOpen] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
 
+  async function fetchCredits(uid: string, email?: string | null) {
+    setUserCredits(await fetchUserCredits(uid, email));
+  }
+
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) { setUser(session.user); fetchCredits(session.user.id); }
+      if (session?.user) { setUser(session.user); fetchCredits(session.user.id, session.user.email); }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchCredits(session.user.id);
+      if (session?.user) fetchCredits(session.user.id, session.user.email);
     });
     return () => subscription.unsubscribe();
   }, []);
-
-  async function fetchCredits(uid: string) {
-    const { data } = await getSupabaseBrowserClient()
-      .from('profiles').select('credits_remaining').eq('id', uid).maybeSingle<{ credits_remaining: number }>();
-    if (data) setUserCredits(data.credits_remaining);
-  }
 
   return (
     <>

@@ -49,6 +49,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // Admin 클라이언트로 RPC 호출 (SECURITY DEFINER 함수라 RLS 우회)
   const admin = createAdminClient();
+  const { error: profileError } = await admin.from('profiles').upsert(
+    { id: user.id, email: user.email ?? '' } as never,
+    { onConflict: 'id', ignoreDuplicates: true },
+  );
+
+  if (profileError) {
+    console.error('[ad-reward] profile 보장 실패:', profileError.message);
+    return NextResponse.json(
+      { error: '프로필을 준비하지 못했습니다.', code: 'PROFILE_UNAVAILABLE' },
+      { status: 500 },
+    );
+  }
+
   const { data, error } = await admin.rpc('claim_credit_via_ad', {
     target_user_id: user.id,
     target_ad_unit_id: adUnitId,

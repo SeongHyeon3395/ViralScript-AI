@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Play,
   X,
@@ -30,6 +30,7 @@ declare global {
 const ADS_ENABLED = process.env.NEXT_PUBLIC_ENABLE_ADS_REWARD === 'true';
 const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? '';
 const ADSENSE_SLOT = process.env.NEXT_PUBLIC_ADSENSE_REWARDED_AD_SLOT ?? '';
+const REWARD_AMOUNT = 3;
 
 interface RewardedAdPopupProps {
   isOpen: boolean;
@@ -50,14 +51,44 @@ export default function RewardedAdPopup({
   const [errorMessage, setErrorMessage] = useState('');
   const adCalledRef = useRef(false);
 
+  const handleAdRewardGranted = useCallback(async function handleAdRewardGranted() {
+    try {
+      const res = await fetch('/api/v1/monetization/ad-reward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adUnitId: ADSENSE_SLOT }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.code === 'ERR_DAILY_AD_LIMIT_EXCEEDED') {
+          setPhase('limit');
+          return;
+        }
+        throw new Error(data.error ?? '크레딧 지급 실패');
+      }
+
+      onRewardClaimed(data.creditsAwarded === REWARD_AMOUNT ? data.creditsAwarded : REWARD_AMOUNT);
+      setPhase('complete');
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      setPhase('error');
+    }
+  }, [onRewardClaimed]);
+
   // Reset on open
   useEffect(() => {
     if (isOpen) {
-      setPhase('idle');
-      setProgress(0);
-      setCountdown(30);
-      setErrorMessage('');
-      adCalledRef.current = false;
+      const resetTimer = window.setTimeout(() => {
+        setPhase('idle');
+        setProgress(0);
+        setCountdown(30);
+        setErrorMessage('');
+        adCalledRef.current = false;
+      }, 0);
+
+      return () => window.clearTimeout(resetTimer);
     }
   }, [isOpen]);
 
@@ -66,7 +97,12 @@ export default function RewardedAdPopup({
     if (phase !== 'watching') return;
 
     if (countdown <= 0) {
-      setPhase('complete');
+      if (!ADS_ENABLED || !ADSENSE_CLIENT || !ADSENSE_SLOT) {
+        if (!adCalledRef.current) {
+          adCalledRef.current = true;
+          void handleAdRewardGranted();
+        }
+      }
       return;
     }
 
@@ -79,7 +115,7 @@ export default function RewardedAdPopup({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [phase, countdown]);
+  }, [phase, countdown, handleAdRewardGranted]);
 
   // ─── Ad Placement API 스크립트 동적 로드 ───────────────────
   function loadAdSenseScript(): Promise<void> {
@@ -134,13 +170,14 @@ export default function RewardedAdPopup({
           clearTimeout(fallbackTimer);
           if (!adCalledRef.current) {
             adCalledRef.current = true;
-            handleAdRewardGranted();
+            void handleAdRewardGranted();
           }
         },
         adDismissed: () => {
           // 중도 종료는 적립하지 않고 모달만 닫음
           clearTimeout(fallbackTimer);
           adCalledRef.current = false;
+          setPhase('idle');
           onClose();
         },
         adBreakDone: ({ breakStatus }) => {
@@ -152,33 +189,6 @@ export default function RewardedAdPopup({
     } catch {
       clearTimeout(fallbackTimer);
       setErrorMessage('광고를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
-      setPhase('error');
-    }
-  }
-
-  // ─── AdSense rewardGranted → 서버 API 호출 ─────────────────
-  async function handleAdRewardGranted() {
-    try {
-      const res = await fetch('/api/v1/monetization/ad-reward', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adUnitId: ADSENSE_SLOT }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.code === 'ERR_DAILY_AD_LIMIT_EXCEEDED') {
-          setPhase('limit');
-          return;
-        }
-        throw new Error(data.error ?? '크레딧 지급 실패');
-      }
-
-      onRewardClaimed(rewardAmount);
-      setPhase('complete');
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
       setPhase('error');
     }
   }
@@ -240,6 +250,13 @@ export default function RewardedAdPopup({
 
         {phase === 'watching' && (
           <div className="p-0">
+            <button
+              onClick={() => { setPhase('idle'); onClose(); }}
+              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-black/50 transition-all"
+              aria-label="광고 닫기"
+            >
+              <X size={18} />
+            </button>
             {/* Simulated ad player */}
             <div className="relative bg-black aspect-[9/16] flex items-center justify-center overflow-hidden">
               {/* Animated gradient background */}
@@ -278,6 +295,9 @@ export default function RewardedAdPopup({
 
         {phase === 'complete' && (
           <div className="p-8 text-center space-y-5">
+            <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all" aria-label="닫기">
+              <X size={18} />
+            </button>
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
               <CheckCircle2 size={28} className="text-white" />
             </div>
