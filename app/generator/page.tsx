@@ -100,6 +100,7 @@ export default function GeneratorPage() {
   const navbarRef = useRef<NavbarRef>(null);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [url, setUrl] = useState('');
+  const [sourcePlatform, setSourcePlatform] = useState<string | null>(null);
   const [targetProduct, setTargetProduct] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -116,7 +117,9 @@ export default function GeneratorPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sourceUrl = params.get('url');
+    const platform = params.get('platform');
     if (sourceUrl) startTransition(() => setUrl(sourceUrl));
+    if (platform) startTransition(() => setSourcePlatform(platform));
   }, []);
 
   useEffect(() => {
@@ -182,7 +185,7 @@ export default function GeneratorPage() {
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-4 sm:space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')}</label>
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')}{sourcePlatform && <span className="text-[10px] font-normal text-cyan-300/70">{sourcePlatform}</span>}</label>
                 <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder={t('gen_url_placeholder')} className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
                 {urlError && <p className="flex items-center gap-1.5 text-xs text-red-400 fade-in-up"><span>⚠️</span> {urlError}</p>}
               </div>

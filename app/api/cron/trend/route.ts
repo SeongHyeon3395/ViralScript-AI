@@ -3,10 +3,12 @@ import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+export const maxDuration = 10;
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 // ─── 검색 URL 폴백 생성기 ─────────────────────────────────────────
-function buildFallbackUrl(platform: string, title: string): string {
+function buildSearchUrl(platform: string, title: string): string {
   const q = encodeURIComponent(title);
   if (platform === 'TikTok') return `https://www.tiktok.com/search?q=${q}`;
   if (platform === 'YouTube Shorts') return `https://www.youtube.com/results?search_query=${q}&sp=EgIYAg%3D%3D`;
@@ -30,7 +32,6 @@ const trendItemSchema = {
           views:    { type: 'string' as const },
           likes:    { type: 'string' as const },
           tags:     { type: 'string' as const },
-          video_url:{ type: 'string' as const },
         },
         required: ['platform', 'region', 'title', 'subtitle', 'views', 'likes', 'tags'],
       },
@@ -53,11 +54,7 @@ For EVERY item provide:
 - views: e.g. "3.2M"
 - likes: e.g. "450K"
 - tags: 2-3 hashtags, comma-separated, native language
-- video_url: the REAL public URL of the video post.
-  * For TikTok: https://www.tiktok.com/@{creator}/video/{id}
-  * For YouTube Shorts: https://www.youtube.com/shorts/{id}
-  * For Instagram Reels: https://www.instagram.com/reel/{id}/
-  If you cannot find the EXACT URL of a real post, output an empty string "" — the server will replace it with a search URL. Never fabricate a URL with a fake ID.
+Do not generate video URLs. The server creates a platform search URL from each title.
 
 Topics must span: AI tools, K-pop/J-pop, food hacks, comedy, ASMR, beauty/fashion, dance challenges, tech productivity.
 Return ONLY valid JSON. No markdown.`;
@@ -74,15 +71,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) throw new Error('GOOGLE_AI_API_KEY is not configured');
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: 8_000 } });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts: [{ text: SYSTEM_PROMPT }] }],
       config: {
         responseMimeType: 'application/json',
         responseSchema: trendItemSchema,
-        tools: [{ googleSearch: {} }],
         temperature: 0.8,
+        maxOutputTokens: 9000,
       },
     });
 
@@ -101,9 +98,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       throw new Error('AI returned no trend items');
     }
 
-    // video_url이 빈 문자열이면 검색 URL로 대체 — 유저가 클릭 시 항상 실제 페이지에 도달
+    // AI가 반환한 URL은 신뢰하지 않고 서버에서 검색 URL을 생성한다.
     const rows = rawTrends.map((item) => {
-      const videoUrl = item.video_url?.trim() || buildFallbackUrl(item.platform, item.title);
+      const videoUrl = buildSearchUrl(item.platform, item.title);
       return {
         platform:  item.platform,
         region:    item.region,
@@ -113,6 +110,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         likes:     item.likes,
         tags:      item.tags,
         url:       videoUrl,
+        video_url: videoUrl,
       };
     });
 

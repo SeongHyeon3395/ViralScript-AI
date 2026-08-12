@@ -8,7 +8,7 @@ import { t } from './LanguageSwitcher';
 
 interface TrendItem {
   id: string; platform: string; region: string;
-  title: string; subtitle: string; views: string; likes: string; tags: string; url?: string;
+  title: string; subtitle: string; views: string; likes: string; tags: string; video_url?: string | null;
   created_at?: string;
 }
 
@@ -23,7 +23,7 @@ const MAX_TRENDS = 100;
 const TREND_MAX_AGE_MS = 36 * 60 * 60 * 1000;
 
 interface TrendFeedProps {
-  onGenerate?: (url: string) => void;
+  onGenerate?: (url: string, platform: string) => void;
 }
 
 function SkeletonCard() {
@@ -49,41 +49,28 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
   const router = useRouter();
   const [trends, setTrends] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'tiktok' | 'youtube' | 'instagram'>('all');
   const [activeRegion, setActiveRegion] = useState<'all' | 'KR' | 'US' | 'JP' | 'CN'>('all');
   const [visibleCount, setVisibleCount] = useState(INITIAL_LOAD);
   const [selectedTrendId, setSelectedTrendId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function fetchTrends() {
       try {
-        const supabase = getSupabaseBrowserClient();
-        // cache: no-store 동등 효과 — 항상 최신 데이터 조회
-        const freshnessCutoff = new Date(Date.now() - TREND_MAX_AGE_MS).toISOString();
-        const { data, error: dbErr } = await supabase
-          .from('trend_feed')
-          .select('*')
-          .gte('created_at', freshnessCutoff)
-          .order('created_at', { ascending: false })
-          .limit(MAX_TRENDS);
+        const response = await fetch('/api/v1/trends', { cache: 'no-store' });
+        const payload = await response.json() as { trends?: TrendItem[]; updatedAt?: string | null };
         if (cancelled) return;
-        
-        if (dbErr || !data?.length) {
-          console.warn('[TrendFeed] DB 조회 실패 또는 검증된 데이터 없음:', dbErr?.message);
-          setError(true);
-          setTrends([]);
-          setLoading(false);
-          return;
-        }
-        
-        setTrends(data as TrendItem[]);
-        setError(false);
+
+        const freshTrends = (payload.trends ?? []).filter((item) => {
+          return !item.created_at || Date.now() - new Date(item.created_at).getTime() <= TREND_MAX_AGE_MS;
+        }).slice(0, MAX_TRENDS);
+        setTrends(freshTrends);
+        setLastUpdated(payload.updatedAt ?? freshTrends[0]?.created_at ?? null);
       } catch (err) {
         console.error('[TrendFeed] Fetch error:', err);
-        setError(true);
         setTrends([]);
       }
       setLoading(false);
@@ -126,19 +113,18 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
   }
 
   function handleGenerate(item: TrendItem) {
-    if (onGenerate && item.url) {
-      onGenerate(item.url);
+    if (onGenerate && item.video_url) {
+      onGenerate(item.video_url, item.platform);
       return;
     }
-    // 직접 라우팅: url + platform 쿼리파라미터로 자동완성
+    // 직접 라우팅: video_url + platform 쿼리파라미터로 자동완성
     const params = new URLSearchParams();
-    if (item.url) params.set('url', item.url);
+    if (item.video_url) params.set('url', item.video_url);
     params.set('platform', item.platform);
     router.push(`/generator?${params.toString()}`);
   }
 
-  const latestCreatedAt = trends[0]?.created_at;
-  const kstFormattedTime = formatKstTime(latestCreatedAt);
+  const kstFormattedTime = lastUpdated ? formatKstTime(lastUpdated) : null;
 
   let filtered = activeFilter === 'all' ? trends : trends.filter((t) => toFilterKey(t.platform) === activeFilter);
   if (activeRegion !== 'all') {
@@ -154,7 +140,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base font-bold text-white">{t('trend_title')}</h3>
-              <span className="text-xs font-normal text-white/50">{kstFormattedTime}</span>
+              {kstFormattedTime && <span className="text-xs font-normal text-white/50">{kstFormattedTime}</span>}
             </div>
             {loading && <p className="text-xs text-white/30 flex items-center gap-1 mt-0.5"><Loader2 size={10} className="animate-spin" />{t('trend_curating')}</p>}
           </div>
@@ -166,7 +152,6 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
         >
           <RefreshCw size={13} />
         </button>
-        {error && <span className="text-xs text-amber-400 flex items-center gap-1"><RefreshCw size={11} />{t('trend_fallback')}</span>}
       </div>
 
       {/* Platform filters */}
@@ -223,9 +208,9 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
                     <span className="flex items-center gap-1"><Heart size={11} />{item.likes}</span>
                     {item.tags && <span className="text-violet-400/60 truncate">{item.tags}</span>}
                   </div>
-                  {selectedTrendId === item.id && item.url && (
+                  {selectedTrendId === item.id && item.video_url && (
                     <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/8" onClick={(event) => event.stopPropagation()}>
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/20 transition-colors">
+                      <a href={item.video_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/20 transition-colors">
                         <ExternalLink size={13} />{t('trend_visit')}
                       </a>
                       <button onClick={() => handleGenerate(item)} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-400/10 px-3 py-2 text-xs font-semibold text-violet-200 hover:bg-violet-400/20 transition-colors">
@@ -250,7 +235,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
           )}
         </>
       ) : (
-        <div className="text-center py-10 text-sm text-white/30">{t('trend_no_data')}</div>
+        <div className="text-center py-10 text-sm text-white/30">아직 트렌드 데이터가 없습니다.</div>
       )}
     </div>
   );

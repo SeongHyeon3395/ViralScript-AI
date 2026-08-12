@@ -1,24 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Gift, Sparkles, X, ChevronRight, Zap, Star, Smile, Frown, RefreshCw, Trophy } from 'lucide-react';
+import { Gift, Sparkles, X, ChevronRight, Zap, Star, Frown, RefreshCw, Trophy } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-
-// 가중치 랜덤 알고리즘 테이블 (총 100%)
-const WEIGHTED_TABLE = [
-  { value: 1, weight: 70.00 },
-  { value: 2, weight: 15.00 },
-  { value: 3, weight: 7.00 },
-  { value: 4, weight: 3.50 },
-  { value: 5, weight: 2.00 },
-  { value: 6, weight: 1.00 },
-  { value: 7, weight: 0.70 },
-  { value: 8, weight: 0.40 },
-  { value: 9, weight: 0.30 },
-  { value: 10, weight: 0.10 },
-];
 
 /** KST(UTC+9) 기준 오늘 자정까지 남은 ms */
 function msUntilKstMidnight(): number {
@@ -28,16 +14,6 @@ function msUntilKstMidnight(): number {
     kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate() + 1,
   ));
   return kstMidnight.getTime() - now.getTime();
-}
-
-function weightedRandom(): number {
-  const rand = Math.random() * 100;
-  let cumulative = 0;
-  for (const entry of WEIGHTED_TABLE) {
-    cumulative += entry.weight;
-    if (rand <= cumulative) return entry.value;
-  }
-  return 1;
 }
 
 const SLICES = [
@@ -78,8 +54,6 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
 
       if (error) {
         console.warn('[DailyReward] profile fetch error:', error.message);
-        // DB 조회 실패 시 localStorage 보조 확인
-        checkLocalStorage(uid);
         return;
       }
 
@@ -90,22 +64,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
         if (lastKst >= todayKst) {
           setHasSpunToday(true);
           setCooldown(msUntilKstMidnight());
-          // localStorage도 동기화
-          localStorage.setItem(`dailyReward_${uid}`, todayKst);
           return;
-        }
-      }
-      // DB에 기록 없으면 localStorage도 확인 (오프라인 보조)
-      checkLocalStorage(uid);
-    }
-
-    function checkLocalStorage(uid: string) {
-      const lastSpinDateStr = localStorage.getItem(`dailyReward_${uid}`);
-      if (lastSpinDateStr) {
-        const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        if (lastSpinDateStr >= todayKst) {
-          setHasSpunToday(true);
-          setCooldown(msUntilKstMidnight());
         }
       }
     }
@@ -119,8 +78,6 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
     });
     return () => subscription.unsubscribe();
   }, []);
-
-  const storageKey = user ? `dailyReward_${user.id}` : null;
 
   // Cooldown tick
   useEffect(() => {
@@ -151,10 +108,8 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
     setSpinning(true);
     setResult(null);
 
-    // 가중치 랜덤으로 당첨 크레딧 결정
-    const wonCredits = weightedRandom();
-    // 시각적 애니메이션용 슬라이스 인덱스 (가장 가까운 값 매칭)
-    const winnerIdx = SLICES.findIndex(s => s.value === wonCredits) ?? 0;
+    // 서버가 확률과 중복 여부를 결정하므로 클라이언트는 애니메이션만 실행한다.
+    const winnerIdx = Math.floor(Math.random() * SLICES.length);
 
     const extraSpins = 3 + Math.floor(Math.random() * 3);
     const targetAngle = extraSpins * 360 + winnerIdx * SEGMENT + SEGMENT / 2;
@@ -164,29 +119,27 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
 
     setTimeout(async () => {
       setSpinning(false);
-      setResult({ label: `${wonCredits}`, value: wonCredits });
-      setHasSpunToday(true);
-      setCooldown(msUntilKstMidnight());
-      // localStorage도 보조 저장 (오프라인/빠른 응답용)
-      if (storageKey) {
-        const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        localStorage.setItem(storageKey, todayKst);
-      }
-
-      // 서버 RPC: claim_daily_bonus → profiles.last_roulette_spin_at + credits_remaining 동시 업데이트
       try {
         const supabase = getSupabaseBrowserClient();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase.rpc as any)('claim_daily_bonus', {
+        const { data: awardedCredits, error } = await supabase.rpc('claim_daily_bonus', {
           target_user_id: user.id,
-          bonus_credits: wonCredits,
-        });
-        if (error) console.error('[DailyReward] RPC error:', error.message);
+          bonus_credits: null,
+        } as never);
+
+        if (error || typeof awardedCredits !== 'number') {
+          throw new Error(error?.message ?? '룰렛 보상 응답이 올바르지 않습니다.');
+        }
+
+        setResult({ label: `${awardedCredits}`, value: awardedCredits });
+        setHasSpunToday(true);
+        setCooldown(msUntilKstMidnight());
+        onClaim?.(awardedCredits);
       } catch (err) {
         console.error('[DailyReward] 적립 실패:', err);
+        setResult(null);
+        setHasSpunToday(false);
+        setCooldown(0);
       }
-
-      onClaim?.(wonCredits);
     }, 2800);
   }
 

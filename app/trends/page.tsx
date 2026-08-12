@@ -11,12 +11,12 @@ import { t } from '@/app/components/LanguageSwitcher';
 export default function TrendsPage() {
   const navbarRef = useRef<NavbarRef>(null);
 
-  function handleTrendGenerate(url: string) {
+  function handleTrendGenerate(url: string, platform: string) {
     if (!navbarRef.current?.getUser()) {
       navbarRef.current?.openLoginModal();
       return;
     }
-    window.location.href = `/generator?url=${encodeURIComponent(url)}`;
+    window.location.href = `/generator?url=${encodeURIComponent(url)}&platform=${encodeURIComponent(platform)}`;
   }
 
   return (

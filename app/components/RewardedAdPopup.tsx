@@ -27,9 +27,8 @@ declare global {
   }
 }
 
-const ADS_ENABLED = process.env.NEXT_PUBLIC_ENABLE_ADS_REWARD === 'true';
-const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? '';
-const ADSENSE_SLOT = process.env.NEXT_PUBLIC_ADSENSE_REWARDED_AD_SLOT ?? '';
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? 'ca-pub-3940256099942544';
+const ADSENSE_SLOT = process.env.NEXT_PUBLIC_ADSENSE_REWARDED_AD_SLOT ?? '5224354917';
 const REWARD_AMOUNT = 3;
 
 interface RewardedAdPopupProps {
@@ -92,17 +91,11 @@ export default function RewardedAdPopup({
     }
   }, [isOpen]);
 
-  // Fallback 타이머 — AdSense 미지원 환경(개발/로컬)에서 시뮬레이션
+  // 광고 표시 중에는 진행 상태만 보여주며, 보상은 adViewed 콜백에서만 지급한다.
   useEffect(() => {
     if (phase !== 'watching') return;
 
     if (countdown <= 0) {
-      if (!ADS_ENABLED || !ADSENSE_CLIENT || !ADSENSE_SLOT) {
-        if (!adCalledRef.current) {
-          adCalledRef.current = true;
-          void handleAdRewardGranted();
-        }
-      }
       return;
     }
 
@@ -115,7 +108,7 @@ export default function RewardedAdPopup({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [phase, countdown, handleAdRewardGranted]);
+  }, [phase, countdown]);
 
   // ─── Ad Placement API 스크립트 동적 로드 ───────────────────
   function loadAdSenseScript(): Promise<void> {
@@ -139,17 +132,6 @@ export default function RewardedAdPopup({
     setPhase('loading');
     adCalledRef.current = false;
 
-    // ADS_ENABLED=false 또는 AdSense 키 미설정 → 즉시 시뮬레이션 모드
-    if (!ADS_ENABLED || !ADSENSE_CLIENT || !ADSENSE_SLOT) {
-      setPhase('watching');
-      return;
-    }
-
-    // API가 준비되지 않은 환경에서도 모달이 영원히 잠기지 않도록 표시 단계로 전환
-    const fallbackTimer = setTimeout(() => {
-      setPhase('watching');
-    }, 15000);
-
     try {
       await loadAdSenseScript();
 
@@ -161,13 +143,11 @@ export default function RewardedAdPopup({
         type: 'reward',
         name: `reward-${ADSENSE_SLOT}`,
         beforeReward: (showAd) => {
-          clearTimeout(fallbackTimer);
           setPhase('watching');
           showAd();
         },
         adViewed: () => {
           // 완주 콜백에서만 서버 원자적 적립
-          clearTimeout(fallbackTimer);
           if (!adCalledRef.current) {
             adCalledRef.current = true;
             void handleAdRewardGranted();
@@ -175,19 +155,16 @@ export default function RewardedAdPopup({
         },
         adDismissed: () => {
           // 중도 종료는 적립하지 않고 모달만 닫음
-          clearTimeout(fallbackTimer);
           adCalledRef.current = false;
           setPhase('idle');
           onClose();
         },
         adBreakDone: ({ breakStatus }) => {
           if (breakStatus === 'viewed') return;
-          clearTimeout(fallbackTimer);
           setPhase('idle');
         },
       });
     } catch {
-      clearTimeout(fallbackTimer);
       setErrorMessage('광고를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
       setPhase('error');
     }
