@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
-export const maxDuration = 10;
+export const maxDuration = 60;
 export const revalidate = 0;
 export const dynamic = 'force-dynamic';
 
@@ -40,11 +40,10 @@ const trendItemSchema = {
   required: ['trends'],
 };
 
-const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst. Today is ${new Date().toISOString().slice(0, 10)}.
+const SYSTEM_PROMPT = (region: string) => `You are a 2026 Global Short-Form Trend Analyst. Today is ${new Date().toISOString().slice(0, 10)}.
 
-Generate exactly 90 trending short-form video items:
-- 30 items for US, 30 for KR, 30 for JP
-- Within each region: 10 TikTok, 10 YouTube Shorts, 10 Instagram Reels
+Generate exactly 30 trending short-form video items for the ${region} region:
+- 10 TikTok, 10 YouTube Shorts, 10 Instagram Reels
 
 For EVERY item provide:
 - platform: "TikTok" | "YouTube Shorts" | "Instagram Reels"
@@ -71,32 +70,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) throw new Error('GOOGLE_AI_API_KEY is not configured');
 
-    const ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: 8_000 } });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ role: 'user', parts: [{ text: SYSTEM_PROMPT }] }],
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: trendItemSchema,
-        temperature: 0.8,
-        maxOutputTokens: 9000,
-      },
-    });
+    const ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: 50_000 } });
+    const regions = ['US', 'KR', 'JP'];
+    const regionalTrends = await Promise.all(regions.map(async (region) => {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ role: 'user', parts: [{ text: SYSTEM_PROMPT(region) }] }],
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: trendItemSchema,
+          temperature: 0.8,
+          maxOutputTokens: 12000,
+        },
+      });
 
-    const text = response.text?.trim();
-    if (!text) throw new Error('AI returned empty response');
+      const text = response.text?.trim();
+      if (!text) throw new Error(`${region}: AI returned empty response`);
 
-    let parsed: { trends?: Array<Record<string, string>> };
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      throw new Error(`AI response not valid JSON: ${text.substring(0, 200)}`);
-    }
+      let parsed: { trends?: Array<Record<string, string>> };
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        throw new Error(`${region}: AI response not valid JSON: ${text.substring(0, 200)}`);
+      }
 
-    const rawTrends = parsed?.trends;
-    if (!Array.isArray(rawTrends) || rawTrends.length === 0) {
-      throw new Error('AI returned no trend items');
-    }
+      if (!Array.isArray(parsed.trends) || parsed.trends.length === 0) {
+        throw new Error(`${region}: AI returned no trend items`);
+      }
+      return parsed.trends;
+    }));
+    const rawTrends = regionalTrends.flat();
 
     // AI가 반환한 URL은 신뢰하지 않고 서버에서 검색 URL을 생성한다.
     const rows = rawTrends.map((item) => {
