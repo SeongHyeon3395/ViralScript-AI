@@ -69,9 +69,16 @@ export default function RewardedAdPopup({
       }
 
       onRewardClaimed(data.creditsAwarded === REWARD_AMOUNT ? data.creditsAwarded : REWARD_AMOUNT);
+      window.dispatchEvent(new CustomEvent('credits:updated'));
+      window.dispatchEvent(new CustomEvent('app:toast', {
+        detail: { message: `+${data.creditsAwarded === REWARD_AMOUNT ? data.creditsAwarded : REWARD_AMOUNT} 크레딧이 지급되었습니다!`, variant: 'success' },
+      }));
       setPhase('complete');
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      window.dispatchEvent(new CustomEvent('app:toast', {
+        detail: { message: err instanceof Error ? err.message : '광고 보상에 실패했습니다.', variant: 'error' },
+      }));
       setPhase('error');
     }
   }, [onRewardClaimed]);

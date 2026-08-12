@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Zap,
@@ -35,6 +35,20 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userCredits, setUserCredits] = useState(0);
 
+  const refreshCredits = useCallback(async (nextUser: SupabaseUser | null) => {
+    if (!nextUser) {
+      setUserCredits(0);
+      return;
+    }
+
+    try {
+      const credits = await fetchUserCredits(nextUser.id, nextUser.email);
+      setUserCredits(credits);
+    } catch {
+      setUserCredits(0);
+    }
+  }, []);
+
   // 실제 Supabase 세션 연결
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -43,7 +57,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        fetchUserCredits(session.user.id, session.user.email).then(setUserCredits);
+        refreshCredits(session.user);
       }
     });
 
@@ -51,15 +65,26 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        fetchUserCredits(session.user.id, session.user.email).then(setUserCredits);
+        refreshCredits(session.user);
       } else {
         setUser(null);
         setUserCredits(0);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    function handleCreditsUpdated() {
+      if (user) {
+        void refreshCredits(user);
+      }
+    }
+
+    window.addEventListener('credits:updated', handleCreditsUpdated);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('credits:updated', handleCreditsUpdated);
+    };
+  }, [refreshCredits, user]);
 
   async function handleLogout() {
     const supabase = getSupabaseBrowserClient();

@@ -38,6 +38,14 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
   const [hasSpunToday, setHasSpunToday] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
+  function emitToast(message: string, variant: 'success' | 'error' | 'info' = 'info') {
+    window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, variant } }));
+  }
+
+  function emitCreditsUpdated() {
+    window.dispatchEvent(new CustomEvent('credits:updated'));
+  }
+
   // Supabase 세션 + DB last_roulette_spin_at 조회
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -104,7 +112,17 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
   }, [cooldown]);
 
   async function spin() {
-    if (spinning || hasSpunToday || !user) return;
+    if (spinning || hasSpunToday) return;
+
+    const supabase = getSupabaseBrowserClient();
+    const { data: { user: sessionUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !sessionUser) {
+      emitToast('로그인이 필요합니다.', 'error');
+      setResult(null);
+      return;
+    }
+
+    setUser(sessionUser);
     setSpinning(true);
     setResult(null);
 
@@ -120,25 +138,38 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
     setTimeout(async () => {
       setSpinning(false);
       try {
-        const supabase = getSupabaseBrowserClient();
-        const { data: awardedCredits, error } = await supabase.rpc('claim_daily_bonus', {
-          target_user_id: user.id,
-          bonus_credits: null,
-        } as never);
-
-        if (error || typeof awardedCredits !== 'number') {
-          throw new Error(error?.message ?? '룰렛 보상 응답이 올바르지 않습니다.');
+        const { data: session, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session.session?.access_token) {
+          throw new Error('로그인이 필요합니다.');
         }
 
-        setResult({ label: `${awardedCredits}`, value: awardedCredits });
+        const res = await fetch('/api/roulette/claim', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: '{}',
+        });
+
+        const data = await res.json() as { success?: boolean; creditsAwarded?: number; currentCredits?: number | null; error?: string; code?: string };
+
+        if (!res.ok || !data.success || typeof data.creditsAwarded !== 'number') {
+          throw new Error(data.error ?? '룰렛 보상 응답이 올바르지 않습니다.');
+        }
+
+        setResult({ label: `${data.creditsAwarded}`, value: data.creditsAwarded });
         setHasSpunToday(true);
         setCooldown(msUntilKstMidnight());
-        onClaim?.(awardedCredits);
+        onClaim?.(data.creditsAwarded);
+        emitCreditsUpdated();
+        emitToast(`+${data.creditsAwarded} 크레딧이 지급되었습니다!`, 'success');
       } catch (err) {
         console.error('[DailyReward] 적립 실패:', err);
         setResult(null);
         setHasSpunToday(false);
         setCooldown(0);
+        emitToast(err instanceof Error ? err.message : '룰렛 보상에 실패했습니다.', 'error');
       }
     }, 2800);
   }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import ToastHost from "./components/ToastHost";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://viralscript-ai-inky.vercel.app";
 
@@ -63,6 +64,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col mesh-bg">
         {children}
+        <ToastHost />
       </body>
     </html>
   );
