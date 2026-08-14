@@ -90,14 +90,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  const { url, targetProduct, userCustomPrompt } = body;
+  const { url, targetProduct: requestedTargetProduct, userCustomPrompt } = body;
 
-  if (!url || !targetProduct) {
+  if (!url) {
     return NextResponse.json(
-      { success: false, error: 'url and targetProduct are required', errorCode: ERROR_CODES.INVALID_URL_FORMAT },
+      { success: false, error: 'url is required', errorCode: ERROR_CODES.INVALID_URL_FORMAT },
       { status: 400 }
     );
   }
+
+  const targetProduct = requestedTargetProduct?.trim() || '홍보할 제품 또는 서비스';
 
   // 3. URL 정규화 및 검증
   let normalized: ReturnType<typeof normalizeAndValidateUrl>;

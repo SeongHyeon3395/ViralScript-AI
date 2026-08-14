@@ -111,7 +111,7 @@ export interface GenerationOutput {
 
 export interface AnalyzeRequest {
   url: string;
-  targetProduct: string;
+  targetProduct?: string;
   userCustomPrompt?: string;
 }
 

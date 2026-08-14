@@ -6,14 +6,10 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-/** KST(UTC+9) 기준 오늘 자정까지 남은 ms */
-function msUntilKstMidnight(): number {
-  const now = new Date();
-  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const kstMidnight = new Date(Date.UTC(
-    kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate() + 1,
-  ));
-  return kstMidnight.getTime() - now.getTime();
+const ROULETTE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function msUntilNextSpin(lastSpinAt: string): number {
+  return Math.max(0, new Date(lastSpinAt).getTime() + ROULETTE_COOLDOWN_MS - Date.now());
 }
 
 const SLICES = [
@@ -67,11 +63,10 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
 
       const lastSpinAt = data?.last_roulette_spin_at;
       if (lastSpinAt) {
-        const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        const lastKst = new Date(new Date(lastSpinAt).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        if (lastKst >= todayKst) {
+        const remaining = msUntilNextSpin(lastSpinAt);
+        if (remaining > 0) {
           setHasSpunToday(true);
-          setCooldown(msUntilKstMidnight());
+          setCooldown(remaining);
           return;
         }
       }
@@ -160,7 +155,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
 
         setResult({ label: `${data.creditsAwarded}`, value: data.creditsAwarded });
         setHasSpunToday(true);
-        setCooldown(msUntilKstMidnight());
+        setCooldown(ROULETTE_COOLDOWN_MS);
         onClaim?.(data.creditsAwarded);
         emitCreditsUpdated();
         emitToast(`+${data.creditsAwarded} 크레딧이 지급되었습니다!`, 'success');
@@ -299,7 +294,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
               <div className="text-center space-y-2">
                 <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-5 py-3 text-sm text-white/40">
                   <RefreshCw size={14} />
-                  <span>내일 KST 00:00까지</span>
+                  <span>{t('daily_cooldown_label')}</span>
                 </div>
                 <div className="font-mono text-2xl font-bold text-violet-300 tracking-widest">
                   {formatCooldown()}
@@ -328,7 +323,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
 
             {/* Bottom hint */}
             <p className="text-center text-xs text-white/20 mt-4">
-              매일 자정 이후에 다시 돌릴 수 있습니다
+              {t('daily_cooldown_hint')}
             </p>
 
             {/* Bottom gradient */}

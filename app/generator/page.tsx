@@ -151,14 +151,14 @@ export default function GeneratorPage() {
   const DEMO_TOKEN = process.env.NEXT_PUBLIC_DEMO_TOKEN ?? '';
 
   async function handleAnalyze() {
-    if (!url.trim() || !targetProduct.trim()) return;
+    if (!url.trim()) return;
     const validationErr = validateShortFormUrl(url);
     if (validationErr) { setUrlError(validationErr); return; }
     setUrlError(null); setLoading(true); setError(null); setResult(null); setEstimatedCost(null);
     try {
       const res = await fetch('/api/v1/analyze', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${DEMO_TOKEN}` },
-        body: JSON.stringify({ url: url.trim(), targetProduct: targetProduct.trim(), userCustomPrompt: customPrompt.trim() || undefined }),
+        body: JSON.stringify({ url: url.trim(), targetProduct: targetProduct.trim() || undefined, userCustomPrompt: customPrompt.trim() || undefined }),
       });
       const data: AnalyzeResponse & { creditCostApplied?: number; creditsRemaining?: number } = await res.json();
       if (!res.ok || !data.success) { setError(data.error ?? '알 수 없는 오류'); return; }
@@ -228,7 +228,7 @@ export default function GeneratorPage() {
                 </div>
               )}
 
-              <button onClick={handleAnalyze} disabled={loading || !url.trim() || !targetProduct.trim()} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
+              <button onClick={handleAnalyze} disabled={loading || !url.trim()} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
                 {loading ? (
                   <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />{t('gen_analyzing')}</span>
                 ) : (

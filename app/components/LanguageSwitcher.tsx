@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Globe } from 'lucide-react';
 
 type Lang = 'ko' | 'en' | 'zh' | 'ja';
@@ -156,6 +156,8 @@ export const T: Record<Lang, Record<string, string>> = {
     daily_claimed: '오늘 이미 받음',
     daily_result_win: '🎉 {amount} 크레딧 획득!',
     daily_result_lose: '😅 꽝! 내일 다시 도전하세요',
+    daily_cooldown_label: '마지막 룰렛 후 24시간까지',
+    daily_cooldown_hint: '마지막 룰렛을 돌린 후 24시간이 지나면 다시 돌릴 수 있습니다',
     daily_1_credit: '1 크레딧',
     daily_2_credits: '2 크레딧',
     daily_3_credits: '3 크레딧',
@@ -434,6 +436,8 @@ export const T: Record<Lang, Record<string, string>> = {
     daily_claimed: 'Claimed Today',
     daily_result_win: '🎉 You got {amount} credit(s)!',
     daily_result_lose: '😅 No luck! Try again tomorrow',
+    daily_cooldown_label: 'Available 24 hours after your last spin',
+    daily_cooldown_hint: 'You can spin again 24 hours after your last spin',
     daily_1_credit: '1 Credit',
     daily_2_credits: '2 Credits',
     daily_3_credits: '3 Credits',
@@ -712,6 +716,8 @@ export const T: Record<Lang, Record<string, string>> = {
     daily_claimed: '今日已领取',
     daily_result_win: '🎉 获得 {amount} 积分！',
     daily_result_lose: '😅 没中！明天再来',
+    daily_cooldown_label: '上次旋转后24小时可再次挑战',
+    daily_cooldown_hint: '上次旋转满24小时后即可再次挑战',
     daily_1_credit: '1 积分',
     daily_2_credits: '2 积分',
     daily_3_credits: '3 积分',
@@ -990,6 +996,8 @@ export const T: Record<Lang, Record<string, string>> = {
     daily_claimed: '本日受取済み',
     daily_result_win: '🎉 {amount}クレジット獲得！',
     daily_result_lose: '😅 ハズレ！明日また挑戦してください',
+    daily_cooldown_label: '前回のスピンから24時間後に再挑戦できます',
+    daily_cooldown_hint: '前回のルーレットから24時間経過すると再挑戦できます',
     daily_1_credit: '1クレジット',
     daily_2_credits: '2クレジット',
     daily_3_credits: '3クレジット',
@@ -1141,12 +1149,8 @@ export function t(key: string): string {
 }
 
 export default function LanguageSwitcher() {
-  const [lang, setLang] = useState<Lang>('ko');
+  const [lang, setLang] = useState<Lang>(getLang);
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    setLang(getLang());
-  }, []);
 
   function switchLang(code: Lang) {
     localStorage.setItem(LANG_KEY, code);
