@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
-  Gift, Copy, Check, Users, Share2, Sparkles, Send, Link2,
+  Copy, Check, Users, Share2, Sparkles, Send, Link2,
   ChevronRight, X, Zap,
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
-import type { User } from '@supabase/supabase-js';
+import { useAuth } from './AuthProvider';
 
 function TwitterIcon({ size = 16 }: { size?: number }) {
   return (
@@ -34,19 +33,9 @@ function generateReferralCode(seed: string): string {
 }
 
 export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isLoading: authLoading } = useAuth();
   const [copied, setCopied] = useState(false);
-  const [referralCode, setReferralCode] = useState('');
-
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUser(user);
-        setReferralCode(generateReferralCode(user.id));
-      }
-    });
-  }, [isOpen]);
+  const referralCode = user ? generateReferralCode(user.id) : '';
 
   const referralLink = user ? `https://viralscript.ai/ref/${referralCode}` : '';
 
@@ -58,6 +47,14 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
   }
 
   if (!isOpen) return null;
+
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="추천인 정보 로딩 중">
+        <div className="h-72 w-full max-w-md animate-pulse rounded-3xl border border-white/10 bg-white/5" />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true">

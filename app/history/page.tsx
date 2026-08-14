@@ -9,7 +9,7 @@ import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useAuth } from '@/app/components/AuthProvider';
 
 interface HistoryItem {
   id: string;
@@ -41,7 +41,7 @@ function platformColor(url: string): string {
 
 export default function HistoryPage() {
   const navbarRef = useRef<NavbarRef>(null);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -50,22 +50,13 @@ export default function HistoryPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const LIMIT = 20;
 
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
   async function fetchHistory(reset = false) {
     const supabase = getSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      setLoading(false);
+      return;
+    }
 
     const currentOffset = reset ? 0 : offset;
     if (!reset) setLoadingMore(true);
@@ -73,18 +64,26 @@ export default function HistoryPage() {
     const res = await fetch(`/api/v1/history?limit=${LIMIT}&offset=${currentOffset}`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
-    if (!res.ok) { setLoadingMore(false); return; }
+    if (!res.ok) {
+      setLoadingMore(false);
+      setLoading(false);
+      return;
+    }
 
     const json = await res.json();
     setTotal(json.total ?? 0);
     setOffset(currentOffset + LIMIT);
     setItems(prev => reset ? json.data : [...prev, ...json.data]);
     setLoadingMore(false);
+    setLoading(false);
   }
 
   useEffect(() => {
-    if (user) fetchHistory(true);
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (authLoading) return;
+    if (!user) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchHistory(true);
+  }, [authLoading, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function deleteItem(id: string) {
     setDeletingId(id);
@@ -102,6 +101,7 @@ export default function HistoryPage() {
   }
 
   const hasMore = items.length < total;
+  const historyLoading = user ? loading : false;
 
   return (
     <>
@@ -124,7 +124,13 @@ export default function HistoryPage() {
             )}
           </div>
 
-          {loading ? (
+          {authLoading ? (
+            <div className="animate-pulse space-y-3 py-8">
+              <div className="h-24 rounded-2xl border border-white/10 bg-white/5" />
+              <div className="h-24 rounded-2xl border border-white/10 bg-white/5" />
+              <div className="h-24 rounded-2xl border border-white/10 bg-white/5" />
+            </div>
+          ) : historyLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 size={24} className="animate-spin text-violet-400" />
             </div>

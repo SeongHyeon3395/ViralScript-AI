@@ -8,7 +8,7 @@ import Footer from '@/app/components/Footer';
 import RemixPanel from '@/app/components/RemixPanel';
 import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
 import {
   Link2, ShoppingBag, SlidersHorizontal, Rocket, Loader2, Zap,
@@ -16,7 +16,6 @@ import {
   Sparkles, BarChart3, ArrowRight, Gift, RefreshCw, Shuffle,
   CheckCircle2, Shield, LogIn, Copy,
 } from 'lucide-react';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const SHORT_FORM_REGEX = /^https?:\/\/(www\.)?(tiktok\.com\/@[\w.]+\/video\/\d+|youtube\.com\/shorts\/[\w-]+|youtu\.be\/shorts\/[\w-]+|instagram\.com\/reel\/[\w-]+)/i;
 
@@ -126,7 +125,7 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
 
 export default function GeneratorPage() {
   const navbarRef = useRef<NavbarRef>(null);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const { user, isLoading: authLoading, credits, refreshCredits } = useAuth();
   const [url, setUrl] = useState('');
   const [sourcePlatform, setSourcePlatform] = useState<string | null>(null);
   const [targetProduct, setTargetProduct] = useState('');
@@ -138,7 +137,6 @@ export default function GeneratorPage() {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [rewardPopupOpen, setRewardPopupOpen] = useState(false);
   const [adBlockDetected, setAdBlockDetected] = useState(false);
-  const [credits, setCredits] = useState(10);
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
 
   // 트렌드 피드에서 넘어온 url/platform 쿼리파라미터 자동완성
@@ -148,16 +146,6 @@ export default function GeneratorPage() {
     const platform = params.get('platform');
     if (sourceUrl) startTransition(() => setUrl(sourceUrl));
     if (platform) startTransition(() => setSourcePlatform(platform));
-  }, []);
-
-  useEffect(() => {
-    getSupabaseBrowserClient().auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUser(session.user);
-    });
-    const { data: { subscription } } = getSupabaseBrowserClient().auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
   }, []);
 
   const DEMO_TOKEN = process.env.NEXT_PUBLIC_DEMO_TOKEN ?? '';
@@ -176,11 +164,11 @@ export default function GeneratorPage() {
       if (!res.ok || !data.success) { setError(data.error ?? '알 수 없는 오류'); return; }
       setResult(data.data!); setCached(data.cached ?? false);
       if (data.creditCostApplied) setEstimatedCost(data.creditCostApplied);
-      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining);
+      if (typeof data.creditsRemaining === 'number') void refreshCredits();
     } catch { setError('네트워크 오류'); } finally { setLoading(false); }
   }
 
-  function handleRewardClaimed(amount: number) { setCredits(c => c + amount); }
+  function handleRewardClaimed() { void refreshCredits(); }
 
   function handleOpenAdPopup() {
     const testImg = new Image();
@@ -193,7 +181,14 @@ export default function GeneratorPage() {
     <>
       <Navbar ref={navbarRef} />
       <main className="flex-1 flex flex-col min-h-screen">
-        {!user ? (
+        {authLoading ? (
+          <section className="pt-32 pb-20 px-4 sm:px-6 flex-1">
+            <div className="mx-auto max-w-2xl animate-pulse space-y-4">
+              <div className="mx-auto h-8 w-48 rounded-lg bg-white/10" />
+              <div className="h-72 rounded-2xl border border-white/10 bg-white/5" />
+            </div>
+          </section>
+        ) : !user ? (
           <section className="pt-32 pb-20 px-4 sm:px-6 flex-1">
             <div className="mx-auto max-w-md text-center space-y-6">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg"><LogIn size={28} className="text-white" /></div>
@@ -226,7 +221,7 @@ export default function GeneratorPage() {
                 <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder={t('gen_custom_prompt_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
               </div>
 
-              {credits < 3 && (
+              {credits !== undefined && credits < 3 && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
                   <button onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>
@@ -239,7 +234,7 @@ export default function GeneratorPage() {
                 ) : (
                   <>
                     <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />{t('gen_analyze_btn')}<ArrowRight size={15} /></span>
-                    <span className="flex items-center gap-1 text-xs text-white/60 font-normal"><Zap size={11} className="text-violet-300" />{t('gen_credits_balance').replace('{credits}', String(credits))} <span className="text-violet-200 font-semibold">{t('gen_credits_cost_range')}</span></span>
+                    <span className="inline-flex min-w-[180px] items-center justify-center gap-1 text-xs text-white/60 font-normal tabular-nums"><Zap size={11} className="text-violet-300" />{t('gen_credits_balance').replace('{credits}', credits === undefined ? '—' : String(credits))} <span className="text-violet-200 font-semibold">{t('gen_credits_cost_range')}</span></span>
                   </>
                 )}
               </button>
@@ -256,7 +251,7 @@ export default function GeneratorPage() {
             {result && estimatedCost !== null && (
               <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl fade-in-up" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.15)' }}>
                 <Zap size={13} className="text-violet-400 shrink-0" />
-                <p className="text-xs text-white/50">{t('gen_complete_msg').replace('{cost}', String(estimatedCost)).replace('{remaining}', String(credits))}</p>
+                <p className="text-xs text-white/50">{t('gen_complete_msg').replace('{cost}', String(estimatedCost)).replace('{remaining}', credits === undefined ? '—' : String(credits))}</p>
               </div>
             )}
 

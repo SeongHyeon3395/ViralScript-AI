@@ -2,40 +2,25 @@
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
-type CreditsProfile = { credits_remaining: number };
-
-export async function fetchUserCredits(userId: string, email?: string | null): Promise<number> {
+export async function fetchUserCredits(): Promise<number> {
   const supabase = getSupabaseBrowserClient();
-
-  const readCredits = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('credits_remaining')
-      .eq('id', userId)
-      .maybeSingle<CreditsProfile>();
-
-    if (error) {
-      console.warn('[profile] credits fetch failed:', error.message);
-      return null;
-    }
-
-    return data?.credits_remaining ?? 0;
-  };
-
-  const credits = await readCredits();
-  if (credits !== null) return credits;
-
-  if (!email) return 0;
-
-  const { error: upsertError } = await supabase.from('profiles').upsert(
-    { id: userId, email } as never,
-    { onConflict: 'id', ignoreDuplicates: true },
-  );
-
-  if (upsertError) {
-    console.warn('[profile] profile creation failed:', upsertError.message);
-    return 0;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('No authenticated session');
   }
 
-  return (await readCredits()) ?? 0;
+  const res = await fetch('/api/v1/profile', {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Profile API failed: ${res.status}`);
+  }
+
+  const payload = await res.json() as { data?: { credits_remaining?: number } };
+  const credits = payload.data?.credits_remaining;
+  if (typeof credits !== 'number') {
+    throw new Error('Profile API returned an invalid credit balance');
+  }
+  return credits;
 }

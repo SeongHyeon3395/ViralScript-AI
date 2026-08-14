@@ -19,12 +19,23 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const user = userData.user;
+
+  const { error: upsertError } = await supabase.from('profiles').upsert(
+    { id: user.id, email: user.email ?? '' } as never,
+    { onConflict: 'id', ignoreDuplicates: true },
+  );
+
+  if (upsertError) {
+    console.warn('[profile] profile upsert failed:', upsertError.message);
+  }
+
   const { data: profile, error } = await supabase
     .from('profiles')
     .select(
       'id, email, subscription_plan, credits_remaining, stripe_customer_id, created_at, updated_at'
     )
-    .eq('id', userData.user.id)
+    .eq('id', user.id)
     .maybeSingle();
 
   if (error || !profile) {

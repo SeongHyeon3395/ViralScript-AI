@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import Link from 'next/link';
 import {
   Zap,
@@ -18,8 +18,8 @@ import AuthModal from './AuthModal';
 import ReferralSystem from './ReferralSystem';
 import LanguageSwitcher, { t } from './LanguageSwitcher';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { fetchUserCredits } from '@/lib/profile';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useAuth } from './AuthProvider';
 
 export interface NavbarRef {
   openLoginModal: () => void;
@@ -32,59 +32,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [userCredits, setUserCredits] = useState(0);
-
-  const refreshCredits = useCallback(async (nextUser: SupabaseUser | null) => {
-    if (!nextUser) {
-      setUserCredits(0);
-      return;
-    }
-
-    try {
-      const credits = await fetchUserCredits(nextUser.id, nextUser.email);
-      setUserCredits(credits);
-    } catch {
-      setUserCredits(0);
-    }
-  }, []);
-
-  // 실제 Supabase 세션 연결
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-
-    // 초기 세션 확인
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user);
-        refreshCredits(session.user);
-      }
-    });
-
-    // 로그인/로그아웃 상태 변경 감지
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        refreshCredits(session.user);
-      } else {
-        setUser(null);
-        setUserCredits(0);
-      }
-    });
-
-    function handleCreditsUpdated() {
-      if (user) {
-        void refreshCredits(user);
-      }
-    }
-
-    window.addEventListener('credits:updated', handleCreditsUpdated);
-
-    return () => {
-      subscription.unsubscribe();
-      window.removeEventListener('credits:updated', handleCreditsUpdated);
-    };
-  }, [refreshCredits, user]);
+  const { user, isLoading, credits } = useAuth();
 
   async function handleLogout() {
     const supabase = getSupabaseBrowserClient();
@@ -99,8 +47,6 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
     },
     getUser: () => user,
   }));
-
-  useEffect(() => {}, []);
 
   function openLogin() {
     setAuthMode('login');
@@ -120,7 +66,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
         className="sticky top-0 z-40 w-full glass shadow-lg shadow-black/20"
       >
         {/* Top announcement bar — 로그인 시 숨김 */}
-        {!user && (
+        {!user && !isLoading && (
           <div className="border-b border-white/5 bg-gradient-to-r from-violet-600/20 via-indigo-600/20 to-violet-600/20 px-4 py-1.5 text-center hidden sm:block">
             <p className="text-xs text-white/60">
               {t('announcement_bonus')}{' '}
@@ -174,12 +120,16 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               {/* Language Selector */}
               <LanguageSwitcher />
 
-              {user ? (
+              {isLoading ? (
+                <div className="hidden sm:block h-9 w-[150px] animate-pulse rounded-full border border-white/10 bg-white/5" aria-label="인증 상태 로딩 중" />
+              ) : user ? (
                 <>
                   {/* Credits badge */}
                   <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 shrink-0">
                     <Zap size={13} className="text-violet-400" />
-                    <span className="text-xs font-bold text-violet-300">{userCredits} {t('credits_label')}</span>
+                    <span className="inline-flex min-w-[70px] items-center justify-center text-xs font-bold tabular-nums text-violet-300">
+                      {credits ?? '—'} {t('credits_label')}
+                    </span>
                   </div>
 
                   {/* User menu */}

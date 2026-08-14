@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Star, Shield, Zap, Check, ArrowRight, Gift, Play, Users, LogIn } from 'lucide-react';
 import { CREDIT_PLANS } from '@/lib/credits';
 import Navbar from '@/app/components/Navbar';
@@ -9,35 +9,16 @@ import Footer from '@/app/components/Footer';
 import ReferralSystem from '@/app/components/ReferralSystem';
 import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { fetchUserCredits } from '@/lib/profile';
+import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
 
 export default function PricingPage() {
   const navbarRef = useRef<NavbarRef>(null);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [referralOpen, setReferralOpen] = useState(false);
   const [adOpen, setAdOpen] = useState(false);
-  const [userCredits, setUserCredits] = useState(0);
-
-  async function fetchCredits(uid: string, email?: string | null) {
-    setUserCredits(await fetchUserCredits(uid, email));
-  }
-
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) { setUser(session.user); fetchCredits(session.user.id, session.user.email); }
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchCredits(session.user.id, session.user.email);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, credits, isLoading, refreshCredits } = useAuth();
 
   return (
     <>
@@ -78,7 +59,9 @@ export default function PricingPage() {
             </>
           ) : (
             <>
-              {user ? (
+              {isLoading ? (
+                <div className="mx-auto h-48 max-w-md animate-pulse rounded-2xl border border-white/10 bg-white/5" aria-label="크레딧 로딩 중" />
+              ) : user ? (
                 <>
                   <div className="text-center mb-10 sm:mb-14 space-y-3 px-4">
                     <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('pricing_page_free_title')}</h2>
@@ -88,7 +71,9 @@ export default function PricingPage() {
                   <div className="flex justify-center mb-6">
                     <div className="flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2">
                       <Zap size={14} className="text-violet-400" />
-                      <span className="text-sm font-bold text-violet-300">{userCredits} 크레딧 보유</span>
+                      <span className="inline-flex min-w-[100px] items-center justify-center text-sm font-bold tabular-nums text-violet-300">
+                        {credits ?? '—'} 크레딧 보유
+                      </span>
                     </div>
                   </div>
 
@@ -138,12 +123,12 @@ export default function PricingPage() {
       <RewardedAdPopup
         isOpen={adOpen}
         onClose={() => setAdOpen(false)}
-        onRewardClaimed={(credits) => {
+        onRewardClaimed={() => {
           setAdOpen(false);
-          setUserCredits(prev => prev + credits);
+          void refreshCredits();
         }}
       />
-      {user && <DailyRewardWheel onClaim={(credits) => setUserCredits(prev => prev + credits)} />}
+      {user && <DailyRewardWheel onClaim={() => void refreshCredits()} />}
     </>
   );
 }
