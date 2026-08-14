@@ -17,7 +17,8 @@ import {
   CheckCircle2, Shield, LogIn, Copy,
 } from 'lucide-react';
 
-const SHORT_FORM_REGEX = /^https?:\/\/(www\.)?(tiktok\.com\/@[\w.]+\/video\/\d+|youtube\.com\/shorts\/[\w-]+|youtu\.be\/shorts\/[\w-]+|instagram\.com\/reel\/[\w-]+)/i;
+// TikTok: 일반/단축(vm./vt.), YouTube Shorts: youtu.be 포함, Instagram: reel/reels 모두 허용
+const SHORT_FORM_REGEX = /^https?:\/\/(www\.|vm\.|vt\.)?(tiktok\.com\/([@\w.]+\/video\/\d+|v\/\d+)|vm\.tiktok\.com\/[\w]+|vt\.tiktok\.com\/[\w]+|youtube\.com\/shorts\/[\w-]+|youtu\.be\/[\w-]+|instagram\.com\/reels?\/[\w-]+)/i;
 
 function validateShortFormUrl(input: string): string | null {
   const trimmed = input.trim();
@@ -148,16 +149,17 @@ export default function GeneratorPage() {
     if (platform) startTransition(() => setSourcePlatform(platform));
   }, []);
 
-  const DEMO_TOKEN = process.env.NEXT_PUBLIC_DEMO_TOKEN ?? '';
-
   async function handleAnalyze() {
     if (!url.trim()) return;
     const validationErr = validateShortFormUrl(url);
     if (validationErr) { setUrlError(validationErr); return; }
     setUrlError(null); setLoading(true); setError(null); setResult(null); setEstimatedCost(null);
     try {
+      const supabase = (await import('@/lib/supabase/client')).getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setError(t('gen_login_required')); setLoading(false); return; }
       const res = await fetch('/api/v1/analyze', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${DEMO_TOKEN}` },
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ url: url.trim(), targetProduct: targetProduct.trim() || undefined, userCustomPrompt: customPrompt.trim() || undefined }),
       });
       const data: AnalyzeResponse & { creditCostApplied?: number; creditsRemaining?: number } = await res.json();
