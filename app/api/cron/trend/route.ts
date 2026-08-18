@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic';
 
 type TrendPlatform = 'TikTok' | 'YouTube Shorts';
 type Region = 'US' | 'KR' | 'JP';
-const TARGET_PER_REGION = 30;
-const TARGET_PER_PLATFORM = 45;
+const TARGET_PER_REGION = 20;
+const TARGET_PER_PLATFORM = 10;
 
 const REGION_LANG: Record<Region, 'en' | 'ko' | 'ja'> = {
   US: 'en',
@@ -20,8 +20,8 @@ const REGION_LANG: Record<Region, 'en' | 'ko' | 'ja'> = {
 
 const REGION_YT_QUERIES: Record<Region, string[]> = {
   US: ['shorts trending', 'viral shorts', 'youtube shorts', 'popular shorts'],
-  KR: ['shorts', 'viral shorts', 'popular shorts', '한국 쇼츠', '인기 쇼츠', '오늘의 쇼츠', '먹방 쇼츠', '댄스 쇼츠', '꿀팁 쇼츠', '유머 쇼츠'],
-  JP: ['shorts', 'viral shorts', 'popular shorts', '日本 ショート', '人気ショート', '今日のショート', '料理 ショート', 'ダンス ショート', '便利 ショート', '面白い ショート'],
+  KR: ['한국 쇼츠', '인기 쇼츠', '오늘의 쇼츠', '먹방 쇼츠', '댄스 쇼츠', '꿀팁 쇼츠', '유머 쇼츠'],
+  JP: ['日本 ショート', '人気ショート', '今日のショート', '料理 ショート', 'ダンス ショート', '便利 ショート', '面白い ショート'],
 };
 
 const REGION_TIKTOK_HASHTAGS: Record<Region, string[]> = {
@@ -98,6 +98,10 @@ function matchesRegionLanguage(region: Region, text: string): boolean {
   return latin >= 3 && hangul === 0 && japanese === 0;
 }
 
+function isKidsContent(text: string): boolean {
+  return /\b(kids?|children|child|nursery|baby|toddler|preschool|cartoon|animation|toy|toys|cocomelon|minecraft kids)\b|어린이|아동|키즈|유아|동요|장난감|만화|애니메이션|子供|こども|キッズ|幼児|童謡|おもちゃ|アニメ/i.test(text);
+}
+
 function regionSubtitle(region: Region, views: number): string {
   if (region === 'KR') return `${formatCount(views)} 조회수 · 검증된 원본 링크`;
   if (region === 'JP') return `${formatCount(views)} 回再生 · 検証済みリンク`;
@@ -115,7 +119,7 @@ function buildRow(platform: TrendPlatform, region: Region, item: ApifyItem, vide
   const likes = finiteNumber(item.diggCount ?? item.likeCount ?? item.likes);
   if (views <= 0) return null;
   const title = cleanText(item.title ?? item.caption ?? item.description ?? item.text, `${platform} viral short`);
-  if (!matchesRegionLanguage(region, title)) return null;
+  if (isKidsContent(title) || !matchesRegionLanguage(region, title)) return null;
   return {
     platform,
     region,
@@ -133,16 +137,16 @@ async function collectYouTube(region: Region): Promise<TrendRow[]> {
   const key = process.env.YOUTUBE_API_KEY ?? process.env.YOUTUBE_DATA_API_KEY ?? process.env.GOOGLE_YOUTUBE_API_KEY;
   if (!key) throw new Error('YOUTUBE_API_KEY is not configured');
   const idSet = new Set<string>();
-  for (const order of ['viewCount', 'date', 'relevance'] as const) {
+  for (const order of ['date'] as const) {
     for (const query of REGION_YT_QUERIES[region]) {
       try {
         let pageToken: string | undefined;
-        for (let page = 0; page < 2; page += 1) {
+        for (let page = 0; page < 1; page += 1) {
         const search = await axios.get('https://www.googleapis.com/youtube/v3/search', {
           params: {
             key,
             part: 'snippet',
-            q: query,
+            q: `${query} -kids -children -nursery -cartoon -toy`,
             type: 'video',
             videoDuration: 'short',
             order,
@@ -168,18 +172,19 @@ async function collectYouTube(region: Region): Promise<TrendRow[]> {
   const details = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
     params: { key, part: 'snippet,statistics', id: ids.join(',') }, timeout: 15_000,
   });
-  const rows = (details.data.items ?? []).map((item: { id: string; snippet?: { title?: string }; statistics?: { viewCount?: string; likeCount?: string } }) => {
+  const rows = (details.data.items ?? []).map((item: { id: string; snippet?: { title?: string; description?: string }; statistics?: { viewCount?: string; likeCount?: string } }) => {
     const videoUrl = `https://www.youtube.com/shorts/${item.id}`;
     const views = finiteNumber(item.statistics?.viewCount);
     return {
       platform: 'YouTube Shorts' as const, region, title: cleanText(item.snippet?.title, 'YouTube Short'),
+      sourceText: `${item.snippet?.title ?? ''} ${item.snippet?.description ?? ''}`,
       subtitle: regionSubtitle(region, views), views: formatCount(views),
       likes: formatCount(finiteNumber(item.statistics?.likeCount)), tags: '', url: videoUrl, video_url: videoUrl,
     };
-  }).filter((row: TrendRow) => validPermalink(row.platform, row.video_url));
-  const localized = rows.filter((row: TrendRow) => matchesRegionLanguage(region, row.title));
-  const regional = [...localized, ...rows.filter((row: TrendRow) => !localized.includes(row))];
-  return regional.slice(0, TARGET_PER_PLATFORM);
+  }).filter((row: TrendRow & { sourceText?: string }) => validPermalink(row.platform, row.video_url)
+    && !isKidsContent(row.sourceText ?? row.title)
+    && matchesRegionLanguage(region, row.title));
+  return rows.slice(0, TARGET_PER_PLATFORM);
 }
 
 async function collectTikTok(region: Region): Promise<TrendRow[]> {
@@ -207,24 +212,8 @@ async function collectTikTok(region: Region): Promise<TrendRow[]> {
 }
 
 function composeRegionRows(region: Region, youtubeRows: TrendRow[], tiktokRows: TrendRow[]): TrendRow[] {
-  const selected: TrendRow[] = [];
-  const pushUnique = (row: TrendRow) => {
-    if (selected.some((item) => item.video_url === row.video_url)) return;
-    selected.push(row);
-  };
-
-  for (const row of youtubeRows.slice(0, 15)) pushUnique(row);
-  for (const row of tiktokRows.slice(0, 15)) pushUnique(row);
-
-  if (selected.length < TARGET_PER_REGION) {
-    const pool = [...youtubeRows, ...tiktokRows];
-    for (const row of pool) {
-      pushUnique(row);
-      if (selected.length >= TARGET_PER_REGION) break;
-    }
-  }
-
-  return selected.slice(0, TARGET_PER_REGION);
+  const selected = [...youtubeRows.slice(0, TARGET_PER_PLATFORM), ...tiktokRows.slice(0, TARGET_PER_PLATFORM)];
+  return selected.length === TARGET_PER_REGION ? selected : [];
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {

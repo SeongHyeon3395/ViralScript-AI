@@ -169,6 +169,16 @@ body {
   border-color: rgba(37,99,235,0.28) !important;
 }
 
+.trend-card {
+  background: #ffffff;
+  border: 1px solid rgba(15,23,42,0.14);
+}
+
+[data-theme='dark'] .trend-card {
+  background: rgba(15,23,42,0.72);
+  border-color: rgba(255,255,255,0.14);
+}
+
 /* Button primary */
 .btn-primary {
   background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
@@ -387,5 +397,71 @@ body {
 [class~='from-violet-600'] > *,
 [class~='from-violet-600'] {
   color: #ffffff !important;
+}
+
+[data-theme='dark'] {
+  --background: #090b12;
+  --foreground: #f8fafc;
+  --surface-0: #090b12;
+  --surface-1: #111827;
+  --surface-2: #1e293b;
+  --surface-3: #334155;
+  --border-subtle: rgba(255,255,255,0.08);
+  --border-default: rgba(255,255,255,0.12);
+  --border-strong: rgba(255,255,255,0.20);
+}
+
+[data-theme='dark'] body {
+  background: radial-gradient(1000px 500px at 15% -10%, rgba(37,99,235,0.16), transparent 60%), radial-gradient(900px 460px at 85% 0%, rgba(20,184,166,0.12), transparent 58%), var(--background);
+  color: var(--foreground);
+}
+
+[data-theme='dark'] .glass {
+  background: rgba(15,23,42,0.78);
+  border-color: var(--border-default);
+}
+
+[data-theme='dark'] .glass-strong {
+  background: rgba(15,23,42,0.94);
+  border-color: var(--border-strong);
+}
+
+[data-theme='dark'] [class*='text-white'] {
+  color: #f8fafc !important;
+}
+
+[data-theme='dark'] [class*='text-white/'] {
+  color: #94a3b8 !important;
+}
+
+[data-theme='dark'] [class*='border-white/'] {
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+[data-theme='dark'] [class*='bg-white/'] {
+  background-color: rgba(255,255,255,0.06) !important;
+}
+
+[data-theme='dark'] [class*='bg-black/'] {
+  background-color: rgba(0,0,0,0.70) !important;
+}
+
+[data-theme='dark'] [class*='bg-zinc-900'],
+[data-theme='dark'] [class*='bg-\[#0d0d14\]'] {
+  background-color: #0f172a !important;
+}
+
+[data-theme='dark'] .input-dark {
+  background: #0f172a;
+  border-color: rgba(255,255,255,0.14);
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .input-dark::placeholder {
+  color: rgba(148,163,184,0.62);
+}
+
+[data-theme='dark'] .mesh-bg {
+  background-color: #090b12;
 }
 

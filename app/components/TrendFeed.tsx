@@ -19,7 +19,7 @@ const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'tr
 
 const INITIAL_LOAD = 30;
 const LOAD_MORE_COUNT = 30;
-const MAX_TRENDS = 100;
+const MAX_TRENDS = 60;
 const TREND_MAX_AGE_MS = 36 * 60 * 60 * 1000;
 
 interface TrendFeedProps {
@@ -192,8 +192,8 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
                       setSelectedTrendId(selectedTrendId === item.id ? null : item.id);
                     }
                   }}
-                  className="rounded-2xl p-5 card-hover cursor-pointer"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: selectedTrendId === item.id ? '1px solid rgba(34,211,238,0.45)' : '1px solid rgba(255,255,255,0.06)' }}
+                  className="trend-card rounded-2xl p-5 card-hover cursor-pointer"
+                  style={{ border: selectedTrendId === item.id ? '1px solid rgba(8,145,178,0.55)' : undefined }}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center"><Icon size={12} className={color} /></div>

@@ -12,6 +12,7 @@ import Footer from '@/app/components/Footer';
 import { useAuth } from '@/app/components/AuthProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from '@/app/components/LanguageSwitcher';
+import { useTheme } from '@/app/components/ThemeProvider';
 
 // ─── 타입 ─────────────────────────────────────────────────────────
 
@@ -174,7 +175,7 @@ function PlatformTab({ settings, onUpdate }: { settings: UserSettings; onUpdate:
               onChange={v => onUpdate({ theme_preference: v })}
               options={[
                 { value: 'dark',   label: '🌙 다크 모드' },
-                { value: 'light',  label: '☀️ 라이트 모드 (준비 중)' },
+                { value: 'light',  label: '☀️ 라이트 모드' },
                 { value: 'system', label: '💻 시스템 설정 따름' },
               ]}
             />
@@ -243,6 +244,7 @@ function DangerTab({ onDeleteAccount }: { onDeleteAccount: () => void }) {
 export default function SettingsPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const { setPreference } = useTheme();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -267,7 +269,7 @@ export default function SettingsPage() {
     setSettings({
       full_name:               (data.full_name as string | null) ?? null,
       email:                   (data.email as string | null) ?? user.email ?? '',
-      theme_preference:        (data.theme_preference as UserSettings['theme_preference']) ?? 'dark',
+      theme_preference:        (data.theme_preference as UserSettings['theme_preference']) ?? 'light',
       default_language:        (data.default_language as UserSettings['default_language']) ?? 'ko',
       email_notifications:     (data.email_notifications as boolean | null) ?? true,
       default_target_platform: (data.default_target_platform as UserSettings['default_target_platform']) ?? 'tiktok',
@@ -307,6 +309,8 @@ export default function SettingsPage() {
           .eq('id', user.id);
         if (nameErr) throw nameErr;
       }
+
+      setPreference(settings.theme_preference);
 
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);
