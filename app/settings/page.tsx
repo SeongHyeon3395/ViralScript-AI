@@ -12,14 +12,12 @@ import Footer from '@/app/components/Footer';
 import { useAuth } from '@/app/components/AuthProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from '@/app/components/LanguageSwitcher';
-import { useTheme } from '@/app/components/ThemeProvider';
 
 // ─── 타입 ─────────────────────────────────────────────────────────
 
 interface UserSettings {
   full_name: string | null;
   email: string;
-  theme_preference: 'dark' | 'light' | 'system';
   default_language: 'ko' | 'en' | 'ja' | 'zh';
   email_notifications: boolean;
   default_target_platform: 'tiktok' | 'youtube';
@@ -168,18 +166,6 @@ function PlatformTab({ settings, onUpdate }: { settings: UserSettings; onUpdate:
               ]}
             />
           </div>
-          <div>
-            <FieldLabel>테마</FieldLabel>
-            <SelectInput
-              value={settings.theme_preference}
-              onChange={v => onUpdate({ theme_preference: v })}
-              options={[
-                { value: 'dark',   label: '🌙 다크 모드' },
-                { value: 'light',  label: '☀️ 라이트 모드' },
-                { value: 'system', label: '💻 시스템 설정 따름' },
-              ]}
-            />
-          </div>
         </div>
       </SectionCard>
     </div>
@@ -244,7 +230,6 @@ function DangerTab({ onDeleteAccount }: { onDeleteAccount: () => void }) {
 export default function SettingsPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
-  const { setPreference } = useTheme();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -258,7 +243,7 @@ export default function SettingsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from('profiles')
-      .select('full_name, email, theme_preference, default_language, email_notifications, default_target_platform')
+      .select('full_name, email, default_language, email_notifications, default_target_platform')
       .eq('id', user.id)
       .maybeSingle() as { data: Record<string, unknown> | null; error: unknown };
 
@@ -269,7 +254,6 @@ export default function SettingsPage() {
     setSettings({
       full_name:               (data.full_name as string | null) ?? null,
       email:                   (data.email as string | null) ?? user.email ?? '',
-      theme_preference:        (data.theme_preference as UserSettings['theme_preference']) ?? 'light',
       default_language:        (data.default_language as UserSettings['default_language']) ?? 'ko',
       email_notifications:     (data.email_notifications as boolean | null) ?? true,
       default_target_platform: (data.default_target_platform as UserSettings['default_target_platform']) ?? 'tiktok',
@@ -293,7 +277,6 @@ export default function SettingsPage() {
       const supabase = getSupabaseBrowserClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any).rpc('update_user_settings', {
-        p_theme_preference:        settings.theme_preference,
         p_default_language:        settings.default_language,
         p_email_notifications:     settings.email_notifications,
         p_default_target_platform: settings.default_target_platform,
@@ -310,7 +293,6 @@ export default function SettingsPage() {
         if (nameErr) throw nameErr;
       }
 
-      setPreference(settings.theme_preference);
 
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);

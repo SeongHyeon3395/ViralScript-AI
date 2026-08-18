@@ -3,7 +3,6 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ToastHost from "./components/ToastHost";
 import { AuthProvider } from "./components/AuthProvider";
-import { ThemeProvider } from "./components/ThemeProvider";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://viralscript-ai-inky.vercel.app";
 
@@ -50,8 +49,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f8fafc",
-  colorScheme: "light",
+  themeColor: "#050508",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
@@ -66,7 +65,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col mesh-bg">
         <AuthProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          {children}
         </AuthProvider>
         <ToastHost />
       </body>
