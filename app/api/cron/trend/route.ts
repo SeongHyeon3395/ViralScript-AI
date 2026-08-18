@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
+import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
@@ -7,129 +7,168 @@ export const maxDuration = 60;
 export const revalidate = 0;
 export const dynamic = 'force-dynamic';
 
-// ─── 검색 URL 폴백 생성기 ─────────────────────────────────────────
-function buildSearchUrl(platform: string, title: string): string {
-  const q = encodeURIComponent(title);
-  if (platform === 'TikTok') return `https://www.tiktok.com/search?q=${q}`;
-  if (platform === 'YouTube Shorts') return `https://www.youtube.com/results?search_query=${q}&sp=EgIYAg%3D%3D`;
-  // Instagram Reels
-  return `https://www.instagram.com/explore/tags/${encodeURIComponent(title.replace(/\s+/g, '').replace(/^#/, ''))}`;
+type TrendPlatform = 'TikTok' | 'YouTube Shorts' | 'Instagram Reels';
+type Region = 'US' | 'KR' | 'JP';
+
+interface TrendRow {
+  platform: TrendPlatform;
+  region: Region;
+  title: string;
+  subtitle: string;
+  views: string;
+  likes: string;
+  tags: string;
+  url: string;
+  video_url: string;
 }
 
-// ─── AI 스키마 ────────────────────────────────────────────────────
-const trendItemSchema = {
-  type: 'object' as const,
-  properties: {
-    trends: {
-      type: 'array' as const,
-      items: {
-        type: 'object' as const,
-        properties: {
-          platform: { type: 'string' as const, enum: ['TikTok', 'YouTube Shorts', 'Instagram Reels'] },
-          region:   { type: 'string' as const, enum: ['US', 'KR', 'JP'] },
-          title:    { type: 'string' as const },
-          subtitle: { type: 'string' as const },
-          views:    { type: 'string' as const },
-          likes:    { type: 'string' as const },
-          tags:     { type: 'string' as const },
-        },
-        required: ['platform', 'region', 'title', 'subtitle', 'views', 'likes', 'tags'],
-      },
-    },
-  },
-  required: ['trends'],
+interface ApifyItem {
+  id?: string | number;
+  shortcode?: string;
+  code?: string;
+  url?: string;
+  webVideoUrl?: string;
+  permalink?: string;
+  postUrl?: string;
+  playCount?: number | string;
+  viewCount?: number | string;
+  views?: number | string;
+  videoPlayCount?: number | string;
+  igPlayCount?: number | string;
+  diggCount?: number | string;
+  likeCount?: number | string;
+  likes?: number | string;
+  caption?: string;
+  title?: string;
+  description?: string;
+  text?: string;
+  username?: string;
+  authorMeta?: { name?: string; nickName?: string; uniqueId?: string };
+  author?: { uniqueId?: string; username?: string };
+}
+
+const DIRECT_URLS = {
+  youtube: /^https:\/\/(?:www\.)?youtube\.com\/shorts\/[A-Za-z0-9_-]{11}(?:[/?#].*)?$/i,
+  tiktok: /^https:\/\/www\.tiktok\.com\/@[^/\s]+\/video\/\d+(?:[/?#].*)?$/i,
+  instagram: /^https:\/\/www\.instagram\.com\/(?:reel|p)\/[A-Za-z0-9_-]+\/?(?:[?#].*)?$/i,
 };
 
-const SYSTEM_PROMPT = (region: string) => `You are a 2026 Global Short-Form Trend Analyst. Today is ${new Date().toISOString().slice(0, 10)}.
+function finiteNumber(value: unknown): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const digits = String(value ?? '').replace(/[^0-9]/g, '');
+  return digits ? Number(digits) : 0;
+}
 
-Generate exactly 30 trending short-form video items for the ${region} region:
-- 10 TikTok, 10 YouTube Shorts, 10 Instagram Reels
+function formatCount(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 100_000 ? 0 : 1)}K`;
+  return String(value);
+}
 
-For EVERY item provide:
-- platform: "TikTok" | "YouTube Shorts" | "Instagram Reels"
-- region: "US" | "KR" | "JP"
-- title: compelling headline in the region's native language
-- subtitle: one sentence explaining why it's viral (native language)
-- views: e.g. "3.2M"
-- likes: e.g. "450K"
-- tags: 2-3 hashtags, comma-separated, native language
-Do not generate video URLs. The server creates a platform search URL from each title.
+function cleanText(value: unknown, fallback: string): string {
+  const text = String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
+  return text || fallback;
+}
 
-Topics must span: AI tools, K-pop/J-pop, food hacks, comedy, ASMR, beauty/fashion, dance challenges, tech productivity.
-Return ONLY valid JSON. No markdown.`;
+function validPermalink(platform: TrendPlatform, url: string): boolean {
+  return platform === 'YouTube Shorts' ? DIRECT_URLS.youtube.test(url)
+    : platform === 'TikTok' ? DIRECT_URLS.tiktok.test(url)
+    : DIRECT_URLS.instagram.test(url);
+}
 
-// ─── POST /api/cron/trend ─────────────────────────────────────────
+function buildRow(platform: TrendPlatform, region: Region, item: ApifyItem, videoUrl: string): TrendRow | null {
+  if (!validPermalink(platform, videoUrl)) return null;
+  const views = finiteNumber(item.playCount ?? item.viewCount ?? item.videoPlayCount ?? item.igPlayCount ?? item.views);
+  const likes = finiteNumber(item.diggCount ?? item.likeCount ?? item.likes);
+  if (views <= 0) return null;
+  return {
+    platform,
+    region,
+    title: cleanText(item.title ?? item.caption ?? item.description ?? item.text, `${platform} viral short`),
+    subtitle: `${formatCount(views)} views · verified public permalink`,
+    views: formatCount(views),
+    likes: formatCount(likes),
+    tags: '',
+    url: videoUrl,
+    video_url: videoUrl,
+  };
+}
+
+async function collectYouTube(region: Region): Promise<TrendRow[]> {
+  const key = process.env.YOUTUBE_API_KEY ?? process.env.YOUTUBE_DATA_API_KEY ?? process.env.GOOGLE_YOUTUBE_API_KEY;
+  if (!key) throw new Error('YOUTUBE_API_KEY is not configured');
+  const search = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+    params: { key, part: 'snippet', q: '#shorts', type: 'video', videoDuration: 'short', order: 'viewCount', regionCode: region, maxResults: 10 },
+    timeout: 15_000,
+  });
+  const ids = (search.data.items ?? []).map((item: { id?: { videoId?: string } }) => item.id?.videoId).filter(Boolean) as string[];
+  if (!ids.length) throw new Error(`${region}: YouTube returned no videos`);
+  const details = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+    params: { key, part: 'snippet,statistics', id: ids.join(',') }, timeout: 15_000,
+  });
+  return (details.data.items ?? []).map((item: { id: string; snippet?: { title?: string }; statistics?: { viewCount?: string; likeCount?: string } }) => {
+    const videoUrl = `https://www.youtube.com/shorts/${item.id}`;
+    const views = finiteNumber(item.statistics?.viewCount);
+    return {
+      platform: 'YouTube Shorts' as const, region, title: cleanText(item.snippet?.title, 'YouTube Short'),
+      subtitle: `${formatCount(views)} views · YouTube Data API`, views: formatCount(views),
+      likes: formatCount(finiteNumber(item.statistics?.likeCount)), tags: '', url: videoUrl, video_url: videoUrl,
+    };
+  }).filter((row: TrendRow) => validPermalink(row.platform, row.video_url));
+}
+
+async function collectApify(platform: 'TikTok' | 'Instagram Reels', region: Region): Promise<TrendRow[]> {
+  const token = process.env.APIFY_API_TOKEN;
+  const actor = platform === 'TikTok'
+    ? (process.env.APIFY_TREND_TIKTOK_ACTOR_ID ?? 'clockworks~tiktok-scraper')
+    : (process.env.APIFY_TREND_INSTAGRAM_ACTOR_ID ?? 'apify~instagram-hashtag-scraper');
+  if (!token || !actor) throw new Error(`Apify trend configuration missing for ${platform}`);
+  let input: Record<string, unknown> = platform === 'TikTok'
+    ? { hashtags: ['fyp', 'viral', 'trending'], resultsPerPage: 25, maxItems: 25, shouldDownloadVideos: false }
+    : { hashtags: ['viral', 'trending', 'reels'], resultsType: 'reels', resultsLimit: 25 };
+  const inputJson = platform === 'TikTok' ? process.env.APIFY_TREND_TIKTOK_INPUT_JSON : process.env.APIFY_TREND_INSTAGRAM_INPUT_JSON;
+  if (inputJson) input = JSON.parse(inputJson) as Record<string, unknown>;
+  const response = await axios.post(`https://api.apify.com/v2/acts/${encodeURIComponent(actor)}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`, input, { timeout: 45_000 });
+  return (response.data ?? []).map((item: ApifyItem): TrendRow | null => {
+    let videoUrl = item.webVideoUrl ?? item.permalink ?? item.postUrl ?? item.url ?? '';
+    const username = item.username ?? item.authorMeta?.uniqueId ?? item.author?.uniqueId ?? item.author?.username;
+    if (!videoUrl && platform === 'TikTok' && username && item.id) {
+      videoUrl = `https://www.tiktok.com/@${username}/video/${item.id}`;
+    }
+    if (!videoUrl && platform === 'Instagram Reels' && (item.shortcode ?? item.code)) {
+      videoUrl = `https://www.instagram.com/reel/${item.shortcode ?? item.code}/`;
+    }
+    return buildRow(platform, region, item, videoUrl);
+  }).filter((row: TrendRow | null): row is TrendRow => row !== null).slice(0, 10);
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = req.headers.get('authorization');
   const expected = process.env.CRON_SECRET;
-  if (expected && auth !== `Bearer ${expected}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  if (expected && auth !== `Bearer ${expected}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
-    const apiKey = process.env.GOOGLE_AI_API_KEY;
-    if (!apiKey) throw new Error('GOOGLE_AI_API_KEY is not configured');
-
-    const ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: 50_000 } });
-    const regions = ['US', 'KR', 'JP'];
-    const regionalTrends = await Promise.all(regions.map(async (region) => {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash-lite',
-        contents: [{ role: 'user', parts: [{ text: SYSTEM_PROMPT(region) }] }],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: trendItemSchema,
-          temperature: 0.8,
-          maxOutputTokens: 12000,
-        },
-      });
-
-      const text = response.text?.trim();
-      if (!text) throw new Error(`${region}: AI returned empty response`);
-
-      let parsed: { trends?: Array<Record<string, string>> };
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        throw new Error(`${region}: AI response not valid JSON: ${text.substring(0, 200)}`);
-      }
-
-      if (!Array.isArray(parsed.trends) || parsed.trends.length === 0) {
-        throw new Error(`${region}: AI returned no trend items`);
-      }
-      return parsed.trends;
-    }));
-    const rawTrends = regionalTrends.flat();
-
-    // AI가 반환한 URL은 신뢰하지 않고 서버에서 검색 URL을 생성한다.
-    const rows = rawTrends.map((item) => {
-      const videoUrl = buildSearchUrl(item.platform, item.title);
-      return {
-        platform:  item.platform,
-        region:    item.region,
-        title:     item.title,
-        subtitle:  item.subtitle,
-        views:     item.views,
-        likes:     item.likes,
-        tags:      item.tags,
-        url:       videoUrl,
-        video_url: videoUrl,
-      };
+    const regions: Region[] = ['US', 'KR', 'JP'];
+    const jobs = regions.flatMap((region) => [
+      collectYouTube(region), collectApify('TikTok', region), collectApify('Instagram Reels', region),
+    ]);
+    const settled = await Promise.allSettled(jobs);
+    const collected = settled.flatMap((result, index) => {
+      if (result.status === 'fulfilled') return result.value;
+      console.error('[cron/trend] source failed', { job: index, error: result.reason instanceof Error ? result.reason.message : result.reason });
+      return [];
     });
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false } }
-    );
-
-    // 기존 데이터 전체 삭제 후 신규 삽입
+    const uniqueUrls = new Set<string>();
+    const rows = collected.filter((row) => {
+      if (!validPermalink(row.platform, row.video_url) || uniqueUrls.has(row.video_url)) return false;
+      uniqueUrls.add(row.video_url);
+      return true;
+    });
+    if (!rows.length) throw new Error('No verified trend permalinks collected');
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
     const { error: deleteErr } = await supabase.from('trend_feed').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     if (deleteErr) throw new Error(`DB delete failed: ${deleteErr.message}`);
-
     const { error: insertErr } = await supabase.from('trend_feed').insert(rows);
     if (insertErr) throw new Error(`DB insert failed: ${insertErr.message}`);
-
     return NextResponse.json({ ok: true, count: rows.length, updatedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[cron/trend]', err instanceof Error ? err.message : err);
@@ -137,7 +176,4 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 }
 
-// Vercel Cron(KST 00:00 = UTC 15:00)은 GET으로 호출합니다.
-export async function GET(req: NextRequest): Promise<NextResponse> {
-  return POST(req);
-}
+export async function GET(req: NextRequest): Promise<NextResponse> { return POST(req); }

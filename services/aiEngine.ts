@@ -69,7 +69,7 @@ export async function generateLocalizedScripts(
 
   const ai = new GoogleGenAI({
     apiKey,
-    httpOptions: { timeout: 10_000 },
+    httpOptions: { timeout: 45_000 },
   });
 
   try {

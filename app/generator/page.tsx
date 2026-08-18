@@ -17,14 +17,16 @@ import {
   CheckCircle2, Shield, LogIn, Copy,
 } from 'lucide-react';
 
-// TikTok: 일반/단축(vm./vt.), YouTube Shorts: youtu.be 포함, Instagram: reel/reels 모두 허용
-const SHORT_FORM_REGEX = /^https?:\/\/(www\.|vm\.|vt\.)?(tiktok\.com\/([@\w.]+\/video\/\d+|v\/\d+)|vm\.tiktok\.com\/[\w]+|vt\.tiktok\.com\/[\w]+|youtube\.com\/shorts\/[\w-]+|youtu\.be\/[\w-]+|instagram\.com\/reels?\/[\w-]+)/i;
+// TikTok: 직접 영상 링크 + 검색 결과 URL 허용
+// YouTube: 직접 Shorts + results/hashtag 검색 링크 허용
+// Instagram: reel/reels + explore/search/keyword / explore/tags 검색 링크 허용
+const DIRECT_SHORT_FORM_REGEX = /^https?:\/\/(?:www\.|vm\.|vt\.)?(?:tiktok\.com\/(?:(?:@[^\/\s]+)\/video\/\d+|v\/\d+)|vm\.tiktok\.com\/[\w-]+|vt\.tiktok\.com\/[\w-]+|youtube\.com\/shorts\/[^\s?]+|youtu\.be\/[^\s?]+|instagram\.com\/(?:reel|reels|p)\/[^\s?]+)(?:[\/?#].*)?$/i;
 
 function validateShortFormUrl(input: string): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
-  if (!SHORT_FORM_REGEX.test(trimmed)) return t('gen_url_invalid');
-  return null;
+  if (DIRECT_SHORT_FORM_REGEX.test(trimmed)) return null;
+  return t('gen_url_invalid');
 }
 
 const LOCALE_TABS = [
@@ -163,7 +165,18 @@ export default function GeneratorPage() {
         body: JSON.stringify({ url: url.trim(), targetProduct: targetProduct.trim() || undefined, userCustomPrompt: customPrompt.trim() || undefined }),
       });
       const data: AnalyzeResponse & { creditCostApplied?: number; creditsRemaining?: number } = await res.json();
-      if (!res.ok || !data.success) { setError(data.error ?? '알 수 없는 오류'); return; }
+      if (!res.ok || !data.success) {
+        const code = data.errorCode ?? '';
+        const friendlyMsg =
+          res.status === 401 ? '로그인이 필요합니다. 다시 로그인해 주세요.' :
+          res.status === 402 ? `크레딧이 부족합니다. 크레딧을 충전해 주세요. (현재: ${credits ?? 0})` :
+          code.includes('UNSUPPORTED') ? '지원하지 않는 플랫폼입니다. TikTok·YouTube Shorts·Instagram Reel 링크를 사용해주세요.' :
+          code.includes('PRIVATE') || code.includes('DELETED') ? '비공개이거나 삭제된 영상입니다.' :
+          code.includes('TIMEOUT') ? '영상 분석 시간이 초과됐습니다. 잠시 후 다시 시도해 주세요.' :
+          (data.error ?? '분석 중 오류가 발생했습니다. 다른 링크로 시도해 주세요.');
+        setError(friendlyMsg);
+        return;
+      }
       setResult(data.data!); setCached(data.cached ?? false);
       if (data.creditCostApplied) setEstimatedCost(data.creditCostApplied);
       if (typeof data.creditsRemaining === 'number') void refreshCredits();

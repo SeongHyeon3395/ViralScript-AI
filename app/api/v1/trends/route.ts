@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { normalizeAndValidateUrl } from '@/utils/urlNormalizer';
 
 export const runtime = 'nodejs';
 export const revalidate = 0;
@@ -19,10 +20,19 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ trends: [], updatedAt: null }, { status: 200 });
     }
 
-    const trends = (data ?? []).map((item) => ({
-      ...item,
-      video_url: item.video_url ?? item.url ?? null,
-    }));
+    const trends = (data ?? []).map((item) => {
+      const videoUrl = item.video_url ?? item.url ?? null;
+      if (!videoUrl) return null;
+      try {
+        const normalized = normalizeAndValidateUrl(videoUrl);
+        const expectedPlatform = item.platform.toLowerCase().includes('youtube') ? 'youtube'
+          : item.platform.toLowerCase().includes('tiktok') ? 'tiktok' : 'instagram';
+        if (normalized.platform !== expectedPlatform) return null;
+        return { ...item, video_url: normalized.normalizedUrl };
+      } catch {
+        return null;
+      }
+    }).filter((item): item is NonNullable<typeof item> => item !== null);
 
     return NextResponse.json(
       { trends, updatedAt: trends[0]?.created_at ?? null },

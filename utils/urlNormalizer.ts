@@ -1,98 +1,49 @@
 import { createHash } from 'crypto';
-import type { NormalizedUrlResult, SupportedPlatform } from '@/types';
+import type { NormalizedUrlResult } from '@/types';
 import { ERROR_CODES } from '@/types';
 
-/**
- * 클라이언트에서 전송된 소셜 미디어 URL을 정규화하고,
- * 플랫폼을 판별하고, SHA-256 해시를 생성합니다.
- * 트래커 파라미터 및 세션 파라미터는 완전히 제거됩니다.
- */
+function result(platform: NormalizedUrlResult['platform'], normalizedUrl: string): NormalizedUrlResult {
+  return {
+    platform,
+    normalizedUrl,
+    urlHash: createHash('sha256').update(normalizedUrl).digest('hex'),
+  };
+}
+
 export function normalizeAndValidateUrl(rawUrl: string): NormalizedUrlResult {
-  if (!rawUrl || typeof rawUrl !== 'string') {
-    throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
+  if (!rawUrl || typeof rawUrl !== 'string') throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
+  let url: URL;
+  try { url = new URL(rawUrl.trim()); } catch { throw new Error(ERROR_CODES.INVALID_URL_FORMAT); }
+  if (url.protocol !== 'https:') throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
+  const hostname = url.hostname.toLowerCase();
+
+  if (hostname === 'youtu.be') {
+    const id = url.pathname.slice(1).split('/')[0];
+    if (!/^[A-Za-z0-9_-]{11}$/.test(id)) throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
+    return result('youtube', `https://www.youtube.com/shorts/${id}`);
+  }
+  if (hostname === 'youtube.com' || hostname === 'www.youtube.com') {
+    const match = url.pathname.match(/^\/shorts\/([A-Za-z0-9_-]{11})\/?$/i);
+    if (!match) throw new Error(ERROR_CODES.NOT_A_YOUTUBE_SHORTS_URL);
+    return result('youtube', `https://www.youtube.com/shorts/${match[1]}`);
   }
 
-  let urlObj: URL;
-  try {
-    urlObj = new URL(rawUrl.trim());
-  } catch {
-    throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
+  if (hostname === 'www.tiktok.com' || hostname === 'tiktok.com') {
+    const match = url.pathname.match(/^\/@([^/\s]+)\/video\/(\d+)\/?$/i);
+    if (!match) throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
+    return result('tiktok', `https://www.tiktok.com/@${match[1]}/video/${match[2]}`);
+  }
+  if (hostname === 'vm.tiktok.com' || hostname === 'vt.tiktok.com') {
+    const code = url.pathname.match(/^\/([A-Za-z0-9_-]+)\/?$/)?.[1];
+    if (!code) throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
+    return result('tiktok', `https://${hostname}/${code}`);
   }
 
-  // HTTPS만 허용 (보안: HTTP 다운그레이드 공격 방지)
-  if (urlObj.protocol !== 'https:') {
-    throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
+  if (hostname === 'www.instagram.com' || hostname === 'instagram.com') {
+    const match = url.pathname.match(/^\/(reel|p)\/([A-Za-z0-9_-]+)\/?$/i);
+    if (!match) throw new Error(ERROR_CODES.NOT_AN_INSTAGRAM_REEL_URL);
+    return result('instagram', `https://www.instagram.com/${match[1].toLowerCase()}/${match[2]}/`);
   }
 
-  let platform: SupportedPlatform;
-  let cleanUrl = '';
-
-  const hostname = urlObj.hostname.toLowerCase();
-
-  // 1. TikTok 검증 (www, vm, vt 단축 URL 모두 허용)
-  if (hostname.includes('tiktok.com')) {
-    platform = 'tiktok';
-    // vm.tiktok.com / vt.tiktok.com 단축 URL — 스크래퍼 미들웨어에서 리다이렉트 처리
-    if (hostname === 'vm.tiktok.com' || hostname === 'vt.tiktok.com') {
-      cleanUrl = rawUrl.trim();
-    } else {
-      const pathParts = urlObj.pathname.split('/').filter(Boolean);
-      const videoIndex = pathParts.findIndex((p) => p === 'video');
-      const vIndex = pathParts.findIndex((p) => p === 'v');
-
-      if (videoIndex !== -1 && pathParts[videoIndex + 1]) {
-        const videoId = pathParts[videoIndex + 1].split('?')[0];
-        if (!/^\d+$/.test(videoId)) throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
-        cleanUrl = `https://www.tiktok.com/video/${videoId}`;
-      } else if (vIndex !== -1 && pathParts[vIndex + 1]) {
-        const videoId = pathParts[vIndex + 1].split('?')[0];
-        if (!/^\d+$/.test(videoId)) throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
-        cleanUrl = `https://www.tiktok.com/v/${videoId}`;
-      } else {
-        // /@username/video/ID 패턴 직접 추출
-        const match = urlObj.pathname.match(/\/@[\w.]+\/video\/(\d+)/);
-        if (match?.[1]) {
-          cleanUrl = `https://www.tiktok.com/video/${match[1]}`;
-        } else {
-          cleanUrl = `https://www.tiktok.com${urlObj.pathname}`;
-        }
-      }
-    }
-  }
-  // 2. YouTube Shorts 검증 (youtu.be 단축 URL 포함)
-  else if (hostname.includes('youtube.com') || hostname === 'youtu.be') {
-    platform = 'youtube';
-    if (urlObj.pathname.includes('/shorts/')) {
-      const videoId = urlObj.pathname.split('/shorts/')[1]?.split('/')[0]?.split('?')[0];
-      if (!videoId || !/^[\w-]{11}$/.test(videoId)) {
-        throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
-      }
-      cleanUrl = `https://www.youtube.com/shorts/${videoId}`;
-    } else if (hostname === 'youtu.be') {
-      // youtu.be/VIDEO_ID 형태 — Shorts인지는 스크래퍼에서 확인
-      const videoId = urlObj.pathname.slice(1).split('?')[0];
-      if (!videoId || !/^[\w-]{11}$/.test(videoId)) {
-        throw new Error(ERROR_CODES.INVALID_URL_FORMAT);
-      }
-      cleanUrl = `https://www.youtube.com/shorts/${videoId}`;
-    } else {
-      throw new Error(ERROR_CODES.NOT_A_YOUTUBE_SHORTS_URL);
-    }
-  }
-  // 3. Instagram Reels 검증 (reel / reels 모두 허용)
-  else if (hostname.includes('instagram.com')) {
-    platform = 'instagram';
-    const reelMatch = urlObj.pathname.match(/\/reels?\/([A-Za-z0-9_-]+)/);
-    if (reelMatch?.[1]) {
-      cleanUrl = `https://www.instagram.com/reel/${reelMatch[1]}/`;
-    } else {
-      throw new Error(ERROR_CODES.NOT_AN_INSTAGRAM_REEL_URL);
-    }
-  } else {
-    throw new Error(ERROR_CODES.UNSUPPORTED_PLATFORM);
-  }
-
-  const urlHash = createHash('sha256').update(cleanUrl).digest('hex');
-
-  return { platform, normalizedUrl: cleanUrl, urlHash };
+  throw new Error(ERROR_CODES.UNSUPPORTED_PLATFORM);
 }

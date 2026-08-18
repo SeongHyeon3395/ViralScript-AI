@@ -8,7 +8,11 @@ import { ERROR_CODES } from '@/types';
 import type { AnalyzeRequest, AnalyzeResponse, GenerationOutput, Profile } from '@/types';
 
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+export const maxDuration = 60;
+
+// Vercel 60초 제한 내에서 스크래핑+AI 연산이 안전하게 완료되도록 남은 여유를 확보
+// 스크래핑 최대 55초(재시도 포함) + AI 최대 45초이므로 deadline으로 조기 중단
+const HARD_DEADLINE_MS = 55_000; // 요청 진입 후 이 시간 초과 시 504 반환
 
 // ─── 헬퍼: 에러 코드 → HTTP 상태 코드 매핑 ─────────────────
 
@@ -64,6 +68,13 @@ async function getUserFromToken(
 // ─── POST /api/v1/analyze ─────────────────────────────────────
 
 export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeResponse>> {
+  const requestStart = Date.now();
+
+  /** 남은 시간(ms). HARD_DEADLINE_MS 초과 시 즉시 504 반환해야 크레딧 차감 없음 */
+  function isDeadlineExceeded(): boolean {
+    return Date.now() - requestStart > HARD_DEADLINE_MS;
+  }
+
   const supabase = createAdminClient();
 
   // 1. 인증 검증
@@ -114,6 +125,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   }
 
   const { platform, normalizedUrl, urlHash } = normalized;
+  console.log('[analyze] route entry', {
+    rawUrl: url,
+    normalizedUrl,
+    platform,
+    requestedTargetProduct,
+  });
 
   // 4. 캐시 조회 (script_cache 테이블)
   const { data: cached } = await supabase
@@ -212,7 +229,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   // 7-b. 스크래핑 완료 → durationSeconds 기반 실제 단가 결정
   const dynamicCreditCost = getDynamicCreditCost(metadata.durationSeconds);
 
-  // 7-c. 실제 단가 기준 잔액 재검증
+  // 7-c. 실제 단가 기준 잔액 재검증 (크레딧 미차감 상태이므로 에러만 반환)
   if (profile.credits_remaining < dynamicCreditCost) {
     return NextResponse.json(
       {
@@ -226,7 +243,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  // 8. AI 생성 (Gemini)
+  // 7-d. Vercel deadline 체크 — AI 호출 전 시간이 이미 초과됐으면 504 반환
+  // 크레딧은 아직 차감되지 않았으므로 사용자 손실 없음
+  if (isDeadlineExceeded()) {
+    return NextResponse.json(
+      { success: false, error: 'Request timed out before AI generation', errorCode: ERROR_CODES.SCRAPER_TIMEOUT },
+      { status: 504 }
+    );
+  }
+
+  // 8. AI 생성 (Gemini) — 실패 시 크레딧 차감 없음 (RPC는 step 9에서 호출)
   // BYOK: profile에 custom_gemini_key가 있으면 사용
   let result: GenerationOutput;
   try {
@@ -237,6 +263,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       profile.custom_gemini_key ?? undefined
     );
   } catch (err) {
+    // AI 실패: 크레딧 차감 RPC 호출 없이 에러 반환 → 자동 롤백
     const code = err instanceof Error ? err.message : ERROR_CODES.AI_GENERATION_FAILED;
     return NextResponse.json(
       { success: false, error: 'AI generation failed', errorCode: code },
