@@ -13,7 +13,7 @@ export async function GET(): Promise<NextResponse> {
       .from('trend_feed')
       .select('id, platform, region, title, subtitle, views, likes, tags, video_url, url, created_at')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(500);
 
     if (error) {
       console.error('[trends] query failed:', error.message);

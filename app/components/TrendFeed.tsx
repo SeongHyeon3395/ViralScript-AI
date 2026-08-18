@@ -20,7 +20,6 @@ const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'tr
 const INITIAL_LOAD = 30;
 const LOAD_MORE_COUNT = 30;
 const MAX_TRENDS = 60;
-const TREND_MAX_AGE_MS = 36 * 60 * 60 * 1000;
 
 interface TrendFeedProps {
   onGenerate?: (url: string, platform: string) => void;
@@ -51,6 +50,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'tiktok' | 'youtube'>('all');
   const [activeRegion, setActiveRegion] = useState<'all' | 'KR' | 'US' | 'JP'>('all');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'popular'>('latest');
   const [visibleCount, setVisibleCount] = useState(INITIAL_LOAD);
   const [selectedTrendId, setSelectedTrendId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -64,11 +64,9 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
         const payload = await response.json() as { trends?: TrendItem[]; updatedAt?: string | null };
         if (cancelled) return;
 
-        const freshTrends = (payload.trends ?? []).filter((item) => {
-          return !item.created_at || Date.now() - new Date(item.created_at).getTime() <= TREND_MAX_AGE_MS;
-        }).slice(0, MAX_TRENDS);
-        setTrends(freshTrends);
-        setLastUpdated(payload.updatedAt ?? freshTrends[0]?.created_at ?? null);
+        const loadedTrends = (payload.trends ?? []).slice(0, MAX_TRENDS);
+        setTrends(loadedTrends);
+        setLastUpdated(payload.updatedAt ?? loadedTrends[0]?.created_at ?? null);
       } catch (err) {
         console.error('[TrendFeed] Fetch error:', err);
         setTrends([]);
@@ -123,14 +121,24 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
     router.push(`/generator?${params.toString()}`);
   }
 
+  function parseCount(value: string): number {
+    const normalized = value.trim().toUpperCase();
+    const multiplier = normalized.endsWith('M') ? 1_000_000 : normalized.endsWith('K') ? 1_000 : 1;
+    return Number.parseFloat(normalized.replace(/[^0-9.]/g, '')) * multiplier || 0;
+  }
+
   const kstFormattedTime = lastUpdated ? formatKstTime(lastUpdated) : null;
 
   let filtered = activeFilter === 'all' ? trends : trends.filter((t) => toFilterKey(t.platform) === activeFilter);
   if (activeRegion !== 'all') {
     filtered = filtered.filter((t) => t.region === activeRegion);
   }
-  const displayed = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  const sorted = [...filtered].sort((left, right) => {
+    if (sortOrder === 'popular') return parseCount(right.views) - parseCount(left.views);
+    return new Date(right.created_at ?? 0).getTime() - new Date(left.created_at ?? 0).getTime();
+  });
+  const displayed = sorted.slice(0, visibleCount);
+  const hasMore = visibleCount < sorted.length;
 
   return (
     <div className="space-y-5">
@@ -158,6 +166,18 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
         {(['all', 'tiktok', 'youtube'] as const).map((f) => (
           <button key={f} onClick={() => { setActiveFilter(f); setVisibleCount(INITIAL_LOAD); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeFilter === f ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
             {f === 'all' ? t('trend_filter_all') : f === 'tiktok' ? 'TikTok' : 'YouTube'}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-1.5" aria-label="트렌드 정렬">
+        {(['latest', 'popular'] as const).map((order) => (
+          <button
+            key={order}
+            onClick={() => { setSortOrder(order); setVisibleCount(INITIAL_LOAD); }}
+            className={`trend-sort-button px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortOrder === order ? 'is-active' : ''}`}
+          >
+            {order === 'latest' ? '최신순' : '인기순'}
           </button>
         ))}
       </div>

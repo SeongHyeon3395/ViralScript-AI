@@ -9,7 +9,6 @@ export const dynamic = 'force-dynamic';
 
 type TrendPlatform = 'TikTok' | 'YouTube Shorts';
 type Region = 'US' | 'KR' | 'JP';
-const TARGET_PER_REGION = 20;
 const TARGET_PER_PLATFORM = 10;
 
 const REGION_LANG: Record<Region, 'en' | 'ko' | 'ja'> = {
@@ -189,8 +188,8 @@ async function collectYouTube(region: Region): Promise<TrendRow[]> {
 
 async function collectTikTok(region: Region): Promise<TrendRow[]> {
   const token = process.env.APIFY_API_TOKEN;
-  const actor = process.env.APIFY_TREND_TIKTOK_ACTOR_ID ?? 'clockworks~tiktok-scraper';
-  if (!token || !actor) throw new Error('Apify trend configuration missing for TikTok');
+  const actor = 'clockworks~tiktok-scraper';
+  if (!token) throw new Error('APIFY_API_TOKEN is not configured for TikTok');
   let input: Record<string, unknown> = {
     hashtags: REGION_TIKTOK_HASHTAGS[region],
     resultsPerPage: 50,
@@ -211,41 +210,31 @@ async function collectTikTok(region: Region): Promise<TrendRow[]> {
   }).filter((row: TrendRow | null): row is TrendRow => row !== null).slice(0, TARGET_PER_PLATFORM);
 }
 
-function composeRegionRows(region: Region, youtubeRows: TrendRow[], tiktokRows: TrendRow[]): TrendRow[] {
-  const selected = [...youtubeRows.slice(0, TARGET_PER_PLATFORM), ...tiktokRows.slice(0, TARGET_PER_PLATFORM)];
-  return selected.length === TARGET_PER_REGION ? selected : [];
-}
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = req.headers.get('authorization');
   const expected = process.env.CRON_SECRET;
   if (expected && auth !== `Bearer ${expected}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const regions: Region[] = ['US', 'KR', 'JP'];
-    const settled = await Promise.allSettled(
-      regions.map(async (region) => {
-        const [youtubeResult, tiktokResult] = await Promise.allSettled([
-          collectYouTube(region),
-          collectTikTok(region),
-        ]);
-        const youtubeRows = youtubeResult.status === 'fulfilled' ? youtubeResult.value : [];
-        const tiktokRows = tiktokResult.status === 'fulfilled' ? tiktokResult.value : [];
-        if (youtubeResult.status === 'rejected') {
-          console.error('[cron/trend] YouTube source failed', { region, error: youtubeResult.reason instanceof Error ? youtubeResult.reason.message : youtubeResult.reason });
-        }
-        if (tiktokResult.status === 'rejected') {
-          console.error('[cron/trend] TikTok source failed', { region, error: tiktokResult.reason instanceof Error ? tiktokResult.reason.message : tiktokResult.reason });
-        }
-        const regionRows = composeRegionRows(region, youtubeRows, tiktokRows);
-        if (regionRows.length < TARGET_PER_REGION) {
-          throw new Error(`${region}: collected ${regionRows.length}/${TARGET_PER_REGION} localized trends`);
-        }
-        return regionRows;
-      }),
-    );
+    const settled = await Promise.allSettled(regions.map(async (region) => {
+      const [youtubeResult, tiktokResult] = await Promise.allSettled([
+        collectYouTube(region),
+        collectTikTok(region),
+      ]);
+      const rows: TrendRow[] = [];
+      if (youtubeResult.status === 'fulfilled') rows.push(...youtubeResult.value.slice(0, TARGET_PER_PLATFORM));
+      if (tiktokResult.status === 'fulfilled') rows.push(...tiktokResult.value.slice(0, TARGET_PER_PLATFORM));
+      if (youtubeResult.status === 'rejected') {
+        console.error('[cron/trend] YouTube source failed', { region, error: youtubeResult.reason instanceof Error ? youtubeResult.reason.message : youtubeResult.reason });
+      }
+      if (tiktokResult.status === 'rejected') {
+        console.error('[cron/trend] TikTok source failed', { region, error: tiktokResult.reason instanceof Error ? tiktokResult.reason.message : tiktokResult.reason });
+      }
+      return rows;
+    }));
     const collected = settled.flatMap((result, index) => {
       if (result.status === 'fulfilled') return result.value;
-      console.error('[cron/trend] source failed', { region: regions[index], error: result.reason instanceof Error ? result.reason.message : result.reason });
+      console.error('[cron/trend] region collection failed', { region: regions[index], error: result.reason instanceof Error ? result.reason.message : result.reason });
       return [];
     });
     const uniqueUrls = new Set<string>();
@@ -254,15 +243,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       uniqueUrls.add(row.video_url);
       return true;
     });
-    if (rows.length < TARGET_PER_REGION * regions.length) {
-      throw new Error(`Insufficient localized trends: ${rows.length}/${TARGET_PER_REGION * regions.length}`);
+    if (rows.length === 0) {
+      return NextResponse.json({ ok: true, inserted: 0, collected: 0, preserved: true, updatedAt: new Date().toISOString() });
     }
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-    const { error: deleteErr } = await supabase.from('trend_feed').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (deleteErr) throw new Error(`DB delete failed: ${deleteErr.message}`);
-    const { error: insertErr } = await supabase.from('trend_feed').insert(rows);
+    const { data: existingRows, error: existingErr } = await supabase.from('trend_feed').select('video_url');
+    if (existingErr) throw new Error(`Existing trend lookup failed: ${existingErr.message}`);
+    const existingUrls = new Set((existingRows ?? []).map((row) => row.video_url).filter(Boolean));
+    const newRows = rows.filter((row) => !existingUrls.has(row.video_url));
+    if (newRows.length === 0) {
+      return NextResponse.json({ ok: true, inserted: 0, collected: rows.length, updatedAt: new Date().toISOString() });
+    }
+    const { error: insertErr } = await supabase.from('trend_feed').insert(newRows);
     if (insertErr) throw new Error(`DB insert failed: ${insertErr.message}`);
-    return NextResponse.json({ ok: true, count: rows.length, updatedAt: new Date().toISOString() });
+    return NextResponse.json({ ok: true, inserted: newRows.length, collected: rows.length, updatedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[cron/trend]', err instanceof Error ? err.message : err);
     return NextResponse.json({ ok: false, error: err instanceof Error ? err.message : 'Unknown' }, { status: 500 });
