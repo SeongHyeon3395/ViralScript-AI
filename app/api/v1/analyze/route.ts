@@ -25,7 +25,6 @@ function mapErrorToStatus(code: string): number {
     case ERROR_CODES.INVALID_URL_FORMAT:
     case ERROR_CODES.UNSUPPORTED_PLATFORM:
     case ERROR_CODES.NOT_A_YOUTUBE_SHORTS_URL:
-    case ERROR_CODES.NOT_AN_INSTAGRAM_REEL_URL:
       return 422;
     case ERROR_CODES.URL_PRIVATE_OR_DELETED:
       return 404;

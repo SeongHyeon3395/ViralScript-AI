@@ -10,7 +10,6 @@ const RETRY_TIMEOUT_MS = 25_000;
 const ACTOR_IDS: Record<SupportedPlatform, string> = {
   tiktok:    'clockworks~free-tiktok-scraper',
   youtube:   'h7sDV53CddomktSi5',                 // YouTube Video Scraper (Apify)
-  instagram: 'shu8hvrXbJbY3Eb9W',                 // Instagram Reel Scraper (Apify)
 };
 
 // 바이너리 다운로드 방지 (Zero-Storage 원칙)

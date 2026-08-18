@@ -22,12 +22,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "ViralScript AI — 글로벌 숏폼 바이럴 대본 생성기",
   description:
-    "TikTok, YouTube Shorts, Instagram Reels의 바이럴 구조를 분석하여 미국·한국·일본 3개국 최적화 마케팅 대본을 AI로 즉시 생성합니다.",
-  keywords: ["AI", "바이럴", "숏폼", "TikTok", "YouTube Shorts", "Instagram Reels", "마케팅", "대본"],
+    "TikTok과 YouTube Shorts의 바이럴 구조를 분석하여 미국·한국·일본 3개국 최적화 마케팅 대본을 AI로 즉시 생성합니다.",
+  keywords: ["AI", "바이럴", "숏폼", "TikTok", "YouTube Shorts", "마케팅", "대본"],
   authors: [{ name: "ViralScript AI" }],
   openGraph: {
     title: "ViralScript AI — 글로벌 숏폼 바이럴 대본 생성기",
-    description: "TikTok, YouTube Shorts, Instagram Reels의 바이럴 구조를 분석하고 US·KR·JP 대본을 즉시 생성하세요.",
+    description: "TikTok과 YouTube Shorts의 바이럴 구조를 분석하고 US·KR·JP 대본을 즉시 생성하세요.",
     type: "website",
     locale: "ko_KR",
     siteName: "ViralScript AI",

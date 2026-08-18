@@ -178,7 +178,7 @@ export default function GeneratorPage() {
         const friendlyMsg =
           res.status === 401 ? '로그인이 필요합니다. 다시 로그인해 주세요.' :
           res.status === 402 ? `크레딧이 부족합니다. 크레딧을 충전해 주세요. (현재: ${credits ?? 0})` :
-          code.includes('UNSUPPORTED') ? '지원하지 않는 플랫폼입니다. TikTok·YouTube Shorts·Instagram Reel 링크를 사용해주세요.' :
+          code.includes('UNSUPPORTED') ? '지원하지 않는 플랫폼입니다. TikTok 또는 YouTube Shorts 링크를 사용해주세요.' :
           code.includes('PRIVATE') || code.includes('DELETED') ? '비공개이거나 삭제된 영상입니다.' :
           code.includes('TIMEOUT') ? '영상 분석 시간이 초과됐습니다. 잠시 후 다시 시도해 주세요.' :
           (data.error ?? '분석 중 오류가 발생했습니다. 다른 링크로 시도해 주세요.');

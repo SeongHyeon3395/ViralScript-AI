@@ -277,7 +277,6 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_sample_label: '원클릭 샘플:',
     gen_sample_us_tiktok: '미국 틱톡 100만뷰 챌린지',
     gen_sample_yt_shorts: '유튜브 쇼츠 지식창업',
-    gen_sample_ig_reels: '인스타 릴스 뷰티',
 
     // ─── Remix Panel ───
     remix_title: 'AI 리믹스',
@@ -557,7 +556,6 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_sample_label: 'Try a Sample:',
     gen_sample_us_tiktok: 'US TikTok 1M View Challenge',
     gen_sample_yt_shorts: 'YouTube Shorts Knowledge Biz',
-    gen_sample_ig_reels: 'Instagram Reels Beauty',
 
     // ─── Remix Panel ───
     remix_title: 'AI Remix',
@@ -799,7 +797,7 @@ export const T: Record<Lang, Record<string, string>> = {
     // ─── Generator Page ───
     gen_title: 'AI脚本生成器',
     gen_subtitle: '输入短视频链接，生成三种语言的爆款脚本',
-    gen_url_placeholder: '输入短视频链接（TikTok、YouTube Shorts、Instagram Reels）',
+    gen_url_placeholder: '输入短视频链接（TikTok、YouTube Shorts）',
     gen_product_placeholder: '要推广的产品/服务（可选）',
     gen_analyze_btn: '开始分析',
     gen_analyzing: '分析中...',
@@ -820,7 +818,7 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_login_required: '请登录后使用',
     gen_login_desc: '请登录或注册以使用此功能。',
     gen_login_btn: '登录',
-    gen_url_invalid: '仅支持YouTube Shorts、TikTok和Instagram Reels链接。',
+    gen_url_invalid: '仅支持YouTube Shorts和TikTok链接。',
     gen_url_label: '短视频链接',
     gen_product_label: '要推广的产品/服务',
     gen_custom_prompt_label: '额外要求',
@@ -837,7 +835,6 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_sample_label: '一键试用：',
     gen_sample_us_tiktok: '美国TikTok百万观看挑战',
     gen_sample_yt_shorts: 'YouTube Shorts知识创业',
-    gen_sample_ig_reels: 'Instagram Reels美妆',
 
     // ─── Remix Panel ───
     remix_title: 'AI混音',
@@ -1079,7 +1076,7 @@ export const T: Record<Lang, Record<string, string>> = {
     // ─── Generator Page ───
     gen_title: 'AI脚本ジェネレーター',
     gen_subtitle: 'ショート動画URLを入力して3ヶ国語のバイラル脚本を生成',
-    gen_url_placeholder: 'ショート動画URLを入力（TikTok、YouTube Shorts、Instagram Reels）',
+    gen_url_placeholder: 'ショート動画URLを入力（TikTok、YouTube Shorts）',
     gen_product_placeholder: '宣伝する商品/サービス（任意）',
     gen_analyze_btn: '分析開始',
     gen_analyzing: '分析中...',
@@ -1100,7 +1097,7 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_login_required: 'ログインが必要です',
     gen_login_desc: 'この機能を使用するにはログインまたは会員登録してください。',
     gen_login_btn: 'ログイン',
-    gen_url_invalid: 'YouTube Shorts、TikTok、Instagram Reelsのリンクのみ対応しています。',
+    gen_url_invalid: 'YouTube ShortsとTikTokのリンクのみ対応しています。',
     gen_url_label: 'ショート動画URL',
     gen_product_label: '宣伝する商品/サービス',
     gen_custom_prompt_label: '追加リクエスト',
@@ -1117,7 +1114,6 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_sample_label: 'サンプルを試す：',
     gen_sample_us_tiktok: '米国TikTok 100万再生チャレンジ',
     gen_sample_yt_shorts: 'YouTube Shorts 知識起業',
-    gen_sample_ig_reels: 'Instagram Reels 美容',
 
     // ─── Remix Panel ───
     remix_title: 'AIリミックス',

@@ -51,7 +51,7 @@
 ```sql
 CREATE TABLE public.trend_feed (
     id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    platform   TEXT NOT NULL CHECK (platform IN ('TikTok', 'YouTube Shorts', 'Instagram Reels')),
+    platform   TEXT NOT NULL CHECK (platform IN ('TikTok', 'YouTube Shorts')),
     region     TEXT NOT NULL CHECK (region IN ('US', 'KR', 'JP')),
     title      TEXT NOT NULL,
     subtitle   TEXT,
@@ -107,7 +107,7 @@ const response = await ai.models.generateContent({
 const SYSTEM_PROMPT = `You are a 2026 Global Short-Form Trend Analyst.
 Your job is to produce a JSON array of exactly 6 fictitious but realistic 
 trending short-form video summaries across US TikTok, KR YouTube Shorts, 
-and JP Instagram Reels.
+and JP TikTok.
 
 Ensure diversity:
 - At least 2 from each region (US, KR, JP)

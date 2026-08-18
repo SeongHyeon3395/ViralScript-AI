@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Music, Play, Camera, Eye, Heart, RefreshCw, Loader2, ChevronDown, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
+import { Music, Play, Eye, Heart, RefreshCw, Loader2, ChevronDown, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 
@@ -12,8 +12,8 @@ interface TrendItem {
   created_at?: string;
 }
 
-const PLATFORM_ICONS: Record<string, typeof Music> = { tiktok: Music, TikTok: Music, youtube: Play, 'YouTube Shorts': Play, instagram: Camera, 'Instagram Reels': Camera };
-const PLATFORM_COLORS: Record<string, string> = { tiktok: 'text-pink-400', TikTok: 'text-pink-400', youtube: 'text-red-400', 'YouTube Shorts': 'text-red-400', instagram: 'text-purple-400', 'Instagram Reels': 'text-purple-400' };
+const PLATFORM_ICONS: Record<string, typeof Music> = { tiktok: Music, TikTok: Music, youtube: Play, 'YouTube Shorts': Play };
+const PLATFORM_COLORS: Record<string, string> = { tiktok: 'text-pink-400', TikTok: 'text-pink-400', youtube: 'text-red-400', 'YouTube Shorts': 'text-red-400' };
 const REGION_FLAGS: Record<string, string> = { US: '🇺🇸', KR: '🇰🇷', JP: '🇯🇵', CN: '🇨🇳' };
 const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'trend_region_kr', US: 'trend_region_us', JP: 'trend_region_jp', CN: 'trend_region_cn' };
 
@@ -49,7 +49,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
   const router = useRouter();
   const [trends, setTrends] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'tiktok' | 'youtube' | 'instagram'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'tiktok' | 'youtube'>('all');
   const [activeRegion, setActiveRegion] = useState<'all' | 'KR' | 'US' | 'JP' | 'CN'>('all');
   const [visibleCount, setVisibleCount] = useState(INITIAL_LOAD);
   const [selectedTrendId, setSelectedTrendId] = useState<string | null>(null);
@@ -97,7 +97,6 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
     const p = platform.toLowerCase();
     if (p.includes('tiktok')) return 'tiktok';
     if (p.includes('youtube')) return 'youtube';
-    if (p.includes('instagram')) return 'instagram';
     return undefined;
   }
 
@@ -156,9 +155,9 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
 
       {/* Platform filters */}
       <div className="flex gap-1.5">
-        {(['all', 'tiktok', 'youtube', 'instagram'] as const).map((f) => (
+        {(['all', 'tiktok', 'youtube'] as const).map((f) => (
           <button key={f} onClick={() => { setActiveFilter(f); setVisibleCount(INITIAL_LOAD); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeFilter === f ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
-            {f === 'all' ? t('trend_filter_all') : f === 'tiktok' ? 'TikTok' : f === 'youtube' ? 'YouTube' : 'Instagram'}
+            {f === 'all' ? t('trend_filter_all') : f === 'tiktok' ? 'TikTok' : 'YouTube'}
           </button>
         ))}
       </div>

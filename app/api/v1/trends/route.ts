@@ -25,8 +25,9 @@ export async function GET(): Promise<NextResponse> {
       if (!videoUrl) return null;
       try {
         const normalized = normalizeAndValidateUrl(videoUrl);
-        const expectedPlatform = item.platform.toLowerCase().includes('youtube') ? 'youtube'
-          : item.platform.toLowerCase().includes('tiktok') ? 'tiktok' : 'instagram';
+        const platformName = item.platform.toLowerCase();
+        if (!platformName.includes('youtube') && !platformName.includes('tiktok')) return null;
+        const expectedPlatform = platformName.includes('youtube') ? 'youtube' : 'tiktok';
         if (normalized.platform !== expectedPlatform) return null;
         return { ...item, video_url: normalized.normalizedUrl };
       } catch {

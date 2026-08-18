@@ -39,11 +39,5 @@ export function normalizeAndValidateUrl(rawUrl: string): NormalizedUrlResult {
     return result('tiktok', `https://${hostname}/${code}`);
   }
 
-  if (hostname === 'www.instagram.com' || hostname === 'instagram.com') {
-    const match = url.pathname.match(/^\/(reel|p)\/([A-Za-z0-9_-]+)\/?$/i);
-    if (!match) throw new Error(ERROR_CODES.NOT_AN_INSTAGRAM_REEL_URL);
-    return result('instagram', `https://www.instagram.com/${match[1].toLowerCase()}/${match[2]}/`);
-  }
-
   throw new Error(ERROR_CODES.UNSUPPORTED_PLATFORM);
 }

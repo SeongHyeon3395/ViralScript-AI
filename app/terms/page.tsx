@@ -21,7 +21,7 @@ export default function TermsPage() {
           <Section num="1" title="목적" content="본 약관은 ViralScript AI(이하 플랫폼)가 제공하는 소셜 미디어 숏폼 영상 구조 분석, 메타데이터 처리 및 다국어 AI 대본 생성 서비스의 이용과 관련하여, 플랫폼과 회원 간의 권리, 의무, 책임 사항 및 서비스 이용 절차를 규정함을 목적으로 합니다." />
 
           <Section num="2" title="용어의 정의">
-            <ListItem label="서비스" desc="이용자가 제출한 소셜 미디어(YouTube Shorts, TikTok, Instagram Reels 등) URL을 기반으로, 원본 영상을 저장하지 않고 대사 및 연출 구조만을 분석하여 AI로 2차 창작 마케팅 대본을 제공하는 웹 플랫폼입니다." />
+            <ListItem label="서비스" desc="이용자가 제출한 YouTube Shorts 또는 TikTok URL을 기반으로, 원본 영상을 저장하지 않고 대사 및 연출 구조만을 분석하여 AI로 2차 창작 마케팅 대본을 제공하는 웹 플랫폼입니다." />
             <ListItem label="크레딧" desc="플랫폼 내에서 AI 분석 및 대본 생성 기능을 이용하기 위해 소모되는 내부 재화입니다. 보상형 광고 시청 또는 프로모션을 통해 획득할 수 있습니다." />
             <ListItem label="미들웨어" desc="URL의 정상 여부를 확인하고 텍스트 메타데이터를 정제하기 위해 연동된 제3자 스크래핑 및 데이터 분석 API입니다." />
           </Section>

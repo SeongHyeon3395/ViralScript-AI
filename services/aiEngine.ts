@@ -18,8 +18,8 @@ Your task is to analyze the provided raw transcript and metadata of a trending v
 
 [LOCALIZATION GUIDELINES — SINGLE PIPELINE, TRIPLE OUTPUT]
 For EACH scene, generate three fully localized audio scripts simultaneously:
-- US (English): Direct, punchy, action-oriented. Utilizes current American TikTok/Reels advertising cadence with Gen-Z slang where appropriate.
-- KR (Korean): Fast-paced, emphasizes efficacy and trend sensitivity. Natural conversational tone for Korean Reels/Shorts audience. Use informal 반말 or friendly 존댓말 matching the brand tone.
+- US (English): Direct, punchy, action-oriented. Utilizes current American short-form advertising cadence with Gen-Z slang where appropriate.
+- KR (Korean): Fast-paced, emphasizes efficacy and trend sensitivity. Natural conversational tone for Korean Shorts audience. Use informal 반말 or friendly 존댓말 matching the brand tone.
 - JP (Japanese): Focus on reliability, empathy, and smooth problem-solving nuance. Avoid overly aggressive sales pitches. Prefer consultative, trust-first approach.
 
 [AI VIDEO GENERATION PROMPT RULE]

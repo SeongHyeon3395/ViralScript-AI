@@ -28,14 +28,12 @@ function formatDate(iso: string): string {
 function platformLabel(url: string): string {
   if (url.includes('tiktok')) return 'TikTok';
   if (url.includes('youtube') || url.includes('youtu.be')) return 'YouTube Shorts';
-  if (url.includes('instagram')) return 'Instagram Reels';
   return '숏폼';
 }
 
 function platformColor(url: string): string {
   if (url.includes('tiktok')) return 'text-pink-400 bg-pink-400/10 border-pink-400/20';
   if (url.includes('youtube') || url.includes('youtu.be')) return 'text-red-400 bg-red-400/10 border-red-400/20';
-  if (url.includes('instagram')) return 'text-purple-400 bg-purple-400/10 border-purple-400/20';
   return 'text-white/40 bg-white/5 border-white/10';
 }
 

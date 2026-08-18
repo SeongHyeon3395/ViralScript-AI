@@ -21,7 +21,7 @@ interface UserSettings {
   theme_preference: 'dark' | 'light' | 'system';
   default_language: 'ko' | 'en' | 'ja' | 'zh';
   email_notifications: boolean;
-  default_target_platform: 'tiktok' | 'youtube' | 'instagram';
+  default_target_platform: 'tiktok' | 'youtube';
 }
 
 type TabId = 'profile' | 'platform' | 'billing' | 'danger';
@@ -146,7 +146,6 @@ function PlatformTab({ settings, onUpdate }: { settings: UserSettings; onUpdate:
             options={[
               { value: 'tiktok',    label: '🎵 TikTok' },
               { value: 'youtube',   label: '▶️ YouTube Shorts' },
-              { value: 'instagram', label: '📸 Instagram Reels' },
             ]}
           />
           <p className="text-xs text-white/30 mt-2">분석 결과 생성 시 기본으로 선택될 플랫폼입니다</p>

@@ -2,7 +2,7 @@
 // 글로벌 바이럴 숏폼 로컬라이징 파이프라인 - 공용 타입 정의
 // ============================================================
 
-export type SupportedPlatform = 'tiktok' | 'youtube' | 'instagram';
+export type SupportedPlatform = 'tiktok' | 'youtube';
 
 export type SubscriptionPlan = 'free' | 'pro' | 'agency';
 
@@ -139,7 +139,6 @@ export const ERROR_CODES = {
   INVALID_URL_FORMAT: 'INVALID_URL_FORMAT',
   UNSUPPORTED_PLATFORM: 'UNSUPPORTED_PLATFORM',
   NOT_A_YOUTUBE_SHORTS_URL: 'NOT_A_YOUTUBE_SHORTS_URL',
-  NOT_AN_INSTAGRAM_REEL_URL: 'NOT_AN_INSTAGRAM_REEL_URL',
   INSUFFICIENT_CREDITS: 'INSUFFICIENT_CREDITS',
   URL_PRIVATE_OR_DELETED: 'ERR_URL_PRIVATE_OR_DELETED',
   SCRAPER_TIMEOUT: 'ERR_SCRAPER_TIMEOUT',

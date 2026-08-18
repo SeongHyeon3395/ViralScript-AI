@@ -33,7 +33,7 @@
   - ✅ Supabase 실시간 페칭
   - ✅ Skeleton UI (로딩 상태)
   - ✅ Fallback 데이터 처리 (DB 실패 시)
-  - ✅ 플랫폼별 필터링 (TikTok, YouTube, Instagram)
+  - ✅ 플랫폼별 필터링 (TikTok, YouTube)
   - ✅ 반응형 디자인
 
 ### 5️⃣ 메인 페이지 통합

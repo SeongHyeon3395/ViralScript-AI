@@ -7,7 +7,7 @@ export const maxDuration = 60;
 export const revalidate = 0;
 export const dynamic = 'force-dynamic';
 
-type TrendPlatform = 'TikTok' | 'YouTube Shorts' | 'Instagram Reels';
+type TrendPlatform = 'TikTok' | 'YouTube Shorts';
 type Region = 'US' | 'KR' | 'JP';
 
 interface TrendRow {
@@ -24,8 +24,6 @@ interface TrendRow {
 
 interface ApifyItem {
   id?: string | number;
-  shortcode?: string;
-  code?: string;
   url?: string;
   webVideoUrl?: string;
   permalink?: string;
@@ -34,7 +32,6 @@ interface ApifyItem {
   viewCount?: number | string;
   views?: number | string;
   videoPlayCount?: number | string;
-  igPlayCount?: number | string;
   diggCount?: number | string;
   likeCount?: number | string;
   likes?: number | string;
@@ -50,7 +47,6 @@ interface ApifyItem {
 const DIRECT_URLS = {
   youtube: /^https:\/\/(?:www\.)?youtube\.com\/shorts\/[A-Za-z0-9_-]{11}(?:[/?#].*)?$/i,
   tiktok: /^https:\/\/www\.tiktok\.com\/@[^/\s]+\/video\/\d+(?:[/?#].*)?$/i,
-  instagram: /^https:\/\/www\.instagram\.com\/(?:reel|p)\/[A-Za-z0-9_-]+\/?(?:[?#].*)?$/i,
 };
 
 function finiteNumber(value: unknown): number {
@@ -72,13 +68,12 @@ function cleanText(value: unknown, fallback: string): string {
 
 function validPermalink(platform: TrendPlatform, url: string): boolean {
   return platform === 'YouTube Shorts' ? DIRECT_URLS.youtube.test(url)
-    : platform === 'TikTok' ? DIRECT_URLS.tiktok.test(url)
-    : DIRECT_URLS.instagram.test(url);
+    : DIRECT_URLS.tiktok.test(url);
 }
 
 function buildRow(platform: TrendPlatform, region: Region, item: ApifyItem, videoUrl: string): TrendRow | null {
   if (!validPermalink(platform, videoUrl)) return null;
-  const views = finiteNumber(item.playCount ?? item.viewCount ?? item.videoPlayCount ?? item.igPlayCount ?? item.views);
+  const views = finiteNumber(item.playCount ?? item.viewCount ?? item.videoPlayCount ?? item.views);
   const likes = finiteNumber(item.diggCount ?? item.likeCount ?? item.likes);
   if (views <= 0) return null;
   return {
@@ -117,28 +112,21 @@ async function collectYouTube(region: Region): Promise<TrendRow[]> {
   }).filter((row: TrendRow) => validPermalink(row.platform, row.video_url));
 }
 
-async function collectApify(platform: 'TikTok' | 'Instagram Reels', region: Region): Promise<TrendRow[]> {
+async function collectTikTok(region: Region): Promise<TrendRow[]> {
   const token = process.env.APIFY_API_TOKEN;
-  const actor = platform === 'TikTok'
-    ? (process.env.APIFY_TREND_TIKTOK_ACTOR_ID ?? 'clockworks~tiktok-scraper')
-    : (process.env.APIFY_TREND_INSTAGRAM_ACTOR_ID ?? 'apify~instagram-hashtag-scraper');
-  if (!token || !actor) throw new Error(`Apify trend configuration missing for ${platform}`);
-  let input: Record<string, unknown> = platform === 'TikTok'
-    ? { hashtags: ['fyp', 'viral', 'trending'], resultsPerPage: 25, maxItems: 25, shouldDownloadVideos: false }
-    : { hashtags: ['viral', 'trending', 'reels'], resultsType: 'reels', resultsLimit: 25 };
-  const inputJson = platform === 'TikTok' ? process.env.APIFY_TREND_TIKTOK_INPUT_JSON : process.env.APIFY_TREND_INSTAGRAM_INPUT_JSON;
+  const actor = process.env.APIFY_TREND_TIKTOK_ACTOR_ID ?? 'clockworks~tiktok-scraper';
+  if (!token || !actor) throw new Error('Apify trend configuration missing for TikTok');
+  let input: Record<string, unknown> = { hashtags: ['fyp', 'viral', 'trending'], resultsPerPage: 10, maxItems: 10, shouldDownloadVideos: false };
+  const inputJson = process.env.APIFY_TREND_TIKTOK_INPUT_JSON;
   if (inputJson) input = JSON.parse(inputJson) as Record<string, unknown>;
   const response = await axios.post(`https://api.apify.com/v2/acts/${encodeURIComponent(actor)}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`, input, { timeout: 45_000 });
   return (response.data ?? []).map((item: ApifyItem): TrendRow | null => {
     let videoUrl = item.webVideoUrl ?? item.permalink ?? item.postUrl ?? item.url ?? '';
     const username = item.username ?? item.authorMeta?.uniqueId ?? item.author?.uniqueId ?? item.author?.username;
-    if (!videoUrl && platform === 'TikTok' && username && item.id) {
+    if (!videoUrl && username && item.id) {
       videoUrl = `https://www.tiktok.com/@${username}/video/${item.id}`;
     }
-    if (!videoUrl && platform === 'Instagram Reels' && (item.shortcode ?? item.code)) {
-      videoUrl = `https://www.instagram.com/reel/${item.shortcode ?? item.code}/`;
-    }
-    return buildRow(platform, region, item, videoUrl);
+    return buildRow('TikTok', region, item, videoUrl);
   }).filter((row: TrendRow | null): row is TrendRow => row !== null).slice(0, 10);
 }
 
@@ -149,7 +137,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const regions: Region[] = ['US', 'KR', 'JP'];
     const jobs = regions.flatMap((region) => [
-      collectYouTube(region), collectApify('TikTok', region), collectApify('Instagram Reels', region),
+      collectYouTube(region), collectTikTok(region),
     ]);
     const settled = await Promise.allSettled(jobs);
     const collected = settled.flatMap((result, index) => {
