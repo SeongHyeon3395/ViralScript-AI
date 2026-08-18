@@ -16,14 +16,20 @@ const SLICES = [
   { label: '1', value: 1, color: '#22c55e', icon: Zap },
   { label: '2', value: 2, color: '#3b82f6', icon: Zap },
   { label: '5', value: 5, color: '#ec4899', icon: Star },
-  { label: '10', value: 10, color: '#a855f7', icon: Star },
   { label: '3', value: 3, color: '#f59e0b', icon: Trophy },
-  { label: '1', value: 1, color: '#22c55e', icon: Zap },
-  { label: '7', value: 7, color: '#14b8a6', icon: Star },
   { label: '4', value: 4, color: '#f97316', icon: Trophy },
 ];
 
 const SEGMENT = 360 / SLICES.length;
+const POINTER_ANGLE = 270;
+
+function alignedRotation(currentRotation: number, winnerIndex: number): number {
+  const winnerCenter = winnerIndex * SEGMENT + SEGMENT / 2;
+  const desiredRotation = (POINTER_ANGLE - winnerCenter + 360) % 360;
+  const currentOffset = ((currentRotation % 360) + 360) % 360;
+  const correction = (desiredRotation - currentOffset + 360) % 360;
+  return currentRotation + 4 * 360 + correction;
+}
 
 export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: number) => void }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -121,52 +127,43 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
     setSpinning(true);
     setResult(null);
 
-    // 서버가 확률과 중복 여부를 결정하므로 클라이언트는 애니메이션만 실행한다.
-    const winnerIdx = Math.floor(Math.random() * SLICES.length);
+    try {
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session.session?.access_token) throw new Error('로그인이 필요합니다.');
 
-    const extraSpins = 3 + Math.floor(Math.random() * 3);
-    const targetAngle = extraSpins * 360 + winnerIdx * SEGMENT + SEGMENT / 2;
-    const totalRotation = rotation + targetAngle;
+      const res = await fetch('/api/roulette/claim', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.session.access_token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = await res.json() as { success?: boolean; creditsAwarded?: number; currentCredits?: number | null; error?: string; code?: string };
+      const awardedCredits = data.creditsAwarded;
+      if (!res.ok || !data.success || typeof awardedCredits !== 'number' || !Number.isInteger(awardedCredits) || awardedCredits < 1 || awardedCredits > 5) {
+        throw new Error(data.error ?? '룰렛 보상 응답이 올바르지 않습니다.');
+      }
 
-    setRotation(totalRotation);
+      const winnerIndex = SLICES.findIndex((slice) => slice.value === awardedCredits);
+      if (winnerIndex < 0) throw new Error('룰렛 당첨 칸을 찾지 못했습니다.');
+      const totalRotation = alignedRotation(rotation, winnerIndex);
+      setRotation(totalRotation);
 
-    setTimeout(async () => {
-      setSpinning(false);
-      try {
-        const { data: session, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session.session?.access_token) {
-          throw new Error('로그인이 필요합니다.');
-        }
-
-        const res = await fetch('/api/roulette/claim', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: '{}',
-        });
-
-        const data = await res.json() as { success?: boolean; creditsAwarded?: number; currentCredits?: number | null; error?: string; code?: string };
-
-        if (!res.ok || !data.success || typeof data.creditsAwarded !== 'number') {
-          throw new Error(data.error ?? '룰렛 보상 응답이 올바르지 않습니다.');
-        }
-
-        setResult({ label: `${data.creditsAwarded}`, value: data.creditsAwarded });
+      window.setTimeout(() => {
+        setSpinning(false);
+        setResult({ label: `${awardedCredits}`, value: awardedCredits });
         setHasSpunToday(true);
         setCooldown(ROULETTE_COOLDOWN_MS);
-        onClaim?.(data.creditsAwarded);
+        onClaim?.(awardedCredits);
         emitCreditsUpdated();
-        emitToast(`+${data.creditsAwarded} 크레딧이 지급되었습니다!`, 'success');
-      } catch (err) {
-        console.error('[DailyReward] 적립 실패:', err);
-        setResult(null);
-        setHasSpunToday(false);
-        setCooldown(0);
-        emitToast(err instanceof Error ? err.message : '룰렛 보상에 실패했습니다.', 'error');
-      }
-    }, 2800);
+        emitToast(`+${awardedCredits} 크레딧이 지급되었습니다!`, 'success');
+      }, 2800);
+    } catch (err) {
+      console.error('[DailyReward] 적립 실패:', err);
+      setSpinning(false);
+      setResult(null);
+      setHasSpunToday(false);
+      setCooldown(0);
+      emitToast(err instanceof Error ? err.message : '룰렛 보상에 실패했습니다.', 'error');
+    }
   }
 
   return (
@@ -175,7 +172,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
       {user && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-2xl shadow-violet-500/30 hover:from-violet-500 hover:to-indigo-500 transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-xl border border-violet-400/30 bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition-all hover:from-violet-500 hover:to-indigo-500 hover:shadow-violet-500/50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Gift size={18} />
           <span>{t('daily_bonus')}</span>
@@ -237,7 +234,8 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
                         style={{
                           top: `${y}%`,
                           left: `${x}%`,
-                          transform: 'translate(-50%, -50%)',
+                            transform: `translate(-50%, -50%) rotate(${midAngle + 90}deg)`,
+                            transformOrigin: 'center',
                           fontSize: slice.label.startsWith('꽝') ? '11px' : '10px',
                           fontWeight: 700,
                           textShadow: '0 1px 3px rgba(0,0,0,0.6)',
@@ -304,7 +302,8 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
               <button
                 onClick={spin}
                 disabled={spinning}
-                className="btn-primary w-full flex items-center justify-center gap-2"
+                title={spinning ? '룰렛 결과를 확인하는 중입니다.' : '오늘의 무료 룰렛을 돌립니다.'}
+                className="btn-primary w-full flex items-center justify-center gap-2 rounded-xl border border-violet-400/40 font-semibold shadow-lg shadow-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {spinning ? (
                   <>
