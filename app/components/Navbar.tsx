@@ -67,7 +67,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
       >
         {/* Top announcement bar — 로그인 시 숨김 */}
         {!user && !isLoading && (
-          <div className="border-b border-white/5 bg-gradient-to-r from-violet-600/20 via-indigo-600/20 to-violet-600/20 px-4 py-1.5 text-center hidden sm:block">
+          <div className="border-b border-slate-200 bg-gradient-to-r from-blue-50 via-white to-teal-50 px-4 py-1.5 text-center hidden sm:block">
             <p className="text-xs text-white/60">
               {t('announcement_bonus')}{' '}
               <button onClick={openSignup} className="text-violet-400 hover:text-violet-300 font-semibold transition-colors underline underline-offset-2">
@@ -125,9 +125,9 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               ) : user ? (
                 <>
                   {/* Credits badge */}
-                  <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 shrink-0">
-                    <Zap size={13} className="text-violet-400" />
-                    <span className="inline-flex min-w-[70px] items-center justify-center text-xs font-bold tabular-nums text-violet-300">
+                  <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 shrink-0">
+                    <Zap size={13} className="text-blue-600" />
+                    <span className="inline-flex min-w-[70px] items-center justify-center text-xs font-bold tabular-nums text-blue-700">
                       {credits ?? '—'} {t('credits_label')}
                     </span>
                   </div>
@@ -138,7 +138,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
                       className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 hover:border-white/20 transition-all"
                     >
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center">
                         <User size={12} className="text-white" />
                       </div>
                       <span className="hidden sm:block text-sm text-white/80 font-medium">{t('nav_my_account')}</span>
@@ -186,7 +186,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                   </button>
                   <button
                     onClick={openSignup}
-                    className="hidden sm:block px-4 py-2 text-sm font-bold text-white rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all"
+                    className="hidden sm:block px-4 py-2 text-sm font-bold text-white rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all"
                   >
                     {t('nav_signup')}
                   </button>

@@ -14,8 +14,8 @@ interface TrendItem {
 
 const PLATFORM_ICONS: Record<string, typeof Music> = { tiktok: Music, TikTok: Music, youtube: Play, 'YouTube Shorts': Play };
 const PLATFORM_COLORS: Record<string, string> = { tiktok: 'text-pink-400', TikTok: 'text-pink-400', youtube: 'text-red-400', 'YouTube Shorts': 'text-red-400' };
-const REGION_FLAGS: Record<string, string> = { US: '🇺🇸', KR: '🇰🇷', JP: '🇯🇵', CN: '🇨🇳' };
-const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'trend_region_kr', US: 'trend_region_us', JP: 'trend_region_jp', CN: 'trend_region_cn' };
+const REGION_FLAGS: Record<string, string> = { US: '🇺🇸', KR: '🇰🇷', JP: '🇯🇵' };
+const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'trend_region_kr', US: 'trend_region_us', JP: 'trend_region_jp' };
 
 const INITIAL_LOAD = 30;
 const LOAD_MORE_COUNT = 30;
@@ -50,7 +50,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
   const [trends, setTrends] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'tiktok' | 'youtube'>('all');
-  const [activeRegion, setActiveRegion] = useState<'all' | 'KR' | 'US' | 'JP' | 'CN'>('all');
+  const [activeRegion, setActiveRegion] = useState<'all' | 'KR' | 'US' | 'JP'>('all');
   const [visibleCount, setVisibleCount] = useState(INITIAL_LOAD);
   const [selectedTrendId, setSelectedTrendId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -164,7 +164,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
 
       {/* Region filters */}
       <div className="flex gap-1.5">
-        {(['all', 'KR', 'US', 'JP', 'CN'] as const).map((r) => (
+        {(['all', 'KR', 'US', 'JP'] as const).map((r) => (
           <button key={r} onClick={() => { setActiveRegion(r); setVisibleCount(INITIAL_LOAD); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRegion === r ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
             {r === 'all' ? t('trend_region_all') : `${REGION_FLAGS[r] ?? ''} ${t(REGION_LABELS[r])}`}
           </button>

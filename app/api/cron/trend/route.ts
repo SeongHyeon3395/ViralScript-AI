@@ -9,6 +9,26 @@ export const dynamic = 'force-dynamic';
 
 type TrendPlatform = 'TikTok' | 'YouTube Shorts';
 type Region = 'US' | 'KR' | 'JP';
+const TARGET_PER_REGION = 30;
+const TARGET_PER_PLATFORM = 45;
+
+const REGION_LANG: Record<Region, 'en' | 'ko' | 'ja'> = {
+  US: 'en',
+  KR: 'ko',
+  JP: 'ja',
+};
+
+const REGION_YT_QUERIES: Record<Region, string[]> = {
+  US: ['shorts trending', 'viral shorts', 'youtube shorts', 'popular shorts'],
+  KR: ['shorts', 'viral shorts', 'popular shorts', '한국 쇼츠', '인기 쇼츠', '오늘의 쇼츠', '먹방 쇼츠', '댄스 쇼츠', '꿀팁 쇼츠', '유머 쇼츠'],
+  JP: ['shorts', 'viral shorts', 'popular shorts', '日本 ショート', '人気ショート', '今日のショート', '料理 ショート', 'ダンス ショート', '便利 ショート', '面白い ショート'],
+};
+
+const REGION_TIKTOK_HASHTAGS: Record<Region, string[]> = {
+  US: ['fyp', 'viral', 'trending', 'shorts'],
+  KR: ['추천', '인기', '한국', '틱톡', '쇼츠', '유행'],
+  JP: ['おすすめ', '人気', '日本', 'トレンド', 'ショート', '話題'],
+};
 
 interface TrendRow {
   platform: TrendPlatform;
@@ -66,6 +86,24 @@ function cleanText(value: unknown, fallback: string): string {
   return text || fallback;
 }
 
+function matchesRegionLanguage(region: Region, text: string): boolean {
+  const value = text.trim();
+  if (!value) return false;
+  if (region === 'KR') return /[가-힣]/.test(value);
+  if (region === 'JP') return /[\u3040-\u30ff\u4e00-\u9faf]/.test(value);
+
+  const latin = (value.match(/[A-Za-z]/g) ?? []).length;
+  const hangul = (value.match(/[가-힣]/g) ?? []).length;
+  const japanese = (value.match(/[\u3040-\u30ff\u4e00-\u9faf]/g) ?? []).length;
+  return latin >= 3 && hangul === 0 && japanese === 0;
+}
+
+function regionSubtitle(region: Region, views: number): string {
+  if (region === 'KR') return `${formatCount(views)} 조회수 · 검증된 원본 링크`;
+  if (region === 'JP') return `${formatCount(views)} 回再生 · 検証済みリンク`;
+  return `${formatCount(views)} views · verified permalink`;
+}
+
 function validPermalink(platform: TrendPlatform, url: string): boolean {
   return platform === 'YouTube Shorts' ? DIRECT_URLS.youtube.test(url)
     : DIRECT_URLS.tiktok.test(url);
@@ -76,11 +114,13 @@ function buildRow(platform: TrendPlatform, region: Region, item: ApifyItem, vide
   const views = finiteNumber(item.playCount ?? item.viewCount ?? item.videoPlayCount ?? item.views);
   const likes = finiteNumber(item.diggCount ?? item.likeCount ?? item.likes);
   if (views <= 0) return null;
+  const title = cleanText(item.title ?? item.caption ?? item.description ?? item.text, `${platform} viral short`);
+  if (!matchesRegionLanguage(region, title)) return null;
   return {
     platform,
     region,
-    title: cleanText(item.title ?? item.caption ?? item.description ?? item.text, `${platform} viral short`),
-    subtitle: `${formatCount(views)} views · verified public permalink`,
+    title,
+    subtitle: regionSubtitle(region, views),
     views: formatCount(views),
     likes: formatCount(likes),
     tags: '',
@@ -92,31 +132,67 @@ function buildRow(platform: TrendPlatform, region: Region, item: ApifyItem, vide
 async function collectYouTube(region: Region): Promise<TrendRow[]> {
   const key = process.env.YOUTUBE_API_KEY ?? process.env.YOUTUBE_DATA_API_KEY ?? process.env.GOOGLE_YOUTUBE_API_KEY;
   if (!key) throw new Error('YOUTUBE_API_KEY is not configured');
-  const search = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-    params: { key, part: 'snippet', q: '#shorts', type: 'video', videoDuration: 'short', order: 'viewCount', regionCode: region, maxResults: 10 },
-    timeout: 15_000,
-  });
-  const ids = (search.data.items ?? []).map((item: { id?: { videoId?: string } }) => item.id?.videoId).filter(Boolean) as string[];
+  const idSet = new Set<string>();
+  for (const order of ['viewCount', 'date', 'relevance'] as const) {
+    for (const query of REGION_YT_QUERIES[region]) {
+      try {
+        let pageToken: string | undefined;
+        for (let page = 0; page < 2; page += 1) {
+        const search = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+          params: {
+            key,
+            part: 'snippet',
+            q: query,
+            type: 'video',
+            videoDuration: 'short',
+            order,
+            regionCode: region,
+            relevanceLanguage: REGION_LANG[region],
+            maxResults: 50,
+            ...(pageToken ? { pageToken } : {}),
+          },
+          timeout: 15_000,
+        });
+        const ids = (search.data.items ?? []).map((item: { id?: { videoId?: string } }) => item.id?.videoId).filter(Boolean) as string[];
+        for (const id of ids) idSet.add(id);
+        pageToken = search.data.nextPageToken;
+        if (!pageToken) break;
+        }
+      } catch (error) {
+        console.error('[cron/trend] YouTube query failed', { region, query, order, error: error instanceof Error ? error.message : error });
+      }
+    }
+  }
+  const ids = Array.from(idSet).slice(0, TARGET_PER_PLATFORM);
   if (!ids.length) throw new Error(`${region}: YouTube returned no videos`);
   const details = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
     params: { key, part: 'snippet,statistics', id: ids.join(',') }, timeout: 15_000,
   });
-  return (details.data.items ?? []).map((item: { id: string; snippet?: { title?: string }; statistics?: { viewCount?: string; likeCount?: string } }) => {
+  const rows = (details.data.items ?? []).map((item: { id: string; snippet?: { title?: string }; statistics?: { viewCount?: string; likeCount?: string } }) => {
     const videoUrl = `https://www.youtube.com/shorts/${item.id}`;
     const views = finiteNumber(item.statistics?.viewCount);
     return {
       platform: 'YouTube Shorts' as const, region, title: cleanText(item.snippet?.title, 'YouTube Short'),
-      subtitle: `${formatCount(views)} views · YouTube Data API`, views: formatCount(views),
+      subtitle: regionSubtitle(region, views), views: formatCount(views),
       likes: formatCount(finiteNumber(item.statistics?.likeCount)), tags: '', url: videoUrl, video_url: videoUrl,
     };
   }).filter((row: TrendRow) => validPermalink(row.platform, row.video_url));
+  const localized = rows.filter((row: TrendRow) => matchesRegionLanguage(region, row.title));
+  const regional = [...localized, ...rows.filter((row: TrendRow) => !localized.includes(row))];
+  return regional.slice(0, TARGET_PER_PLATFORM);
 }
 
 async function collectTikTok(region: Region): Promise<TrendRow[]> {
   const token = process.env.APIFY_API_TOKEN;
   const actor = process.env.APIFY_TREND_TIKTOK_ACTOR_ID ?? 'clockworks~tiktok-scraper';
   if (!token || !actor) throw new Error('Apify trend configuration missing for TikTok');
-  let input: Record<string, unknown> = { hashtags: ['fyp', 'viral', 'trending'], resultsPerPage: 10, maxItems: 10, shouldDownloadVideos: false };
+  let input: Record<string, unknown> = {
+    hashtags: REGION_TIKTOK_HASHTAGS[region],
+    resultsPerPage: 50,
+    maxItems: 120,
+    shouldDownloadVideos: false,
+    countryCode: region,
+  };
   const inputJson = process.env.APIFY_TREND_TIKTOK_INPUT_JSON;
   if (inputJson) input = JSON.parse(inputJson) as Record<string, unknown>;
   const response = await axios.post(`https://api.apify.com/v2/acts/${encodeURIComponent(actor)}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`, input, { timeout: 45_000 });
@@ -127,7 +203,28 @@ async function collectTikTok(region: Region): Promise<TrendRow[]> {
       videoUrl = `https://www.tiktok.com/@${username}/video/${item.id}`;
     }
     return buildRow('TikTok', region, item, videoUrl);
-  }).filter((row: TrendRow | null): row is TrendRow => row !== null).slice(0, 10);
+  }).filter((row: TrendRow | null): row is TrendRow => row !== null).slice(0, TARGET_PER_PLATFORM);
+}
+
+function composeRegionRows(region: Region, youtubeRows: TrendRow[], tiktokRows: TrendRow[]): TrendRow[] {
+  const selected: TrendRow[] = [];
+  const pushUnique = (row: TrendRow) => {
+    if (selected.some((item) => item.video_url === row.video_url)) return;
+    selected.push(row);
+  };
+
+  for (const row of youtubeRows.slice(0, 15)) pushUnique(row);
+  for (const row of tiktokRows.slice(0, 15)) pushUnique(row);
+
+  if (selected.length < TARGET_PER_REGION) {
+    const pool = [...youtubeRows, ...tiktokRows];
+    for (const row of pool) {
+      pushUnique(row);
+      if (selected.length >= TARGET_PER_REGION) break;
+    }
+  }
+
+  return selected.slice(0, TARGET_PER_REGION);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -136,13 +233,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (expected && auth !== `Bearer ${expected}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const regions: Region[] = ['US', 'KR', 'JP'];
-    const jobs = regions.flatMap((region) => [
-      collectYouTube(region), collectTikTok(region),
-    ]);
-    const settled = await Promise.allSettled(jobs);
+    const settled = await Promise.allSettled(
+      regions.map(async (region) => {
+        const [youtubeResult, tiktokResult] = await Promise.allSettled([
+          collectYouTube(region),
+          collectTikTok(region),
+        ]);
+        const youtubeRows = youtubeResult.status === 'fulfilled' ? youtubeResult.value : [];
+        const tiktokRows = tiktokResult.status === 'fulfilled' ? tiktokResult.value : [];
+        if (youtubeResult.status === 'rejected') {
+          console.error('[cron/trend] YouTube source failed', { region, error: youtubeResult.reason instanceof Error ? youtubeResult.reason.message : youtubeResult.reason });
+        }
+        if (tiktokResult.status === 'rejected') {
+          console.error('[cron/trend] TikTok source failed', { region, error: tiktokResult.reason instanceof Error ? tiktokResult.reason.message : tiktokResult.reason });
+        }
+        const regionRows = composeRegionRows(region, youtubeRows, tiktokRows);
+        if (regionRows.length < TARGET_PER_REGION) {
+          throw new Error(`${region}: collected ${regionRows.length}/${TARGET_PER_REGION} localized trends`);
+        }
+        return regionRows;
+      }),
+    );
     const collected = settled.flatMap((result, index) => {
       if (result.status === 'fulfilled') return result.value;
-      console.error('[cron/trend] source failed', { job: index, error: result.reason instanceof Error ? result.reason.message : result.reason });
+      console.error('[cron/trend] source failed', { region: regions[index], error: result.reason instanceof Error ? result.reason.message : result.reason });
       return [];
     });
     const uniqueUrls = new Set<string>();
@@ -151,7 +265,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       uniqueUrls.add(row.video_url);
       return true;
     });
-    if (!rows.length) throw new Error('No verified trend permalinks collected');
+    if (rows.length < TARGET_PER_REGION * regions.length) {
+      throw new Error(`Insufficient localized trends: ${rows.length}/${TARGET_PER_REGION * regions.length}`);
+    }
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
     const { error: deleteErr } = await supabase.from('trend_feed').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     if (deleteErr) throw new Error(`DB delete failed: ${deleteErr.message}`);

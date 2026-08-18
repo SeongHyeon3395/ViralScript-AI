@@ -13,7 +13,7 @@ import type { NavbarRef } from './components/Navbar';
 import { t } from './components/LanguageSwitcher';
 
 const FEATURES = [
-  { icon: BarChart3, titleKey: 'feature_viral_title', descKey: 'feature_viral_desc', color: 'text-violet-400', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.2)' },
+  { icon: BarChart3, titleKey: 'feature_viral_title', descKey: 'feature_viral_desc', color: 'text-blue-600', bg: 'rgba(37,99,235,0.07)', border: 'rgba(37,99,235,0.18)' },
   { icon: Globe, titleKey: 'feature_localize_title', descKey: 'feature_localize_desc', color: 'text-cyan-400', bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.2)' },
   { icon: Film, titleKey: 'feature_visual_title', descKey: 'feature_visual_desc', color: 'text-pink-400', bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.2)' },
   { icon: Zap, titleKey: 'feature_cache_title', descKey: 'feature_cache_desc', color: 'text-amber-400', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
@@ -53,8 +53,8 @@ export default function Home() {
       <main className="flex-1">
         {/* HERO */}
         <section className="relative pt-16 sm:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[900px] h-[400px] sm:h-[500px] rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
-          <div className="absolute top-40 left-1/3 w-[200px] sm:w-[300px] h-[200px] sm:h-[300px] rounded-full bg-cyan-500/8 blur-3xl pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[900px] h-[400px] sm:h-[500px] rounded-full bg-blue-500/8 blur-3xl pointer-events-none" />
+          <div className="absolute top-40 left-1/3 w-[200px] sm:w-[300px] h-[200px] sm:h-[300px] rounded-full bg-teal-400/8 blur-3xl pointer-events-none" />
           <div className="relative mx-auto max-w-4xl text-center space-y-6 px-4">
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] text-white">
               {t('hero_title')}<br /><span className="gradient-text">{t('hero_title2')}</span>
