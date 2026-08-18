@@ -16,8 +16,11 @@ const SLICES = [
   { label: '1', value: 1, color: '#22c55e', icon: Zap },
   { label: '2', value: 2, color: '#3b82f6', icon: Zap },
   { label: '5', value: 5, color: '#ec4899', icon: Star },
+  { label: '1', value: 1, color: '#10b981', icon: Zap },
   { label: '3', value: 3, color: '#f59e0b', icon: Trophy },
+  { label: '1', value: 1, color: '#16a34a', icon: Zap },
   { label: '4', value: 4, color: '#f97316', icon: Trophy },
+  { label: '1', value: 1, color: '#059669', icon: Zap },
 ];
 
 const SEGMENT = 360 / SLICES.length;
@@ -86,6 +89,12 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
       else setUser(null);
     });
     return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const openHandler = () => setIsOpen(true);
+    window.addEventListener('daily-roulette:open', openHandler);
+    return () => window.removeEventListener('daily-roulette:open', openHandler);
   }, []);
 
   // Cooldown tick
@@ -214,8 +223,9 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
             <div className="relative w-64 h-64 mx-auto mb-6">
               {/* Wheel container (색상 + 레이블 함께 회전) */}
               <div
-                className="w-full h-full rounded-full relative"
+                className="w-full h-full rounded-full relative overflow-hidden border-4 border-white/20 shadow-2xl"
                 style={{
+                  background: `conic-gradient(${SLICES.map((slice, i) => `${slice.color} ${i * SEGMENT}deg ${(i + 1) * SEGMENT}deg`).join(', ')})`,
                   transform: `rotate(${rotation}deg)`,
                   transition: spinning ? 'transform 2.8s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
                 }}
@@ -226,25 +236,9 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
                   const r = 38;
                   const x = 50 + r * Math.cos((midAngle * Math.PI) / 180);
                   const y = 50 + r * Math.sin((midAngle * Math.PI) / 180);
-                  const Icon = slice.icon;
                   return (
-                    <div key={i} className="absolute inset-0" style={{ clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle * Math.PI) / 180)}% ${50 + 50 * Math.sin((angle * Math.PI) / 180)}%, ${50 + 50 * Math.cos(((angle + SEGMENT) * Math.PI) / 180)}% ${50 + 50 * Math.sin(((angle + SEGMENT) * Math.PI) / 180)}%)`, background: slice.color }}>
-                      <div
-                        className="absolute text-white"
-                        style={{
-                          top: `${y}%`,
-                          left: `${x}%`,
-                            transform: `translate(-50%, -50%) rotate(${midAngle + 90}deg)`,
-                            transformOrigin: 'center',
-                          fontSize: slice.label.startsWith('꽝') ? '11px' : '10px',
-                          fontWeight: 700,
-                          textShadow: '0 1px 3px rgba(0,0,0,0.6)',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        <Icon size={14} className="mx-auto mb-0.5" />
-                        {slice.label}
-                      </div>
+                    <div key={i} className="absolute text-white" style={{ top: `${y}%`, left: `${x}%`, transform: `translate(-50%, -50%) rotate(${midAngle + 90}deg)`, transformOrigin: 'center', fontSize: '11px', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,0.7)', pointerEvents: 'none' }}>
+                      {slice.label}
                     </div>
                   );
                 })}

@@ -92,12 +92,12 @@ export default function PricingPage() {
                         <span className={`badge ${badgeClass} text-xs mb-3`}>{badge}</span>
                         <p className="text-sm text-white/50 leading-relaxed">{desc}</p>
                       </div>
-                      {isRoulette ? (
-                        /* 룰렛은 DailyRewardWheel 플로팅 버튼이 있으므로 안내 문구만 표시 */
-                        <p className="mt-6 text-center text-xs text-white/30">화면 우하단 🎁 버튼을 눌러 룰렛을 돌리세요</p>
-                      ) : (
-                        <button onClick={onClick} className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${highlight ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{action}<ArrowRight size={14} /></button>
-                      )}
+                        <button
+                          onClick={isRoulette ? () => window.dispatchEvent(new CustomEvent('daily-roulette:open')) : onClick}
+                          className={`pricing-action-button mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all ${highlight ? 'pricing-action-button--highlight' : ''}`}
+                        >
+                          {isRoulette ? t('pricing_roulette_action') : action}<ArrowRight size={14} />
+                        </button>
                     </div>
                   ))}
                 </div>
