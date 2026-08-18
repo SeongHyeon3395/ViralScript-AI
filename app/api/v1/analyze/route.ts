@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { normalizeAndValidateUrl } from '@/utils/urlNormalizer';
 import { fetchVideoMetadata } from '@/services/scraperMiddleware';
 import { generateLocalizedScripts } from '@/services/aiEngine';
-import { CREDIT_COST, getDynamicCreditCost } from '@/lib/credits';
+import { CREDIT_COST } from '@/lib/credits';
 import { ERROR_CODES } from '@/types';
 import type { AnalyzeRequest, AnalyzeResponse, GenerationOutput, Profile } from '@/types';
 
@@ -142,9 +142,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   const isCacheHit = !!cached;
 
-  // 캐시 히트: 1 크레딧 고정 / 캐시 미스: 스크래핑 전 최소 잔액 확인(최솟값 1)
-  // 실제 다이나믹 단가는 스크래핑 후 durationSeconds 확인 후 결정
-  const minCreditCheck = isCacheHit ? CREDIT_COST.CACHE_HIT : 1;
+  // 모든 대본 생성은 캐시 여부와 영상 길이에 관계없이 5크레딧이다.
+  const minCreditCheck = CREDIT_COST.FULL_ANALYSIS;
 
   // 5. 최소 잔액 확인 (캐시 미스 시 스크래핑 원가 낭비 방지)
   if (profile.credits_remaining < minCreditCheck) {
@@ -154,8 +153,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  // 캐시 히트의 경우 최종 단가는 CACHE_HIT 고정
-  const creditCost = isCacheHit ? CREDIT_COST.CACHE_HIT : 0; // 캐시 미스 시 아래에서 재계산
+  const creditCost = CREDIT_COST.FULL_ANALYSIS;
 
   // 6. 캐시 히트: DB에서 바로 반환
   if (isCacheHit && cached) {
@@ -226,17 +224,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  // 7-b. 스크래핑 완료 → durationSeconds 기반 실제 단가 결정
-  const dynamicCreditCost = getDynamicCreditCost(metadata.durationSeconds);
-
-  // 7-c. 실제 단가 기준 잔액 재검증 (크레딧 미차감 상태이므로 에러만 반환)
-  if (profile.credits_remaining < dynamicCreditCost) {
+  // 7-b. 스크래핑 완료 후에도 고정 단가를 재검증한다.
+  if (profile.credits_remaining < creditCost) {
     return NextResponse.json(
       {
         success: false,
         error: 'Insufficient credits',
         errorCode: ERROR_CODES.INSUFFICIENT_CREDITS,
-        requiredCredits: dynamicCreditCost,
+        requiredCredits: creditCost,
         durationSeconds: metadata.durationSeconds,
       },
       { status: 402 }
@@ -285,7 +280,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     p_project_title: enrichedResult.project_title,
     p_target_product: targetProduct,
     p_generated_json: enrichedResult,
-    p_cost: dynamicCreditCost,
+    p_cost: creditCost,
   });
 
   if (rpcError) {
@@ -327,8 +322,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     success: true,
     data: enrichedResult,
     cached: false,
-    creditsRemaining: updatedProfile?.credits_remaining ?? profile.credits_remaining - dynamicCreditCost,
-    creditCostApplied: dynamicCreditCost,
+    creditsRemaining: updatedProfile?.credits_remaining ?? profile.credits_remaining - creditCost,
+    creditCostApplied: creditCost,
     durationSeconds: metadata.durationSeconds,
   });
 }

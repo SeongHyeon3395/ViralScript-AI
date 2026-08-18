@@ -17,10 +17,7 @@ import {
   CheckCircle2, Shield, LogIn, Copy,
 } from 'lucide-react';
 
-// TikTok: 직접 영상 링크 + 검색 결과 URL 허용
-// YouTube: 직접 Shorts + results/hashtag 검색 링크 허용
-// Instagram: reel/reels + explore/search/keyword / explore/tags 검색 링크 허용
-const DIRECT_SHORT_FORM_REGEX = /^https?:\/\/(?:www\.|vm\.|vt\.)?(?:tiktok\.com\/(?:(?:@[^\/\s]+)\/video\/\d+|v\/\d+)|vm\.tiktok\.com\/[\w-]+|vt\.tiktok\.com\/[\w-]+|youtube\.com\/shorts\/[^\s?]+|youtu\.be\/[^\s?]+|instagram\.com\/(?:reel|reels|p)\/[^\s?]+)(?:[\/?#].*)?$/i;
+const DIRECT_SHORT_FORM_REGEX = /^https?:\/\/(?:www\.|vm\.|vt\.)?(?:tiktok\.com\/(?:(?:@[^\/\s]+)\/video\/\d+|v\/\d+)|vm\.tiktok\.com\/[\w-]+|vt\.tiktok\.com\/[\w-]+|youtube\.com\/shorts\/[^\s?]+|youtu\.be\/[^\s?]+)(?:[\/?#].*)?$/i;
 
 function validateShortFormUrl(input: string): string | null {
   const trimmed = input.trim();
@@ -134,6 +131,8 @@ export default function GeneratorPage() {
   const [targetProduct, setTargetProduct] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState('준비 중...');
   const [result, setResult] = useState<GenerationOutput | null>(null);
   const [cached, setCached] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +140,14 @@ export default function GeneratorPage() {
   const [rewardPopupOpen, setRewardPopupOpen] = useState(false);
   const [adBlockDetected, setAdBlockDetected] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!loading) return;
+    const timer = window.setInterval(() => {
+      setProgress((current) => Math.min(current + (current < 35 ? 3 : current < 70 ? 2 : 1), 92));
+    }, 900);
+    return () => window.clearInterval(timer);
+  }, [loading]);
 
   // 트렌드 피드에서 넘어온 url/platform 쿼리파라미터 자동완성
   useEffect(() => {
@@ -155,11 +162,12 @@ export default function GeneratorPage() {
     if (!url.trim()) return;
     const validationErr = validateShortFormUrl(url);
     if (validationErr) { setUrlError(validationErr); return; }
-    setUrlError(null); setLoading(true); setError(null); setResult(null); setEstimatedCost(null);
+    setUrlError(null); setLoading(true); setProgress(8); setProgressLabel('영상 정보 확인 중...'); setError(null); setResult(null); setEstimatedCost(null);
     try {
       const supabase = (await import('@/lib/supabase/client')).getSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { setError(t('gen_login_required')); setLoading(false); return; }
+      setProgress(22); setProgressLabel('영상 구조 분석 중...');
       const res = await fetch('/api/v1/analyze', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ url: url.trim(), targetProduct: targetProduct.trim() || undefined, userCustomPrompt: customPrompt.trim() || undefined }),
@@ -177,10 +185,11 @@ export default function GeneratorPage() {
         setError(friendlyMsg);
         return;
       }
+      setProgress(100); setProgressLabel('대본 생성 완료');
       setResult(data.data!); setCached(data.cached ?? false);
       if (data.creditCostApplied) setEstimatedCost(data.creditCostApplied);
       if (typeof data.creditsRemaining === 'number') void refreshCredits();
-    } catch { setError('네트워크 오류'); } finally { setLoading(false); }
+    } catch { setError('분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'); } finally { setLoading(false); }
   }
 
   function handleRewardClaimed() { void refreshCredits(); }
@@ -245,7 +254,7 @@ export default function GeneratorPage() {
 
               <button onClick={handleAnalyze} disabled={loading || !url.trim()} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
                 {loading ? (
-                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />{t('gen_analyzing')}</span>
+                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />대본 생성 중... {progress}%</span>
                 ) : (
                   <>
                     <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />{t('gen_analyze_btn')}<ArrowRight size={15} /></span>
@@ -253,6 +262,19 @@ export default function GeneratorPage() {
                   </>
                 )}
               </button>
+
+              {loading && (
+                <div className="space-y-2 rounded-xl border border-cyan-400/20 bg-cyan-400/5 px-4 py-3" role="status" aria-live="polite">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-cyan-200">{progressLabel}</span>
+                    <span className="font-mono tabular-nums text-white/60">{progress}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10" aria-label={`대본 생성 진행률 ${progress}%`}>
+                    <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500 transition-[width] duration-500" style={{ width: `${progress}%` }} />
+                  </div>
+                  <p className="text-[11px] text-white/35">영상 확인 → 구조 분석 → AI 대본 생성 순서로 진행됩니다.</p>
+                </div>
+              )}
 
               <div className="flex items-center justify-center gap-1">
                 <button onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('gen_credits_low_cta')}<RefreshCw size={11} /></button>
