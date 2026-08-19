@@ -17,9 +17,9 @@ const PLATFORM_COLORS: Record<string, string> = { tiktok: 'text-pink-400', TikTo
 const REGION_FLAGS: Record<string, string> = { US: '🇺🇸', KR: '🇰🇷', JP: '🇯🇵' };
 const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'trend_region_kr', US: 'trend_region_us', JP: 'trend_region_jp' };
 
-const INITIAL_LOAD = 30;
-const LOAD_MORE_COUNT = 30;
-const MAX_TRENDS = 60;
+const INITIAL_LOAD = 6;
+const LOAD_MORE_COUNT = 9;
+const MAX_TRENDS = 15;
 
 interface TrendFeedProps {
   onGenerate?: (url: string, platform: string) => void;
@@ -242,14 +242,24 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
               );
             })}
           </div>
-          {hasMore && (
-            <div className="text-center pt-4">
-              <button
-                onClick={() => setVisibleCount((c) => Math.min(c + LOAD_MORE_COUNT, MAX_TRENDS))}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all"
-              >
-                {t('trend_load_more')} <ChevronDown size={14} />
-              </button>
+          {(hasMore || visibleCount > INITIAL_LOAD) && (
+            <div className="flex justify-center gap-3 pt-4">
+              {hasMore && (
+                <button
+                  onClick={() => setVisibleCount((c) => Math.min(c + LOAD_MORE_COUNT, MAX_TRENDS))}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  {t('trend_load_more')} <ChevronDown size={14} />
+                </button>
+              )}
+              {visibleCount > INITIAL_LOAD && (
+                <button
+                  onClick={() => setVisibleCount(INITIAL_LOAD)}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  접기 <ChevronDown size={14} className="rotate-180" />
+                </button>
+              )}
             </div>
           )}
         </>

@@ -87,7 +87,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid grid-cols-[1fr_auto_1fr] h-16 items-center">
             {/* Logo — left */}
-            <Link href="/" className="flex items-center gap-1 group shrink-0 justify-self-start">
+            <Link href="/" className="flex items-center gap-1 group shrink-0 justify-self-start transition-transform duration-200 hover:-translate-y-0.5">
               <span className="text-base font-bold text-white">ViralScript</span>
               <span className="text-base font-bold gradient-text">AI</span>
             </Link>
@@ -115,7 +115,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                     openLogin();
                   }
                 }}
-                className="flex items-center gap-1.5 rounded-lg border border-transparent px-4 py-2 text-sm text-emerald-400/70 transition-all hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
+                className="flex items-center gap-1.5 rounded-lg border border-transparent px-4 py-2 text-sm text-emerald-400/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
               >
                 <Users size={14} />
                 {t('nav_invite')}
@@ -237,7 +237,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 openLogin();
               }
               setMobileMenuOpen(false); 
-            }} className="w-full rounded-lg border border-transparent px-4 py-2.5 text-left text-sm text-emerald-400/70 transition-all hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300">
+            }} className="w-full rounded-lg border border-transparent px-4 py-2.5 text-left text-sm text-emerald-400/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300">
               {t('nav_mobile_invite')}
             </button>
             <button onClick={openLogin} className="btn-primary-compact w-full px-4 py-2.5 text-left text-sm">

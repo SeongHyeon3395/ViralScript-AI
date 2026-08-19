@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
   X,
+  ArrowLeft,
   Mail,
   Lock,
   Eye,
@@ -507,14 +508,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       <button
                         type="button"
                         onClick={() => switchMode('forgot')}
-                        className="text-violet-400 hover:text-violet-300 transition-colors"
+                        className="cursor-pointer text-violet-400 hover:-translate-y-0.5 hover:text-violet-300 transition-all"
                       >
                         {t('auth_forgot_password_link')}
                       </button>
                       <button
                         type="button"
                         onClick={() => switchMode('find_email')}
-                        className="text-violet-400/60 hover:text-violet-300 transition-colors flex items-center gap-1"
+                        className="cursor-pointer flex items-center gap-1 text-violet-400/60 hover:-translate-y-0.5 hover:text-violet-300 transition-all"
                       >
                         <HelpCircle size={12} />
                         {t('auth_forgot_email_link')}
@@ -567,7 +568,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 )}
                 {(mode === 'forgot' || mode === 'find_email') && (
                   <>
-                    <button onClick={() => switchMode('login')} className="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
+                    <button onClick={() => switchMode('login')} className="btn-primary-compact inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 text-sm">
+                      <ArrowLeft size={14} />
                       {t('auth_back_to_login')}
                     </button>
                   </>
