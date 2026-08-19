@@ -102,7 +102,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`relative rounded-lg border border-transparent px-4 py-2 text-sm transition-colors after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-amber-400 after:transition-opacity ${isActive(item.href) ? 'font-bold text-amber-300 after:opacity-100' : 'text-slate-400 after:opacity-0 hover:border-amber-300/35 hover:bg-amber-400/5 hover:text-white'}`}
+                  className={`btn-primary-hover relative px-4 py-2 text-sm text-slate-400 after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
                 >
                   {item.label}
                 </Link>
@@ -115,7 +115,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                     openLogin();
                   }
                 }}
-                className="flex items-center gap-1.5 rounded-lg border border-transparent px-4 py-2 text-sm text-emerald-400/70 transition-all hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
+                className="btn-primary-hover flex items-center gap-1.5 px-4 py-2 text-sm text-slate-400"
               >
                 <Users size={14} />
                 {t('nav_invite')}
@@ -187,13 +187,13 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 <>
                     <button
                     onClick={openLogin}
-                    className="hidden rounded-xl border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2 text-sm font-bold text-white transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400 sm:block"
+                    className="btn-primary-compact hidden px-4 py-2 text-sm sm:block"
                   >
                     {t('nav_login')}
                   </button>
                   <button
                     onClick={openSignup}
-                    className="hidden rounded-xl border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2 text-sm font-bold text-white transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400 sm:block"
+                    className="btn-primary-compact hidden px-4 py-2 text-sm sm:block"
                   >
                     {t('nav_signup')}
                   </button>
@@ -223,7 +223,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`block rounded-lg border border-transparent px-4 py-2.5 text-sm transition-colors ${isActive(item.href) ? 'font-bold text-amber-300' : 'text-slate-400 hover:border-amber-300/35 hover:bg-amber-400/5 hover:text-white'}`}
+                className={`btn-primary-hover block px-4 py-2.5 text-sm ${isActive(item.href) ? 'font-bold text-white' : 'text-slate-400'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
@@ -237,13 +237,13 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 openLogin();
               }
               setMobileMenuOpen(false); 
-            }} className="w-full rounded-lg border border-transparent px-4 py-2.5 text-left text-sm text-emerald-400/70 transition-all hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300">
+            }} className="btn-primary-hover w-full px-4 py-2.5 text-left text-sm text-slate-400">
               {t('nav_mobile_invite')}
             </button>
-            <button onClick={openLogin} className="w-full rounded-lg border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2.5 text-left text-sm font-bold text-white transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400">
+            <button onClick={openLogin} className="btn-primary-compact w-full px-4 py-2.5 text-left text-sm">
               {t('nav_login')}
             </button>
-            <button onClick={openSignup} className="w-full rounded-lg border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2.5 text-left text-sm font-bold text-white transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400">
+            <button onClick={openSignup} className="btn-primary-compact w-full px-4 py-2.5 text-left text-sm">
               {t('nav_start_free')}
             </button>
           </div>
