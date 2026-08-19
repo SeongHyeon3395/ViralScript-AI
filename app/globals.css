@@ -300,35 +300,6 @@ body {
   transform: translateY(0) scale(0.98);
 }
 
-.btn-primary-hover {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  transition: all 0.2s ease;
-}
-.btn-primary-hover::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.btn-primary-hover:hover {
-  border-color: rgba(124,58,237,0.4);
-  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
-  box-shadow: 0 4px 24px rgba(124,58,237,0.5);
-  color: #fff;
-  transform: translateY(-1px);
-}
-.btn-primary-hover:hover::before {
-  opacity: 1;
-}
-.btn-primary-hover:active {
-  transform: translateY(0) scale(0.98);
-}
-
 /* Shimmer animation */
 @keyframes shimmer {
   0% { background-position: -200% center; }

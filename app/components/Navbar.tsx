@@ -102,7 +102,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`btn-primary-hover relative px-4 py-2 text-sm text-slate-400 after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
+                  className={`relative px-4 py-2 text-sm text-slate-400 transition-colors after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity hover:text-white ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
                 >
                   {item.label}
                 </Link>
@@ -115,7 +115,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                     openLogin();
                   }
                 }}
-                className="btn-primary-hover flex items-center gap-1.5 px-4 py-2 text-sm text-slate-400"
+                className="flex items-center gap-1.5 rounded-lg border border-transparent px-4 py-2 text-sm text-emerald-400/70 transition-all hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
               >
                 <Users size={14} />
                 {t('nav_invite')}
@@ -223,7 +223,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`btn-primary-hover block px-4 py-2.5 text-sm ${isActive(item.href) ? 'font-bold text-white' : 'text-slate-400'}`}
+                className={`block px-4 py-2.5 text-sm transition-colors ${isActive(item.href) ? 'font-bold text-white' : 'text-slate-400 hover:text-white'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
@@ -237,7 +237,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 openLogin();
               }
               setMobileMenuOpen(false); 
-            }} className="btn-primary-hover w-full px-4 py-2.5 text-left text-sm text-slate-400">
+            }} className="w-full rounded-lg border border-transparent px-4 py-2.5 text-left text-sm text-emerald-400/70 transition-all hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300">
               {t('nav_mobile_invite')}
             </button>
             <button onClick={openLogin} className="btn-primary-compact w-full px-4 py-2.5 text-left text-sm">
