@@ -187,13 +187,13 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 <>
                     <button
                     onClick={openLogin}
-                    className="hidden rounded-xl border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-cyan-500/15 transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400 hover:shadow-cyan-500/30 sm:block"
+                    className="hidden rounded-xl border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2 text-sm font-bold text-white transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400 sm:block"
                   >
                     {t('nav_login')}
                   </button>
                   <button
                     onClick={openSignup}
-                    className="hidden rounded-xl border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-cyan-500/15 transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400 hover:shadow-cyan-500/30 sm:block"
+                    className="hidden rounded-xl border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2 text-sm font-bold text-white transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400 sm:block"
                   >
                     {t('nav_signup')}
                   </button>
