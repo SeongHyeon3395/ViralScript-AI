@@ -2,16 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   User, Globe, CreditCard, AlertTriangle,
   Save, Loader2, CheckCircle2, LogIn, ArrowRight,
-  Bell, Monitor, Smartphone, Lock,
+  Bell, Monitor, Smartphone, Lock, KeyRound, X, Eye, EyeOff,
 } from 'lucide-react';
 import Navbar from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import { useAuth } from '@/app/components/AuthProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { t } from '@/app/components/LanguageSwitcher';
 
 // ─── 타입 ─────────────────────────────────────────────────────────
 
@@ -24,6 +24,10 @@ interface UserSettings {
 }
 
 type TabId = 'profile' | 'platform' | 'billing' | 'danger';
+
+function showToast(message: string, variant: 'success' | 'error' | 'info' = 'info') {
+  window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, variant } }));
+}
 
 const TABS: { id: TabId; icon: React.ElementType; label: string }[] = [
   { id: 'profile',   icon: User,          label: '내 프로필' },
@@ -69,6 +73,36 @@ function TextInput({ value, onChange, placeholder, disabled }: {
   );
 }
 
+function PasswordField({ label, value, onChange, placeholder }: {
+  label: string; value: string; onChange: (value: string) => void; placeholder: string;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div>
+      <FieldLabel>{label}</FieldLabel>
+      <div className="relative">
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={event => onChange(event.target.value)}
+          placeholder={placeholder}
+          autoComplete={label === '현재 비밀번호' ? 'current-password' : 'new-password'}
+          className="w-full rounded-xl px-4 py-2.5 pr-11 text-sm input-dark"
+        />
+        <button
+          type="button"
+          onClick={() => setVisible(current => !current)}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-white/30 transition-colors hover:bg-white/5 hover:text-white/70"
+          aria-label={visible ? '비밀번호 숨기기' : '비밀번호 표시'}
+        >
+          {visible ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SelectInput<T extends string>({ value, onChange, options }: {
   value: T; onChange: (v: T) => void;
   options: { value: T; label: string }[];
@@ -105,7 +139,11 @@ function Toggle({ checked, onChange, label, hint }: {
 
 // ─── 탭별 패널 ─────────────────────────────────────────────────────
 
-function ProfileTab({ settings, onUpdate }: { settings: UserSettings; onUpdate: (p: Partial<UserSettings>) => void }) {
+function ProfileTab({ settings, onUpdate, onOpenPasswordModal }: {
+  settings: UserSettings;
+  onUpdate: (p: Partial<UserSettings>) => void;
+  onOpenPasswordModal: () => void;
+}) {
   return (
     <div className="space-y-4">
       <SectionCard title="기본 정보" icon={User}>
@@ -121,6 +159,22 @@ function ProfileTab({ settings, onUpdate }: { settings: UserSettings; onUpdate: 
         </div>
       </SectionCard>
 
+      <SectionCard title="보안" icon={KeyRound}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-white/80">비밀번호</p>
+            <p className="mt-0.5 text-xs text-white/30">현재 비밀번호 확인 후 새 비밀번호로 변경합니다</p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenPasswordModal}
+            className="shrink-0 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/70 transition-colors hover:border-violet-400/40 hover:text-violet-300"
+          >
+            변경
+          </button>
+        </div>
+      </SectionCard>
+
       <SectionCard title="알림 설정" icon={Bell}>
         <Toggle
           checked={settings.email_notifications}
@@ -129,6 +183,89 @@ function ProfileTab({ settings, onUpdate }: { settings: UserSettings; onUpdate: 
           hint="크레딧 충전, 분석 완료 등 중요 이벤트를 이메일로 수신합니다"
         />
       </SectionCard>
+    </div>
+  );
+}
+
+function PasswordChangeModal({ email, onClose }: { email: string; onClose: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !submitting) onClose();
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, submitting]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    if (newPassword.length < 8) {
+      setError('새 비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    setSubmitting(true);
+    const supabase = getSupabaseBrowserClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    });
+
+    if (signInError) {
+      setError('현재 비밀번호가 일치하지 않습니다.');
+      setSubmitting(false);
+      return;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    if (updateError) {
+      setError(updateError.message || '비밀번호를 변경하지 못했습니다.');
+      setSubmitting(false);
+      return;
+    }
+
+    showToast('비밀번호가 변경되었습니다.', 'success');
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm" role="presentation">
+      <div role="dialog" aria-modal="true" aria-labelledby="password-modal-title" className="w-full max-w-md rounded-2xl border border-white/10 bg-[#101018] p-6 shadow-2xl shadow-black/50">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h2 id="password-modal-title" className="text-lg font-bold text-white">비밀번호 변경</h2>
+            <p className="mt-1 text-xs text-white/40">본인 확인을 위해 현재 비밀번호를 입력하세요.</p>
+          </div>
+          <button type="button" onClick={onClose} disabled={submitting} className="rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40" aria-label="닫기">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <PasswordField label="현재 비밀번호" value={currentPassword} onChange={setCurrentPassword} placeholder="현재 비밀번호" />
+          <PasswordField label="새 비밀번호" value={newPassword} onChange={setNewPassword} placeholder="8자 이상" />
+          <PasswordField label="새 비밀번호 확인" value={confirmPassword} onChange={setConfirmPassword} placeholder="새 비밀번호 다시 입력" />
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} disabled={submitting} className="rounded-xl px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40">취소</button>
+            <button type="submit" disabled={submitting || !currentPassword || !newPassword || !confirmPassword} className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40">
+              {submitting && <Loader2 size={15} className="animate-spin" />}
+              {submitting ? '변경 중...' : '비밀번호 변경'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -191,9 +328,13 @@ function BillingTab() {
   );
 }
 
-function DangerTab({ onDeleteAccount }: { onDeleteAccount: () => void }) {
+function DangerTab({ email, deleting, onDeleteAccount }: {
+  email: string;
+  deleting: boolean;
+  onDeleteAccount: () => void;
+}) {
   const [confirmed, setConfirmed] = useState('');
-  const canDelete = confirmed === '탈퇴합니다';
+  const canDelete = confirmed.trim().toLowerCase() === email.trim().toLowerCase();
 
   return (
     <SectionCard title="위험 구역" icon={AlertTriangle}>
@@ -201,24 +342,25 @@ function DangerTab({ onDeleteAccount }: { onDeleteAccount: () => void }) {
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
           <p className="text-sm font-semibold text-red-400 mb-1">회원 탈퇴</p>
           <p className="text-xs text-white/40 leading-relaxed">
-            탈퇴 시 모든 크레딧, 생성 기록, 설정이 즉시 삭제되며 복구할 수 없습니다.
-            아래에 <span className="text-white/70 font-mono">탈퇴합니다</span>를 입력해 확인하세요.
+            탈퇴 시 잔여 크레딧과 생성 기록, 설정이 즉시 삭제되며 복구할 수 없습니다.
+            같은 이메일로는 탈퇴 후 30일 동안 재가입할 수 없습니다.
           </p>
         </div>
         <div>
-          <FieldLabel>확인 문구 입력</FieldLabel>
+          <FieldLabel>확인을 위해 현재 이메일 입력</FieldLabel>
           <TextInput
             value={confirmed}
             onChange={setConfirmed}
-            placeholder="탈퇴합니다"
+            placeholder={email}
           />
         </div>
         <button
           onClick={onDeleteAccount}
-          disabled={!canDelete}
-          className="w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          disabled={!canDelete || deleting}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          영구 삭제 및 탈퇴
+          {deleting && <Loader2 size={15} className="animate-spin" />}
+          {deleting ? '탈퇴 처리 중...' : '영구 삭제 및 탈퇴'}
         </button>
       </div>
     </SectionCard>
@@ -236,6 +378,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveOk, setSaveOk] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadSettings = useCallback(async () => {
     if (!user) return;
@@ -262,6 +406,8 @@ export default function SettingsPage() {
   }, [user]);
 
   useEffect(() => {
+    // Settings are loaded only after the external auth state has settled.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!authLoading && user) void loadSettings();
     if (!authLoading && !user) setFetchLoading(false);
   }, [authLoading, user, loadSettings]);
@@ -304,11 +450,24 @@ export default function SettingsPage() {
   }
 
   async function handleDeleteAccount() {
-    if (!user) return;
+    if (!user?.email || deleting) return;
+    const confirmed = window.confirm('정말로 탈퇴하시겠습니까? 30일간 재가입이 제한됩니다.');
+    if (!confirmed) return;
+
+    setDeleting(true);
     const supabase = getSupabaseBrowserClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc('delete_user_account');
+
+    if (error) {
+      showToast(error.message || '회원 탈퇴를 처리하지 못했습니다.', 'error');
+      setDeleting(false);
+      return;
+    }
+
     await supabase.auth.signOut();
-    // 실제 탈퇴 처리는 서버 액션 또는 admin API 필요 — 여기서는 로그아웃 후 홈으로
-    router.push('/');
+    router.replace('/');
+    router.refresh();
   }
 
   // ─── 렌더 ───────────────────────────────────────────────────────
@@ -339,9 +498,9 @@ export default function SettingsPage() {
             </div>
             <h2 className="text-2xl font-bold text-white">로그인이 필요합니다</h2>
             <p className="text-sm text-white/40">계정 설정을 변경하려면 먼저 로그인하세요</p>
-            <a href="/" className="btn-primary inline-flex items-center gap-2 px-6 py-3">
+            <Link href="/" className="btn-primary inline-flex items-center gap-2 px-6 py-3">
               <LogIn size={16} /> 로그인하기 <ArrowRight size={15} />
-            </a>
+            </Link>
           </div>
         </main>
         <Footer />
@@ -357,7 +516,7 @@ export default function SettingsPage() {
 
           {/* 헤더 */}
           <div className="space-y-1 px-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-white">계정 설정</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">설정</h1>
             <p className="text-xs sm:text-sm text-white/40">프로필, 플랫폼 기본값, 알림 등을 관리합니다</p>
           </div>
 
@@ -382,10 +541,10 @@ export default function SettingsPage() {
 
             {/* 콘텐츠 */}
             <div className="flex-1 min-w-0 space-y-4">
-              {settings && activeTab === 'profile'  && <ProfileTab  settings={settings} onUpdate={handleUpdate} />}
+              {settings && activeTab === 'profile'  && <ProfileTab settings={settings} onUpdate={handleUpdate} onOpenPasswordModal={() => setPasswordModalOpen(true)} />}
               {settings && activeTab === 'platform' && <PlatformTab settings={settings} onUpdate={handleUpdate} />}
               {activeTab === 'billing' && <BillingTab />}
-              {activeTab === 'danger'  && <DangerTab onDeleteAccount={handleDeleteAccount} />}
+              {activeTab === 'danger' && user.email && <DangerTab email={user.email} deleting={deleting} onDeleteAccount={handleDeleteAccount} />}
 
               {/* 저장 버튼 (billing/danger 제외) */}
               {(activeTab === 'profile' || activeTab === 'platform') && (
@@ -415,6 +574,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+      {passwordModalOpen && user.email && (
+        <PasswordChangeModal email={user.email} onClose={() => setPasswordModalOpen(false)} />
+      )}
       <Footer />
     </>
   );
