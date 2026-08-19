@@ -102,7 +102,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`relative px-4 py-2 text-sm text-slate-400 transition-colors after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity hover:text-white ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
+                  className={`relative px-4 py-2 text-sm text-slate-400 transition-all duration-200 after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity hover:-translate-y-0.5 hover:text-white ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
                 >
                   {item.label}
                 </Link>
@@ -223,7 +223,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`block px-4 py-2.5 text-sm transition-colors ${isActive(item.href) ? 'font-bold text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`block px-4 py-2.5 text-sm transition-all duration-200 hover:-translate-y-0.5 ${isActive(item.href) ? 'font-bold text-white' : 'text-slate-400 hover:text-white'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
