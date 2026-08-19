@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { fetchUserCredits } from '@/lib/profile';
+import { clearUserCreditsCache, fetchUserCredits } from '@/lib/profile';
 
 interface AuthContextValue {
   user: SupabaseUser | null;
@@ -14,7 +14,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const SESSION_TIMEOUT_MS = 43_200_000;
-const SESSION_TIMESTAMP_KEY = 'video_maker_session_started_at';
+const SESSION_TIMESTAMP_KEY = 'auth_login_at';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -22,25 +22,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [credits, setCredits] = useState<number | undefined>(undefined);
   const requestIdRef = useRef(0);
   const userRef = useRef<SupabaseUser | null>(null);
+  const expiryAlertShownRef = useRef(false);
 
   const clearSessionTimestamp = useCallback(() => {
     localStorage.removeItem(SESSION_TIMESTAMP_KEY);
   }, []);
 
   const setSessionTimestamp = useCallback(() => {
+    if (localStorage.getItem(SESSION_TIMESTAMP_KEY)) return;
     const now = Date.now();
     localStorage.setItem(SESSION_TIMESTAMP_KEY, String(now));
-    console.log('[auth] session timestamp stored', { now, expiresAt: now + SESSION_TIMEOUT_MS });
   }, []);
 
   const triggerSessionKillSwitch = useCallback(async () => {
+    if (expiryAlertShownRef.current) return;
+    expiryAlertShownRef.current = true;
     const supabase = getSupabaseBrowserClient();
-    console.warn('[auth] session expired: 12h timeout reached, signing out now');
+    window.alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
     clearSessionTimestamp();
-    await supabase.auth.signOut();
-    setUser(null);
-    userRef.current = null;
-    setCredits(undefined);
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      setUser(null);
+      userRef.current = null;
+      setCredits(undefined);
+    }
   }, [clearSessionTimestamp]);
 
   const refreshCredits = useCallback(async () => {
@@ -78,8 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!nextUser) {
         requestIdRef.current += 1;
         setCredits(undefined);
+        clearUserCreditsCache();
         clearSessionTimestamp();
-        console.log('[auth] user signed out / session cleared');
       } else {
         setSessionTimestamp();
         void refreshCredits();
@@ -89,9 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkSessionTimeout = async () => {
       const storedAt = Number(localStorage.getItem(SESSION_TIMESTAMP_KEY));
       const now = Date.now();
-      console.log('[auth] timeout check', { storedAt, now, elapsed: storedAt ? now - storedAt : null, limit: SESSION_TIMEOUT_MS });
 
-      if (userRef.current && storedAt && now - storedAt > SESSION_TIMEOUT_MS) {
+      if (storedAt && Number.isFinite(storedAt) && now - storedAt >= SESSION_TIMEOUT_MS) {
         await triggerSessionKillSwitch();
       }
     };

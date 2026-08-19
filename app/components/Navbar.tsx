@@ -2,6 +2,7 @@
 
 import { useState, forwardRef, useImperativeHandle } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Zap,
   History,
@@ -33,6 +34,12 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
   const { user, isLoading, credits } = useAuth();
+  const pathname = usePathname();
+
+  function isActive(href: string) {
+    if (href === '/trends') return pathname === '/' || pathname.startsWith('/trends');
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   async function handleLogout() {
     const supabase = getSupabaseBrowserClient();
@@ -92,13 +99,13 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 { label: t('nav_credits'), href: '/pricing' },
                 { label: t('nav_trends'), href: '/trends' },
               ].map((item) => (
-                <a
+                <Link
                   key={item.label}
                   href={item.href}
-                  className="px-4 py-2 text-sm text-white/50 hover:text-white rounded-lg hover:bg-white/5 transition-all"
+                  className={`relative px-4 py-2 text-sm transition-colors after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-amber-400 after:transition-opacity ${isActive(item.href) ? 'font-bold text-amber-300 after:opacity-100' : 'text-slate-400 hover:text-white after:opacity-0'}`}
                 >
                   {item.label}
-                </a>
+                </Link>
               ))}
               <button
                 onClick={() => {
@@ -125,9 +132,9 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               ) : user ? (
                 <>
                   {/* Credits badge */}
-                  <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 shrink-0">
-                    <Zap size={13} className="text-blue-600" />
-                    <span className="inline-flex min-w-[70px] items-center justify-center text-xs font-bold tabular-nums text-blue-700">
+                    <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 shrink-0">
+                      <Zap size={13} className="text-amber-400" />
+                      <span className="inline-flex min-w-[70px] items-center justify-center text-xs font-bold tabular-nums text-amber-300">
                       {credits ?? '—'} {t('credits_label')}
                     </span>
                   </div>
@@ -213,14 +220,14 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               { label: t('nav_credits'), href: '/pricing' },
               { label: t('nav_trends'), href: '/trends' },
             ].map((item) => (
-              <a
+              <Link
                 key={item.label}
                 href={item.href}
-                className="block px-4 py-2.5 text-sm text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition-all"
+                className={`block px-4 py-2.5 text-sm transition-colors ${isActive(item.href) ? 'font-bold text-amber-300' : 'text-slate-400 hover:text-white'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
             <div className="h-px bg-white/8 my-2" />
             <button onClick={() => { 
