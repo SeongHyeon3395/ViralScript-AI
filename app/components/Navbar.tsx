@@ -74,10 +74,10 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
       >
         {/* Top announcement bar — 로그인 시 숨김 */}
         {!user && !isLoading && (
-          <div className="border-b border-slate-200 bg-gradient-to-r from-blue-50 via-white to-teal-50 px-4 py-1.5 text-center hidden sm:block">
-            <p className="text-xs text-white/60">
+          <div className="border-b border-amber-400/20 bg-gradient-to-r from-amber-500/15 via-violet-500/10 to-cyan-500/15 px-3 py-2 text-center">
+            <p className="text-xs text-slate-200">
               {t('announcement_bonus')}{' '}
-              <button onClick={openSignup} className="text-violet-400 hover:text-violet-300 font-semibold transition-colors underline underline-offset-2">
+              <button onClick={openSignup} className="font-bold text-amber-300 underline decoration-amber-300/50 underline-offset-2 transition-colors hover:text-amber-200 hover:decoration-amber-200">
                 {t('announcement_signup')}
               </button>
             </p>
@@ -102,7 +102,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`relative px-4 py-2 text-sm transition-colors after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-amber-400 after:transition-opacity ${isActive(item.href) ? 'font-bold text-amber-300 after:opacity-100' : 'text-slate-400 hover:text-white after:opacity-0'}`}
+                  className={`relative rounded-lg border border-transparent px-4 py-2 text-sm transition-colors after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-amber-400 after:transition-opacity ${isActive(item.href) ? 'font-bold text-amber-300 after:opacity-100' : 'text-slate-400 after:opacity-0 hover:border-amber-300/35 hover:bg-amber-400/5 hover:text-white'}`}
                 >
                   {item.label}
                 </Link>
@@ -115,7 +115,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                     openLogin();
                   }
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm text-emerald-400/70 hover:text-emerald-300 rounded-lg hover:bg-emerald-500/8 transition-all"
+                className="flex items-center gap-1.5 rounded-lg border border-transparent px-4 py-2 text-sm text-emerald-400/70 transition-all hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
               >
                 <Users size={14} />
                 {t('nav_invite')}
@@ -185,15 +185,15 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 </>
               ) : (
                 <>
-                  <button
+                    <button
                     onClick={openLogin}
-                    className="px-3 sm:px-4 py-2 text-sm font-medium text-white/70 hover:text-white rounded-xl hover:bg-white/8 transition-all"
+                    className="rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-slate-300 transition-all hover:border-amber-300/45 hover:bg-amber-400/10 hover:text-white sm:px-4"
                   >
                     {t('nav_login')}
                   </button>
                   <button
                     onClick={openSignup}
-                    className="hidden sm:block px-4 py-2 text-sm font-bold text-white rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all"
+                    className="hidden rounded-xl border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-cyan-500/15 transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400 hover:shadow-cyan-500/30 sm:block"
                   >
                     {t('nav_signup')}
                   </button>
@@ -223,7 +223,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`block px-4 py-2.5 text-sm transition-colors ${isActive(item.href) ? 'font-bold text-amber-300' : 'text-slate-400 hover:text-white'}`}
+                className={`block rounded-lg border border-transparent px-4 py-2.5 text-sm transition-colors ${isActive(item.href) ? 'font-bold text-amber-300' : 'text-slate-400 hover:border-amber-300/35 hover:bg-amber-400/5 hover:text-white'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
@@ -237,13 +237,13 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 openLogin();
               }
               setMobileMenuOpen(false); 
-            }} className="w-full text-left px-4 py-2.5 text-sm text-emerald-400/70 hover:text-emerald-300 rounded-xl hover:bg-emerald-500/8 transition-all">
+            }} className="w-full rounded-lg border border-transparent px-4 py-2.5 text-left text-sm text-emerald-400/70 transition-all hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300">
               {t('nav_mobile_invite')}
             </button>
-            <button onClick={openLogin} className="w-full text-left px-4 py-2.5 text-sm text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition-all">
+            <button onClick={openLogin} className="w-full rounded-lg border border-transparent px-4 py-2.5 text-left text-sm text-slate-300 transition-all hover:border-amber-300/45 hover:bg-amber-400/10 hover:text-white">
               {t('nav_login')}
             </button>
-            <button onClick={openSignup} className="w-full text-left px-4 py-2.5 text-sm font-bold text-white rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600">
+            <button onClick={openSignup} className="w-full rounded-lg border border-cyan-300/35 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2.5 text-left text-sm font-bold text-white transition-all hover:border-cyan-200/80 hover:from-violet-500 hover:to-cyan-400">
               {t('nav_start_free')}
             </button>
           </div>
