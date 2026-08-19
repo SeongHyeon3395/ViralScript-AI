@@ -24,7 +24,7 @@ function assertPaymentEnabled(): NextResponse | null {
 
 // ─── GET /api/v1/billing — 플랜 목록 및 현재 구독 조회 ───────────────────────
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
   const gate = assertPaymentEnabled();
   if (gate) return gate;
 

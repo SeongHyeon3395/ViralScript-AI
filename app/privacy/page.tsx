@@ -17,7 +17,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 prose prose-invert prose-sm max-w-none [&_h3]:text-violet-300 [&_h3]:font-bold [&_h3]:text-base [&_strong]:text-white/80 [&_li]:text-white/60 [&_p]:text-white/60 [&_td]:text-white/50 [&_th]:text-white/70 [&_table]:border-slate-700 [&_th]:bg-slate-800/50 [&_td]:border-t [&_td]:border-slate-700/50 [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2">
-          <p>ViralScript AI(이하 "회사" 또는 "플랫폼")은 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」 등 관련 법령을 철저히 준수합니다. 본 방침은 플랫폼이 어떠한 정보를 수집하고, 어떻게 이용하며, 안전하게 보호하는지 안내합니다.</p>
+          <p>ViralScript AI(이하 &quot;회사&quot; 또는 &quot;플랫폼&quot;)은 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」 등 관련 법령을 철저히 준수합니다. 본 방침은 플랫폼이 어떠한 정보를 수집하고, 어떻게 이용하며, 안전하게 보호하는지 안내합니다.</p>
 
           <h3>1. 수집하는 개인정보의 항목 및 수집 방법</h3>
           <p>플랫폼은 최소한의 개인정보만을 수집하며, 민감한 금융 정보나 원본 미디어 파일을 수집하지 않습니다.</p>
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
 
           <h3>5. 이용자의 권리와 그 행사 방법</h3>
           <p>1. 이용자는 언제든지 자신의 개인정보를 조회하거나 수정할 수 있으며, 회원 탈퇴를 통해 개인정보 이용 및 수집에 대한 동의를 철회할 수 있습니다.<br />
-          2. 동의 철회 및 데이터 삭제 요청은 플랫폼 내 '계정 설정' 메뉴 또는 아래 문의 메일을 통해 서면으로 요청할 수 있으며, 플랫폼은 지체 없이 조치합니다.</p>
+          2. 동의 철회 및 데이터 삭제 요청은 플랫폼 내 &apos;계정 설정&apos; 메뉴 또는 아래 문의 메일을 통해 서면으로 요청할 수 있으며, 플랫폼은 지체 없이 조치합니다.</p>
 
           <h3>6. 개인정보의 안전성 확보 조치</h3>
           <p>1. <strong>[보안 아키텍처]</strong> 모든 통신은 HTTPS SSL 암호화를 통하여 전송되며, Supabase의 RLS(Row Level Security) 보안 정책을 통해 타 이용자의 데이터 접근을 물리적으로 차단합니다.<br />

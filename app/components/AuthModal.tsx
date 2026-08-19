@@ -58,21 +58,48 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [resendEnabled, setResendEnabled] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const resetForm = useCallback(() => {
+    setEmail('');
+    setPassword('');
+    setPasswordError('');
+    setName('');
+    setPhoneCountryCode('+82');
+    setPhoneNumber('');
+    setShowPassword(false);
+    setMessage(null);
+    setEmailSent(false);
+    setFoundEmailResult(null);
+    setVerifyCountdown(VERIFY_TIMEOUT);
+    setVerifyExpired(false);
+    setResendEnabled(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
+
+  const resetVerificationTimer = useCallback(() => {
+    setVerifyCountdown(VERIFY_TIMEOUT);
+    setVerifyExpired(false);
+    setResendEnabled(false);
+  }, []);
+
   // initialMode가 바뀌면 mode도 동기화
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
       resetForm();
       setMode(initialMode);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialMode]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, initialMode, resetForm]);
 
   // 인증 카운트다운 타이머
   useEffect(() => {
     if (!emailSent) return;
-    setVerifyCountdown(VERIFY_TIMEOUT);
-    setVerifyExpired(false);
-    setResendEnabled(false);
 
     timerRef.current = setInterval(() => {
       setVerifyCountdown((c) => {
@@ -96,23 +123,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     const sec = s % 60;
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   }, []);
-
-  function resetForm() {
-    setEmail('');
-    setPassword('');
-    setPasswordError('');
-    setName('');
-    setPhoneCountryCode('+82');
-    setPhoneNumber('');
-    setShowPassword(false);
-    setMessage(null);
-    setEmailSent(false);
-    setFoundEmailResult(null);
-    setVerifyCountdown(VERIFY_TIMEOUT);
-    setVerifyExpired(false);
-    setResendEnabled(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-  }
 
   function switchMode(newMode: AuthMode) {
     resetForm();
@@ -165,6 +175,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         }
 
         // signUp 성공 → 이메일 인증 안내 화면 + 타이머 시작
+        resetVerificationTimer();
         setEmailSent(true);
         setMessage({ type: 'success', text: t('auth_email_sent_desc') });
         setLoading(false);
@@ -192,6 +203,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
           setMessage({ type: 'error', text: msg || t('auth_network_error') });
         } else {
+          resetVerificationTimer();
           setEmailSent(true);
           setMessage({ type: 'success', text: t('auth_signup_success') });
         }
@@ -288,9 +300,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 try {
                   const supabase = getSupabaseBrowserClient();
                   await supabase.auth.resend({ type: 'signup', email });
-                  setVerifyCountdown(VERIFY_TIMEOUT);
-                  setVerifyExpired(false);
-                  setResendEnabled(false);
+                  resetVerificationTimer();
                   if (timerRef.current) clearInterval(timerRef.current);
                   // re-trigger timer
                   setEmailSent(false);

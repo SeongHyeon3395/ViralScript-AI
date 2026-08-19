@@ -2,18 +2,14 @@
 
 import { useState } from 'react';
 import {
-  Shuffle,
   Sparkles,
-  RefreshCw,
   Loader2,
   Check,
   Copy,
-  Music,
   Drama,
   Laugh,
   Heart,
   Zap,
-  AlertTriangle,
 } from 'lucide-react';
 import { t } from './LanguageSwitcher';
 
@@ -62,7 +58,7 @@ interface RemixPanelProps {
   onRemixComplete?: (result: string) => void;
 }
 
-export default function RemixPanel({ originalPrompt, targetProduct, onRemixComplete }: RemixPanelProps) {
+export default function RemixPanel({ targetProduct, onRemixComplete }: RemixPanelProps) {
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);

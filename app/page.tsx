@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import {
   Sparkles, Rocket, ArrowRight, Play, Globe, BarChart3, Film, Zap,
-  Gift, Star, Shield, Users,
+  Gift, Star, Users,
 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -28,15 +28,6 @@ const STATS = [
 
 export default function Home() {
   const navbarRef = useRef<NavbarRef>(null);
-  const [credits, setCredits] = useState(0);
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  
-  function handleRewardClaimed(amount: number) { setCredits(c => c + amount); }
-
   function handleTrendGenerate(url: string) {
     if (!navbarRef.current?.getUser()) {
       navbarRef.current?.openLoginModal();
@@ -45,8 +36,6 @@ export default function Home() {
     window.location.href = `/generator?url=${encodeURIComponent(url)}`;
   }
   
-  if (!mounted) return null;
-
   return (
     <>
       <Navbar ref={navbarRef} />
@@ -134,7 +123,7 @@ export default function Home() {
       </main>
 
       <Footer />
-      <DailyRewardWheel onClaim={handleRewardClaimed} />
+      <DailyRewardWheel />
     </>
   );
 }
