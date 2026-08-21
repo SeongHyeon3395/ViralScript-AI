@@ -13,7 +13,7 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const SESSION_TIMEOUT_MS = 43_200_000;
+const SESSION_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 const SESSION_TIMESTAMP_KEY = 'auth_login_at';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

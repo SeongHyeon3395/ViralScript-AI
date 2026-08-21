@@ -25,6 +25,22 @@ const SLICES = [
 
 const SEGMENT = 360 / SLICES.length;
 const POINTER_ANGLE = 270;
+const WHEEL_RADIUS = 48;
+
+function polarToCartesian(angle: number, radius = WHEEL_RADIUS) {
+  const radians = (angle * Math.PI) / 180;
+  return {
+    x: 50 + radius * Math.cos(radians),
+    y: 50 + radius * Math.sin(radians),
+  };
+}
+
+function getSlicePath(index: number) {
+  const start = polarToCartesian(index * SEGMENT);
+  const end = polarToCartesian((index + 1) * SEGMENT);
+  const largeArcFlag = SEGMENT > 180 ? 1 : 0;
+  return `M 50 50 L ${start.x} ${start.y} A ${WHEEL_RADIUS} ${WHEEL_RADIUS} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+}
 
 function alignedRotation(currentRotation: number, winnerIndex: number): number {
   const winnerCenter = winnerIndex * SEGMENT + SEGMENT / 2;
@@ -223,23 +239,43 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
             <div className="relative w-64 h-64 mx-auto mb-6">
               {/* Wheel container (색상 + 레이블 함께 회전) */}
               <div
-                className="w-full h-full rounded-full relative overflow-hidden border-4 border-white/20 shadow-2xl"
+                className="relative h-full w-full rounded-full border-4 border-white/20 bg-[#0d0d14] p-1 shadow-2xl"
                 style={{
-                  background: `conic-gradient(${SLICES.map((slice, i) => `${slice.color} ${i * SEGMENT}deg ${(i + 1) * SEGMENT}deg`).join(', ')})`,
                   transform: `rotate(${rotation}deg)`,
                   transition: spinning ? 'transform 2.8s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
                 }}
+                role="img"
+                aria-label={t('daily_roulette_title')}
               >
+                <svg viewBox="0 0 100 100" className="block h-full w-full rounded-full" aria-hidden="true">
+                  {SLICES.map((slice, i) => (
+                    <path
+                      key={slice.label + i}
+                      d={getSlicePath(i)}
+                      fill={slice.color}
+                      stroke="#0d0d14"
+                      strokeWidth="1.1"
+                      strokeLinejoin="round"
+                    />
+                  ))}
+                  <circle cx="50" cy="50" r="47.8" fill="none" stroke="rgba(255,255,255,0.24)" strokeWidth="1" />
+                </svg>
+
                 {SLICES.map((slice, i) => {
-                  const angle = i * SEGMENT;
-                  const midAngle = angle + SEGMENT / 2;
-                  const r = 38;
-                  const x = 50 + r * Math.cos((midAngle * Math.PI) / 180);
-                  const y = 50 + r * Math.sin((midAngle * Math.PI) / 180);
+                  const point = polarToCartesian(i * SEGMENT + SEGMENT / 2, 35);
                   return (
-                    <div key={i} className="absolute text-white" style={{ top: `${y}%`, left: `${x}%`, transform: `translate(-50%, -50%) rotate(${midAngle + 90}deg)`, transformOrigin: 'center', fontSize: '11px', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,0.7)', pointerEvents: 'none' }}>
+                    <span
+                      key={slice.label + '-label-' + i}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold text-white"
+                      style={{
+                        top: `${point.y}%`,
+                        left: `${point.x}%`,
+                        textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+                        pointerEvents: 'none',
+                      }}
+                    >
                       {slice.label}
-                    </div>
+                    </span>
                   );
                 })}
                 {/* Center circle */}

@@ -182,7 +182,12 @@ async function collectYouTube(region: Region): Promise<TrendRow[]> {
     };
   }).filter((row: TrendRow & { sourceText?: string }) => validPermalink(row.platform, row.video_url)
     && !isKidsContent(row.sourceText ?? row.title)
-    && matchesRegionLanguage(region, row.title));
+    && matchesRegionLanguage(region, row.title))
+    .map((row: TrendRow & { sourceText?: string }) => {
+      const { sourceText, ...dbRow } = row;
+      void sourceText;
+      return dbRow;
+    });
   return rows.slice(0, TARGET_PER_PLATFORM);
 }
 

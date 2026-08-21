@@ -40,7 +40,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
     : user?.email?.split('@')[0] ?? '사용자';
 
   function isActive(href: string) {
-    if (href === '/trends') return pathname === '/' || pathname.startsWith('/trends');
+    if (href === '/trends') return pathname === '/trends' || pathname.startsWith('/trends/');
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 

@@ -53,7 +53,6 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2 w-full sm:w-auto">
               <a href="/generator" className="btn-primary flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto"><Rocket size={16} />{t('cta_start')}<ArrowRight size={15} /></a>
-              <a href="/pricing" className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white border border-white/10 hover:bg-white/5 transition-all w-full sm:w-auto"><Play size={14} />{t('cta_credits')}</a>
             </div>
           </div>
         </section>
