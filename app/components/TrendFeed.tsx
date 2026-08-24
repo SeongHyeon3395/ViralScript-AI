@@ -8,7 +8,7 @@ import { t } from './LanguageSwitcher';
 
 interface TrendItem {
   id: string; platform: string; region: string;
-  title: string; subtitle: string; views: string; likes: string; tags: string; video_url?: string | null;
+  title: string; subtitle: string; views: string; likes: string; tags: string; thumb_url?: string | null; video_url?: string | null;
   created_at?: string;
 }
 
@@ -19,7 +19,7 @@ const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'tr
 
 const INITIAL_LOAD = 6;
 const LOAD_MORE_COUNT = 9;
-const MAX_TRENDS = 15;
+const MAX_VISIBLE_TRENDS = 60;
 
 interface TrendFeedProps {
   onGenerate?: (url: string, platform: string) => void;
@@ -64,7 +64,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
         const payload = await response.json() as { trends?: TrendItem[]; updatedAt?: string | null };
         if (cancelled) return;
 
-        const loadedTrends = (payload.trends ?? []).slice(0, MAX_TRENDS);
+        const loadedTrends = payload.trends ?? [];
         setTrends(loadedTrends);
         setLastUpdated(payload.updatedAt ?? loadedTrends[0]?.created_at ?? null);
       } catch (err) {
@@ -137,8 +137,9 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
     if (sortOrder === 'popular') return parseCount(right.views) - parseCount(left.views);
     return new Date(right.created_at ?? 0).getTime() - new Date(left.created_at ?? 0).getTime();
   });
-  const displayed = sorted.slice(0, visibleCount);
-  const hasMore = visibleCount < sorted.length;
+  const cappedTotal = Math.min(sorted.length, MAX_VISIBLE_TRENDS);
+  const displayed = sorted.slice(0, Math.min(visibleCount, MAX_VISIBLE_TRENDS));
+  const hasMore = visibleCount < cappedTotal;
 
   return (
     <div className="space-y-5">
@@ -215,6 +216,15 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
                   className="trend-card rounded-2xl p-5 card-hover cursor-pointer"
                   style={{ border: selectedTrendId === item.id ? '1px solid rgba(8,145,178,0.55)' : undefined }}
                 >
+                  {item.thumb_url && (
+                    <div
+                      className="mb-4 overflow-hidden rounded-xl bg-white/5 aspect-video bg-cover bg-center transition-transform duration-300 hover:scale-105"
+                      role="img"
+                      aria-label={item.title}
+                      style={{ backgroundImage: `url(${JSON.stringify(item.thumb_url)})` }}
+                    >
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center"><Icon size={12} className={color} /></div>
                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{item.platform}</span>
@@ -246,7 +256,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
             <div className="flex justify-center gap-3 pt-4">
               {hasMore && (
                 <button
-                  onClick={() => setVisibleCount((c) => Math.min(c + LOAD_MORE_COUNT, MAX_TRENDS))}
+                  onClick={() => setVisibleCount((c) => Math.min(c + LOAD_MORE_COUNT, MAX_VISIBLE_TRENDS))}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all"
                 >
                   {t('trend_load_more')} <ChevronDown size={14} />

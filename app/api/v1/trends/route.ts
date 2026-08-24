@@ -11,7 +11,7 @@ export async function GET(): Promise<NextResponse> {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('trend_feed')
-      .select('id, platform, region, title, subtitle, views, likes, tags, video_url, url, created_at')
+      .select('id, platform, region, title, subtitle, views, likes, tags, thumb_url, video_url, url, created_at')
       .order('created_at', { ascending: false })
       .limit(500);
 
