@@ -41,6 +41,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Supabase recovery snapshots (may contain production data)
+/supabase/backups/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
