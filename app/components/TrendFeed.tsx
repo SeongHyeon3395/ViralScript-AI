@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Music, Play, Eye, Heart, RefreshCw, Loader2, ChevronDown, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
+import { Music, Play, Eye, Heart, RefreshCw, Loader2, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 
@@ -17,12 +17,13 @@ const PLATFORM_COLORS: Record<string, string> = { tiktok: 'text-pink-400', TikTo
 const REGION_FLAGS: Record<string, string> = { US: '🇺🇸', KR: '🇰🇷', JP: '🇯🇵' };
 const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'trend_region_kr', US: 'trend_region_us', JP: 'trend_region_jp' };
 
-const INITIAL_LOAD = 6;
-const LOAD_MORE_COUNT = 9;
-const MAX_VISIBLE_TRENDS = 60;
+const HOME_INITIAL_COUNT = 6;
+const HOME_PAGE_SIZE = 12;
+const FULL_PAGE_SIZE = 24;
 
 interface TrendFeedProps {
   onGenerate?: (url: string, platform: string) => void;
+  mode?: 'home' | 'fullPage';
 }
 
 function SkeletonCard() {
@@ -44,14 +45,16 @@ function SkeletonCard() {
   );
 }
 
-export default function TrendFeed({ onGenerate }: TrendFeedProps) {
+export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps) {
+  const isFullPage = mode === 'fullPage';
   const router = useRouter();
   const [trends, setTrends] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'tiktok' | 'youtube'>('all');
   const [activeRegion, setActiveRegion] = useState<'all' | 'KR' | 'US' | 'JP'>('all');
   const [sortOrder, setSortOrder] = useState<'latest' | 'popular'>('latest');
-  const [visibleCount, setVisibleCount] = useState(INITIAL_LOAD);
+  const [homeExpanded, setHomeExpanded] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedTrendId, setSelectedTrendId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -78,7 +81,8 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
     const channel = getSupabaseBrowserClient()
       .channel('trend-feed-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trend_feed' }, () => {
-        setVisibleCount(INITIAL_LOAD);
+        setHomeExpanded(false);
+        setCurrentPage(1);
         fetchTrends();
       })
       .subscribe();
@@ -127,6 +131,16 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
     return Number.parseFloat(normalized.replace(/[^0-9.]/g, '')) * multiplier || 0;
   }
 
+  function resetPagination() {
+    setHomeExpanded(false);
+    setCurrentPage(1);
+  }
+
+  function changePage(page: number) {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   const kstFormattedTime = lastUpdated ? formatKstTime(lastUpdated) : null;
 
   let filtered = activeFilter === 'all' ? trends : trends.filter((t) => toFilterKey(t.platform) === activeFilter);
@@ -137,9 +151,14 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
     if (sortOrder === 'popular') return parseCount(right.views) - parseCount(left.views);
     return new Date(right.created_at ?? 0).getTime() - new Date(left.created_at ?? 0).getTime();
   });
-  const cappedTotal = Math.min(sorted.length, MAX_VISIBLE_TRENDS);
-  const displayed = sorted.slice(0, Math.min(visibleCount, MAX_VISIBLE_TRENDS));
-  const hasMore = visibleCount < cappedTotal;
+  const pageSize = isFullPage ? FULL_PAGE_SIZE : HOME_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const displayed = isFullPage
+    ? sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : homeExpanded
+      ? sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+      : sorted.slice(0, HOME_INITIAL_COUNT);
+  const hasHomeMore = !isFullPage && !homeExpanded && sorted.length > HOME_INITIAL_COUNT;
 
   return (
     <div className="space-y-5">
@@ -154,7 +173,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
           </div>
         </div>
         <button
-          onClick={() => { setLoading(true); setRefreshKey(k => k + 1); }}
+          onClick={() => { setLoading(true); resetPagination(); setRefreshKey(k => k + 1); }}
           className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition-colors"
           title="새로고침"
         >
@@ -165,7 +184,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
       {/* Platform filters */}
       <div className="flex gap-1.5">
         {(['all', 'tiktok', 'youtube'] as const).map((f) => (
-          <button key={f} onClick={() => { setActiveFilter(f); setVisibleCount(INITIAL_LOAD); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeFilter === f ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
+          <button key={f} onClick={() => { setActiveFilter(f); resetPagination(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeFilter === f ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
             {f === 'all' ? t('trend_filter_all') : f === 'tiktok' ? 'TikTok' : 'YouTube'}
           </button>
         ))}
@@ -175,7 +194,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
         {(['latest', 'popular'] as const).map((order) => (
           <button
             key={order}
-            onClick={() => { setSortOrder(order); setVisibleCount(INITIAL_LOAD); }}
+            onClick={() => { setSortOrder(order); resetPagination(); }}
             className={`trend-sort-button px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortOrder === order ? 'is-active' : ''}`}
           >
             {order === 'latest' ? '최신순' : '인기순'}
@@ -186,7 +205,7 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
       {/* Region filters */}
       <div className="flex gap-1.5">
         {(['all', 'KR', 'US', 'JP'] as const).map((r) => (
-          <button key={r} onClick={() => { setActiveRegion(r); setVisibleCount(INITIAL_LOAD); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRegion === r ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
+          <button key={r} onClick={() => { setActiveRegion(r); resetPagination(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRegion === r ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
             {r === 'all' ? t('trend_region_all') : `${REGION_FLAGS[r] ?? ''} ${t(REGION_LABELS[r])}`}
           </button>
         ))}
@@ -252,25 +271,48 @@ export default function TrendFeed({ onGenerate }: TrendFeedProps) {
               );
             })}
           </div>
-          {(hasMore || visibleCount > INITIAL_LOAD) && (
-            <div className="flex justify-center gap-3 pt-4">
-              {hasMore && (
-                <button
-                  onClick={() => setVisibleCount((c) => Math.min(c + LOAD_MORE_COUNT, MAX_VISIBLE_TRENDS))}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all"
-                >
-                  {t('trend_load_more')} <ChevronDown size={14} />
-                </button>
-              )}
-              {visibleCount > INITIAL_LOAD && (
-                <button
-                  onClick={() => setVisibleCount(INITIAL_LOAD)}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all"
-                >
-                  접기 <ChevronDown size={14} className="rotate-180" />
-                </button>
-              )}
+          {hasHomeMore && (
+            <div className="flex justify-center pt-4">
+              <button
+                onClick={() => { setHomeExpanded(true); setCurrentPage(1); }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all"
+              >
+                {t('trend_load_more')} <ChevronDown size={14} />
+              </button>
             </div>
+          )}
+          {((isFullPage && totalPages > 1) || (!isFullPage && homeExpanded && totalPages > 1)) && (
+            <nav className="flex flex-wrap items-center justify-center gap-1.5 pt-4" aria-label="Trend pages">
+              <button
+                type="button"
+                onClick={() => changePage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <button
+                  type="button"
+                  key={page}
+                  onClick={() => changePage(page)}
+                  aria-current={currentPage === page ? 'page' : undefined}
+                  className={`inline-flex items-center justify-center min-w-9 h-9 px-2 rounded-lg border text-sm font-semibold transition-colors ${currentPage === page ? 'border-cyan-400/50 bg-cyan-400/15 text-cyan-200' : 'border-white/10 bg-white/5 text-white/50 hover:text-white'}`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => changePage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                aria-label="Next page"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </nav>
           )}
         </>
       ) : (

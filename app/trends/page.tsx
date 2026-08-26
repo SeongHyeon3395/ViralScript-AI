@@ -29,7 +29,7 @@ export default function TrendsPage() {
             <h2 className="text-2xl sm:text-3xl font-bold text-white mt-3">{t('trends_page_title')}</h2>
             <p className="text-white/40 text-xs sm:text-sm mt-1">{t('trends_page_desc')}</p>
           </div>
-          <TrendFeed onGenerate={handleTrendGenerate} />
+          <TrendFeed onGenerate={handleTrendGenerate} mode="fullPage" />
         </div>
       </main>
       <Footer />
