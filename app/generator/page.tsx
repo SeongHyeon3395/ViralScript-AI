@@ -415,7 +415,7 @@ export default function GeneratorPage() {
       </main>
 
       <DailyRewardWheel onClaim={handleRewardClaimed} />
-      <RewardedAdPopup isOpen={rewardPopupOpen} onClose={() => setRewardPopupOpen(false)} onRewardClaimed={handleRewardClaimed} rewardAmount={3} />
+      <RewardedAdPopup isOpen={rewardPopupOpen} onClose={() => setRewardPopupOpen(false)} onRewardClaimed={handleRewardClaimed} rewardAmount={1} />
 
       {adBlockDetected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="alertdialog" aria-modal="true">

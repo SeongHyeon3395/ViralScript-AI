@@ -29,7 +29,7 @@ declare global {
 
 const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? 'ca-pub-3940256099942544';
 const ADSENSE_SLOT = process.env.NEXT_PUBLIC_ADSENSE_REWARDED_AD_SLOT ?? '5224354917';
-const REWARD_AMOUNT = 3;
+const REWARD_AMOUNT = 1;
 
 interface RewardedAdPopupProps {
   isOpen: boolean;
@@ -42,7 +42,7 @@ export default function RewardedAdPopup({
   isOpen,
   onClose,
   onRewardClaimed,
-  rewardAmount = 3,
+  rewardAmount = REWARD_AMOUNT,
 }: RewardedAdPopupProps) {
   const [phase, setPhase] = useState<'idle' | 'loading' | 'watching' | 'complete' | 'claimed' | 'error' | 'limit'>('idle');
   const [progress, setProgress] = useState(0);

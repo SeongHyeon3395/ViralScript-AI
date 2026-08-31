@@ -75,7 +75,7 @@ export const T: Record<Lang, Record<string, string>> = {
     free_roulette_desc: '매일 접속하고 룰렛을 돌려 최대 5 크레딧 획득',
     free_roulette_badge: '매일 무료',
     free_ad_title: '광고 보상 충전',
-    free_ad_desc: '30초 광고를 보고 즉시 3 크레딧 무료 충전 (하루 최대 5회)',
+    free_ad_desc: '30초 광고를 보고 즉시 1 크레딧 무료 충전 (하루 최대 5회)',
     free_ad_badge: '하루 5회',
     free_invite_title: '친구 초대',
     free_invite_desc: '친구가 가입하면 나도 3 크레딧, 친구도 3 크레딧',
@@ -190,7 +190,7 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Rewarded Ad Popup ───
     ad_watch_title: '광고 보고 크레딧 받기',
-    ad_watch_desc: '30초 광고를 시청하고 3 크레딧을 무료로 받으세요!',
+    ad_watch_desc: '30초 광고를 시청하고 1 크레딧을 무료로 받으세요!',
     ad_watch_btn: '광고 시청하기',
     ad_watching: '광고 시청 중...',
     ad_skip: '건너뛰기',
@@ -366,7 +366,7 @@ export const T: Record<Lang, Record<string, string>> = {
     free_roulette_desc: 'Log in daily and spin the roulette to earn up to 5 credits',
     free_roulette_badge: 'Daily Free',
     free_ad_title: 'Ad Reward Top-Up',
-    free_ad_desc: 'Watch a 30-second ad and get 3 free credits instantly (up to 5 times per day)',
+    free_ad_desc: 'Watch a 30-second ad and get 1 free credit instantly (up to 5 times per day)',
     free_ad_badge: '5x per Day',
     free_invite_title: 'Invite Friends',
     free_invite_desc: 'When a friend signs up, you get 3 credits and they get 3 credits',
@@ -481,7 +481,7 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Rewarded Ad Popup ───
     ad_watch_title: 'Watch Ad & Earn Credits',
-    ad_watch_desc: 'Watch a 30-second ad and get 3 free credits!',
+    ad_watch_desc: 'Watch a 30-second ad and get 1 free credit!',
     ad_watch_btn: 'Watch Ad',
     ad_watching: 'Watching ad...',
     ad_skip: 'Skip',
@@ -657,7 +657,7 @@ export const T: Record<Lang, Record<string, string>> = {
     free_roulette_desc: '每日登录并旋转轮盘，赢取最多5积分',
     free_roulette_badge: '每日免费',
     free_ad_title: '广告奖励充值',
-    free_ad_desc: '观看30秒广告，立即获得3免费积分（每日最多5次）',
+    free_ad_desc: '观看30秒广告，立即获得1免费积分（每日最多5次）',
     free_ad_badge: '每日5次',
     free_invite_title: '邀请好友',
     free_invite_desc: '好友注册后，你获得3积分，好友也获得3积分',
@@ -772,7 +772,7 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Rewarded Ad Popup ───
     ad_watch_title: '观看广告赚积分',
-    ad_watch_desc: '观看30秒广告，免费获得3积分！',
+    ad_watch_desc: '观看30秒广告，免费获得1积分！',
     ad_watch_btn: '观看广告',
     ad_watching: '正在观看广告...',
     ad_skip: '跳过',
@@ -948,7 +948,7 @@ export const T: Record<Lang, Record<string, string>> = {
     free_roulette_desc: '毎日ログインしてルーレットを回し、最大5クレジットを獲得',
     free_roulette_badge: '毎日無料',
     free_ad_title: '広告報酬チャージ',
-    free_ad_desc: '30秒の広告を視聴して即時3クレジットを無料チャージ（1日最大5回）',
+    free_ad_desc: '30秒の広告を視聴して即時1クレジットを無料チャージ（1日最大5回）',
     free_ad_badge: '1日5回',
     free_invite_title: '友達招待',
     free_invite_desc: '友達が登録すると、あなたも友達も3クレジット獲得',
@@ -1063,7 +1063,7 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Rewarded Ad Popup ───
     ad_watch_title: '広告を見てクレジット獲得',
-    ad_watch_desc: '30秒の広告を視聴して3クレジットを無料獲得！',
+    ad_watch_desc: '30秒の広告を視聴して1クレジットを無料獲得！',
     ad_watch_btn: '広告を視聴',
     ad_watching: '広告視聴中...',
     ad_skip: 'スキップ',

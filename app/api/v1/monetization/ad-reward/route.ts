@@ -23,7 +23,7 @@ function assertAdsEnabled(): NextResponse | null {
 // ─── POST /api/v1/monetization/ad-reward ─────────────────────────────────────
 // 구글 애드센스 rewardGranted 이벤트 발생 후 클라이언트가 호출하는 서버리스 엔드포인트.
 // Supabase RPC claim_credit_via_ad 를 통해 원자적으로 크레딧을 지급한다.
-// 일일 5회 제한, 어뷰징 방지는 DB 레이어에서 처리.
+// 일일 5회 제한, 1회 1크레딧 지급, 어뷰징 방지는 DB 레이어에서 처리.
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Feature Gate 확인
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // data = 최종 업데이트된 크레딧 잔여량 (INT)
   return NextResponse.json({
     success: true,
-    creditsAwarded: 3,
+    creditsAwarded: 1,
     currentCredits: data as number,
   });
 }
