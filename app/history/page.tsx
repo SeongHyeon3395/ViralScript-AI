@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   History, Trash2, ExternalLink, Zap, ChevronDown,
   Loader2, LogIn, ArrowRight, Film, Calendar, ShoppingBag,
+  Copy, Download, Eye,
 } from 'lucide-react';
 import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
@@ -18,6 +19,7 @@ interface HistoryItem {
   target_product_name: string;
   credits_used: number;
   created_at: string;
+  generated_json?: unknown;
 }
 
 function formatDate(iso: string): string {
@@ -46,6 +48,7 @@ export default function HistoryPage() {
   const [offset, setOffset] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const LIMIT = 20;
 
   async function fetchHistory(reset = false) {
@@ -179,6 +182,7 @@ export default function HistoryPage() {
                           <span className="truncate">{item.target_product_name}</span>
                         </div>
                       )}
+                      <p className="mb-2 text-xs text-white/40">영상 목적: {typeof item.generated_json === 'object' && item.generated_json && 'video_goal' in item.generated_json ? String(item.generated_json.video_goal || '미지정') : '기존 제작 결과'}</p>
 
                       {/* URL */}
                       <a
@@ -205,6 +209,9 @@ export default function HistoryPage() {
 
                     {/* 액션 */}
                     <div className="flex flex-col gap-2 shrink-0">
+                      <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/20 bg-cyan-400/8 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/15"><Eye size={12} />영상 제작 플랜 보기</button>
+                      <button onClick={() => void navigator.clipboard.writeText(JSON.stringify(item.generated_json ?? {}, null, 2))} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white"><Copy size={12} />프롬프트 복사</button>
+                      <button onClick={() => { const content = JSON.stringify(item.generated_json ?? {}, null, 2); const url = URL.createObjectURL(new Blob([content], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = `${item.project_title || 'production-plan'}.json`; a.click(); URL.revokeObjectURL(url); }} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white"><Download size={12} />JSON 다운로드</button>
                       <a
                         href={`/generator?url=${encodeURIComponent(item.source_url)}`}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-400/8 px-3 py-2 text-xs font-semibold text-violet-300 hover:bg-violet-400/15 transition-colors"
@@ -223,6 +230,7 @@ export default function HistoryPage() {
                       </button>
                     </div>
                   </div>
+                  {expandedId === item.id && <pre className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-white/8 bg-black/20 p-4 text-[11px] leading-relaxed text-white/55">{JSON.stringify(item.generated_json ?? { message: '기존 결과 상세 데이터가 없습니다.' }, null, 2)}</pre>}
                 </div>
               ))}
 

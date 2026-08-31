@@ -25,7 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const { data, error, count } = await supabase
     .from('user_generation_history')
-    .select('id, source_url, project_title, target_product_name, credits_used, created_at', {
+    .select('id, source_url, project_title, target_product_name, generated_json, credits_used, created_at', {
       count: 'exact',
     })
     .eq('user_id', userData.user.id)

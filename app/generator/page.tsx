@@ -7,6 +7,7 @@ import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import RemixPanel from '@/app/components/RemixPanel';
+import GenerationResult from '@/app/components/GenerationResult';
 import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { useAuth } from '@/app/components/AuthProvider';
@@ -89,6 +90,7 @@ function SceneCard({ scene, activeLocale }: { scene: SceneScript; activeLocale: 
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boolean }) {
   const [activeLocale, setActiveLocale] = useState<'kr' | 'us' | 'jp'>('kr');
   const [showRemix, setShowRemix] = useState(false);
@@ -122,7 +124,7 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
               )}
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(result.copy_ready_prompt_ko);
+                  navigator.clipboard.writeText(result.copy_ready_prompt_ko ?? '');
                   setPromptCopied(true);
                   setTimeout(() => setPromptCopied(false), 2000);
                 }}
@@ -167,12 +169,13 @@ export default function GeneratorPage() {
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('준비 중...');
   const [result, setResult] = useState<GenerationOutput | null>(null);
-  const [cached, setCached] = useState(false);
+  const [, setCached] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [rewardPopupOpen, setRewardPopupOpen] = useState(false);
   const [adBlockDetected, setAdBlockDetected] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+  const expectedScenes = Number.parseInt(duration, 10) <= 15 ? 5 : Number.parseInt(duration, 10) <= 30 ? 6 : 8;
 
   useEffect(() => {
     if (!loading) return;
@@ -293,7 +296,7 @@ export default function GeneratorPage() {
             </div>
 
             <div className="space-y-5">
-            <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+            <div id="content-options" className="rounded-2xl p-5 sm:p-7 space-y-5 scroll-mt-24" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-xs font-black">1</span><div><h3 className="text-sm font-bold text-white">참고 영상 입력</h3><p className="text-xs text-white/40">YouTube Shorts, TikTok 또는 최신 트렌드에서 선택한 영상을 입력하세요.</p></div></div>
               {trendReference && (
                 <div className="flex gap-3 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-3 fade-in-up">
@@ -343,7 +346,14 @@ export default function GeneratorPage() {
             </div>
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-4" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
-              <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">바이럴 구조 분석 및 제작 플랜 생성</h3><p className="text-xs text-white/40">참고 영상의 구조만 분석해 원본과 다른 새 콘텐츠를 설계합니다.</p></div></div>
+              <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">생성 옵션 확인</h3><p className="text-xs text-white/40">입력한 정보를 확인한 뒤 제작 플랜을 생성하세요.</p></div></div>
+              <div className="grid gap-2 rounded-xl border border-white/8 bg-white/[0.025] p-4 sm:grid-cols-2">
+                {[
+                  ['참고 영상', trendReference?.title || url], ['상품명', targetProduct || '미입력'], ['타깃 고객', targetAudience || '미입력'],
+                  ['영상 목적', purpose], ['영상 길이', duration], ['제작 방식', productionMethod], ['선택한 AI 도구', productionMethod === 'AI 영상 생성' ? aiVideoTool : '해당 없음'],
+                  ['예상 장면 수', `${expectedScenes}개`], ['생성 비용', '제작 플랜 생성 1회 — 5크레딧'],
+                ].map(([label, value]) => <div key={label} className="rounded-lg bg-black/15 p-3"><p className="text-[10px] font-bold text-white/35">{label}</p><p className="mt-1 truncate text-xs text-white/75">{value}</p></div>)}
+              </div>
               {credits !== undefined && credits < 5 && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
@@ -355,11 +365,12 @@ export default function GeneratorPage() {
                   <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />제작 플랜 생성 중... {progress}%</span>
                 ) : (
                   <>
-                    <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />{t('gen_analyze_btn')}<ArrowRight size={15} /></span>
+                    <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />제작 플랜 생성 — 5크레딧<ArrowRight size={15} /></span>
                     <span className="inline-flex min-w-[180px] items-center justify-center gap-1 text-xs text-white/60 font-normal tabular-nums"><Zap size={11} className="text-violet-300" />{t('gen_credits_balance').replace('{credits}', credits === undefined ? '—' : String(credits))} <span className="text-violet-200 font-semibold">{t('gen_credits_cost_range')}</span></span>
                   </>
                 )}
               </button>
+              <div className="flex flex-wrap justify-center gap-2"><button type="button" onClick={() => document.getElementById('content-options')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/55 hover:text-white">이전 단계</button><button type="button" onClick={() => document.getElementById('content-options')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs text-cyan-200 hover:bg-cyan-400/10">옵션 수정</button></div>
 
               {loading && (
                 <div className="space-y-2 rounded-xl border border-cyan-400/20 bg-cyan-400/5 px-4 py-3" role="status" aria-live="polite">
@@ -392,7 +403,7 @@ export default function GeneratorPage() {
               </div>
             )}
 
-            {result && <ResultPanel result={result} cached={cached} />}
+            {result && <GenerationResult result={result} creditsRemaining={credits} />}
           </div>
         </section>
         )}

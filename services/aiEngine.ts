@@ -2,19 +2,29 @@ import { GoogleGenAI } from '@google/genai';
 import { geminiOutputSchema } from './geminiSchema';
 import type { ScrapedMetadata, GenerationOutput } from '@/types';
 import { ERROR_CODES } from '@/types';
+import { normalizeGenerationOutput } from '@/lib/generationOutput';
 
 const GEMINI_MODEL = 'gemini-3.5-flash';
 
 function buildSystemInstruction(targetProduct: string): string {
   return `
-You are a world-class Chief Marketing Officer (CMO) and Viral Short-Form Creative Director.
-Your task is to analyze the provided raw transcript and metadata of a trending viral social media video, DECONSTRUCT its underlying psychological hook structure and pacing, and RECREATE a brand new, highly converting storyboard for the user's target product: "${targetProduct}".
+You are an AI video producer specializing in short-form advertising production.
+The reference video is not a replication target. Analyze only its viral structure, viewer psychology, scene transitions, pacing, and hook mechanics, then create a completely new production plan centered on "${targetProduct}".
 
 [STRICT LEGAL & COPYRIGHT COMPLIANCE RULES]
 1. NEVER quote, copy, or translate the exact sentences from the original transcript verbatim.
 2. Abstract ONLY the marketing mechanics (e.g., "Starts with a negative question", "Shows social proof at second 5", "Urgent CTA at the end").
 3. Apply these abstracted mechanics to create a 100% original script for "${targetProduct}".
-4. The output must be entirely new creative work — not a derivative of the source content.
+4. Never reproduce a distinctive person, scene, character, logo, brand expression, or music from the source.
+5. Separate restricted source-specific elements from reusable abstract mechanics.
+
+[REQUIRED PRODUCTION PLAN]
+- Create a strong original hook in the first 3 seconds and a clear final CTA.
+- Divide the plan into 5 to 8 timed scenes. Every scene needs a purpose and viewer emotion.
+- Give actionable visual, subject action, product placement, camera shot/movement/lens, lighting, color, narration, captions, SFX, and BGM directions.
+- Produce Korean, US English, and Japanese narration and captions.
+- Produce separate Veo, Runway, Kling, and generic prompts for every scene.
+- Produce a complete editing timeline and copyright/recreation compliance notes.
 
 [LOCALIZATION GUIDELINES — SINGLE PIPELINE, TRIPLE OUTPUT]
 For EACH scene, generate three fully localized audio scripts simultaneously:
@@ -22,15 +32,10 @@ For EACH scene, generate three fully localized audio scripts simultaneously:
 - KR (Korean): Fast-paced, emphasizes efficacy and trend sensitivity. Natural conversational tone for Korean Shorts audience. Use informal 반말 or friendly 존댓말 matching the brand tone.
 - JP (Japanese): Focus on reliability, empathy, and smooth problem-solving nuance. Avoid overly aggressive sales pitches. Prefer consultative, trust-first approach.
 
-[AI VIDEO GENERATION PROMPT RULE]
-- The field 'ai_video_prompt_en' MUST be written strictly in professional English.
-- Use cinematography terms: 'extreme close-up shot', 'cinematic lighting', 'shallow depth of field', '8k resolution', 'Unreal Engine 5 photorealistic render style', 'golden hour lighting', etc.
-- Optimize for Runway Gen-3 Alpha, Luma Dream Machine, or Midjourney v6.
+[AI VIDEO PROMPT TEMPLATE]
+Every ai_prompts value must be detailed English and begin with "Create a vertical 9:16 short-form video shot lasting exactly {duration} seconds." Include scene purpose, subject, product, location, action, camera, movement, lens, lighting, color, performance, product visibility, background, motion, audio, and continuity. End with quality constraints covering realistic physics, natural hands, correct object count, no distorted anatomy, no extra fingers, no random text, no watermark, no unintended or deformed logos, no flickering, no costume changes, no product deformation, no camera jump, and no inconsistent background. Maintain the same subject and product appearance across scenes.
 
-[MOBILE COPY-PASTE PROMPT]
-- Also generate 'copy_ready_prompt_ko' as a single Korean master prompt that a user can paste into a phone note or another AI video tool.
-- It should include: source-video analysis summary, core hook, scene-by-scene shot directions, subtitle/tone guidance, aspect ratio, pacing, and a clear instruction to create an original video inspired by the mechanism but not copied.
-- Make it concise enough to copy on mobile, but detailed enough for direct AI use.
+Return valid JSON only. Do not output markdown or any explanation outside JSON.
 `.trim();
 }
 
@@ -108,8 +113,8 @@ export async function generateLocalizedScripts(
       throw new Error(ERROR_CODES.AI_MODERATION_BLOCK);
     }
 
-    const parsed: GenerationOutput = JSON.parse(rawText);
-    return parsed;
+    const parsed: unknown = JSON.parse(rawText);
+    return normalizeGenerationOutput(parsed);
   } catch (err) {
     if (err instanceof Error) {
       if (

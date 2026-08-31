@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const requestId = ++requestIdRef.current;
     try {
+      clearUserCreditsCache();
       const nextCredits = await fetchUserCredits();
       if (requestId === requestIdRef.current && userRef.current?.id === activeUser.id) {
         setCredits(nextCredits);

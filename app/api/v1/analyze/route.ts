@@ -6,6 +6,8 @@ import { generateLocalizedScripts } from '@/services/aiEngine';
 import { CREDIT_COST } from '@/lib/credits';
 import { ERROR_CODES } from '@/types';
 import type { AnalyzeRequest, AnalyzeResponse, GenerationOutput, Profile } from '@/types';
+import { normalizeGenerationOutput } from '@/lib/generationOutput';
+import { createHash } from 'node:crypto';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -124,6 +126,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   }
 
   const { platform, normalizedUrl, urlHash } = normalized;
+  const resultCacheKey = createHash('sha256').update(`${urlHash}\n${targetProduct}\n${userCustomPrompt ?? ''}\nschema-v2`).digest('hex');
   console.log('[analyze] route entry', {
     rawUrl: url,
     normalizedUrl,
@@ -135,7 +138,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   const { data: cached } = await supabase
     .from('script_cache')
     .select('analysis_result, hit_count')
-    .eq('url_hash', urlHash)
+    .eq('url_hash', resultCacheKey)
     .gt('expires_at', new Date().toISOString())
     .maybeSingle();
 
@@ -160,7 +163,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     supabase
       .from('script_cache')
       .update({ hit_count: (cached.hit_count ?? 1) + 1 })
-      .eq('url_hash', urlHash)
+      .eq('url_hash', resultCacheKey)
       .then(() => {});
 
     // 원자적 크레딧 차감 + 히스토리 저장
@@ -193,16 +196,19 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       .eq('id', user.id)
       .maybeSingle();
 
-    const cachedResult: GenerationOutput = {
-      ...(cached.analysis_result as GenerationOutput),
-      source_url: normalizedUrl,
-    };
+    let cachedResult: GenerationOutput;
+    try {
+      cachedResult = normalizeGenerationOutput(cached.analysis_result, normalizedUrl);
+    } catch {
+      return NextResponse.json({ success: false, error: 'Cached result is invalid. Please retry.', errorCode: ERROR_CODES.AI_GENERATION_FAILED }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
       data: cachedResult,
       cached: true,
       creditsRemaining: cachedProfile?.credits_remaining ?? profile.credits_remaining - creditCost,
+      creditCostApplied: creditCost,
     });
   }
 
@@ -265,10 +271,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  const enrichedResult: GenerationOutput = {
-    ...result,
-    source_url: normalizedUrl,
-  };
+  const enrichedResult = normalizeGenerationOutput({ ...result, source_url: normalizedUrl }, normalizedUrl);
 
   // 9. 크레딧 차감 + 히스토리 저장을 하나의 DB 트랜잭션으로 실행한다.
   // Gemini 호출은 이 RPC 전에 완료되므로 Gemini 실패 시 차감 자체가 발생하지 않는다.
@@ -299,7 +302,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   // 캐시 실패는 이미 과금/히스토리가 성공한 요청을 실패로 바꾸지 않는다.
   // 다음 요청에서 재생성될 뿐이며, 사용자 잔액은 일관되게 유지된다.
   const { error: cacheError } = await supabase.from('script_cache').upsert({
-    url_hash: urlHash,
+    url_hash: resultCacheKey,
     original_url: normalizedUrl,
     platform,
     video_duration_sec: metadata.durationSeconds,

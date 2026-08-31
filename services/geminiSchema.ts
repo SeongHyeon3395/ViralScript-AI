@@ -1,98 +1,21 @@
 import { Type, type Schema } from '@google/genai';
 
-/**
- * Google Gemini API 강제 출력 스키마 (JSON Schema)
- * responseSchema를 통해 마크다운 포맷팅 Hallucination을 원천 차단합니다.
- */
+const localizedText: Schema = { type: Type.OBJECT, properties: { kr: { type: Type.STRING }, us: { type: Type.STRING }, jp: { type: Type.STRING } }, required: ['kr', 'us', 'jp'] };
+const promptText: Schema = { type: Type.OBJECT, properties: { veo: { type: Type.STRING }, runway: { type: Type.STRING }, kling: { type: Type.STRING }, generic: { type: Type.STRING } }, required: ['veo', 'runway', 'kling', 'generic'] };
+
 export const geminiOutputSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    project_title: {
-      type: Type.STRING,
-      description: 'Professional project title incorporating the target product.',
-    },
-    target_product: {
-      type: Type.STRING,
-      description: "The name of the user's product being marketed.",
-    },
-    total_duration_seconds: {
-      type: Type.INTEGER,
-      description: 'Total duration matching the original video pacing.',
-    },
-    overall_viral_strategy: {
-      type: Type.STRING,
-      description: 'High-level marketing strategy explanation in Korean.',
-    },
-    copy_ready_prompt_ko: {
-      type: Type.STRING,
-      description:
-        'A Korean mobile-friendly master prompt that can be pasted into other AI video generators.',
-    },
-    scenes: {
-      type: Type.ARRAY,
-      description: 'Sequential breakdown of the short-form storyboard.',
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          scene_number: { type: Type.INTEGER },
-          timestamp: {
-            type: Type.STRING,
-            description: "e.g., '00:00 - 00:03'",
-          },
-          duration_seconds: { type: Type.INTEGER },
-          hook_strategy: {
-            type: Type.STRING,
-            description: 'Psychological trigger used in this specific scene.',
-          },
-          visual_direction: {
-            type: Type.STRING,
-            description: 'Detailed camera angle, lighting, and action instructions.',
-          },
-          ai_video_prompt_en: {
-            type: Type.STRING,
-            description:
-              '100% English prompt for AI video generators like Runway Gen-3 or Luma Dream Machine.',
-          },
-          audio_script: {
-            type: Type.OBJECT,
-            properties: {
-              kr: {
-                type: Type.STRING,
-                description:
-                  'Korean script localized for trendy e-commerce/short-form audience.',
-              },
-              us: {
-                type: Type.STRING,
-                description:
-                  'US English script localized with punchy, direct Gen-Z marketing tone.',
-              },
-              jp: {
-                type: Type.STRING,
-                description:
-                  'Japanese script localized with polite yet persuasive, empathetic tone.',
-              },
-            },
-            required: ['kr', 'us', 'jp'],
-          },
-        },
-        required: [
-          'scene_number',
-          'timestamp',
-          'duration_seconds',
-          'hook_strategy',
-          'visual_direction',
-          'ai_video_prompt_en',
-          'audio_script',
-        ],
-      },
-    },
+    schema_version: { type: Type.INTEGER }, project_title: { type: Type.STRING }, target_product: { type: Type.STRING }, concept: { type: Type.STRING },
+    target_audience: { type: Type.STRING }, video_goal: { type: Type.STRING }, duration_seconds: { type: Type.INTEGER }, overall_viral_strategy: { type: Type.STRING }, hook: { type: Type.STRING }, final_cta: { type: Type.STRING },
+    structure_analysis: { type: Type.OBJECT, properties: { hook_pattern: { type: Type.STRING }, audience_problem: { type: Type.STRING }, emotional_arc: { type: Type.STRING }, editing_pattern: { type: Type.STRING }, caption_pattern: { type: Type.STRING }, product_placement_pattern: { type: Type.STRING }, reusable_structure: { type: Type.STRING }, restricted_elements: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ['hook_pattern', 'audience_problem', 'emotional_arc', 'editing_pattern', 'caption_pattern', 'product_placement_pattern', 'reusable_structure', 'restricted_elements'] },
+    scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: {
+      scene_number: { type: Type.INTEGER }, start_time: { type: Type.STRING }, end_time: { type: Type.STRING }, purpose: { type: Type.STRING }, visual_description: { type: Type.STRING }, subject_description: { type: Type.STRING }, subject_action: { type: Type.STRING }, product_placement: { type: Type.STRING }, camera_shot: { type: Type.STRING }, camera_movement: { type: Type.STRING }, lens: { type: Type.STRING }, lighting: { type: Type.STRING }, color_mood: { type: Type.STRING }, emotion: { type: Type.STRING }, audio_script: localizedText, captions: localizedText, sound_effect: { type: Type.STRING }, background_music: { type: Type.STRING }, ai_prompts: promptText,
+    }, required: ['scene_number', 'start_time', 'end_time', 'purpose', 'visual_description', 'subject_description', 'subject_action', 'product_placement', 'camera_shot', 'camera_movement', 'lens', 'lighting', 'color_mood', 'emotion', 'audio_script', 'captions', 'sound_effect', 'background_music', 'ai_prompts'] } },
+    voiceover: localizedText,
+    captions: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { language: { type: Type.STRING }, text: { type: Type.STRING }, start_time: { type: Type.STRING }, end_time: { type: Type.STRING }, emphasis: { type: Type.STRING } }, required: ['language', 'text', 'start_time', 'end_time'] } },
+    editing_timeline: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { start_time: { type: Type.STRING }, end_time: { type: Type.STRING }, visual: { type: Type.STRING }, caption: { type: Type.STRING }, voiceover: { type: Type.STRING }, sound_effect: { type: Type.STRING }, background_music: { type: Type.STRING }, transition: { type: Type.STRING }, editing_note: { type: Type.STRING } }, required: ['start_time', 'end_time', 'visual', 'caption', 'voiceover', 'sound_effect', 'background_music', 'transition', 'editing_note'] } },
+    compliance_notes: { type: Type.ARRAY, items: { type: Type.STRING } },
   },
-  required: [
-    'project_title',
-    'target_product',
-    'total_duration_seconds',
-    'overall_viral_strategy',
-    'copy_ready_prompt_ko',
-    'scenes',
-  ],
+  required: ['schema_version', 'project_title', 'target_product', 'concept', 'target_audience', 'video_goal', 'duration_seconds', 'overall_viral_strategy', 'hook', 'final_cta', 'structure_analysis', 'scenes', 'voiceover', 'captions', 'editing_timeline', 'compliance_notes'],
 };

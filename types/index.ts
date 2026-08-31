@@ -87,24 +87,94 @@ export interface AudioScript {
   jp: string;
 }
 
+export type LocalizedCaptions = AudioScript;
+
+export interface AiVideoPrompts {
+  veo: string;
+  runway: string;
+  kling: string;
+  generic: string;
+}
+
 export interface SceneScript {
   scene_number: number;
-  timestamp: string; // e.g. "00:00 - 00:03"
-  duration_seconds: number;
-  hook_strategy: string;
-  visual_direction: string;
-  ai_video_prompt_en: string; // Runway/Midjourney 투입용 100% 영어 프롬프트
+  start_time: string;
+  end_time: string;
+  purpose: string;
+  visual_description: string;
+  subject_description: string;
+  subject_action: string;
+  product_placement: string;
+  camera_shot: string;
+  camera_movement: string;
+  lens: string;
+  lighting: string;
+  color_mood: string;
+  emotion: string;
   audio_script: AudioScript;
+  captions: LocalizedCaptions;
+  sound_effect: string;
+  background_music: string;
+  ai_prompts: AiVideoPrompts;
+  /** @deprecated 구형 저장 결과 호환 */
+  timestamp?: string;
+  /** @deprecated 구형 저장 결과 호환 */
+  duration_seconds?: number;
+  /** @deprecated 구형 저장 결과 호환 */
+  hook_strategy?: string;
+  /** @deprecated 구형 저장 결과 호환 */
+  visual_direction?: string;
+  /** @deprecated 구형 저장 결과 호환 */
+  ai_video_prompt_en?: string;
 }
 
 export interface GenerationOutput {
+  schema_version: 2;
+  source_url: string;
   project_title: string;
   target_product: string;
-  source_url?: string;
-  total_duration_seconds: number;
+  concept: string;
+  target_audience: string;
+  video_goal: string;
+  duration_seconds: number;
   overall_viral_strategy: string;
-  copy_ready_prompt_ko: string;
+  hook: string;
+  final_cta: string;
+  structure_analysis: {
+    hook_pattern: string;
+    audience_problem: string;
+    emotional_arc: string;
+    editing_pattern: string;
+    caption_pattern: string;
+    product_placement_pattern: string;
+    reusable_structure: string;
+    restricted_elements: string[];
+  };
   scenes: SceneScript[];
+  voiceover: AudioScript;
+  captions: Array<{
+    language: 'kr' | 'us' | 'jp';
+    text: string;
+    start_time: string;
+    end_time: string;
+    emphasis?: string;
+  }>;
+  editing_timeline: Array<{
+    start_time: string;
+    end_time: string;
+    visual: string;
+    caption: string;
+    voiceover: string;
+    sound_effect: string;
+    background_music: string;
+    transition: string;
+    editing_note: string;
+  }>;
+  compliance_notes: string[];
+  /** @deprecated 구형 저장 결과 호환 */
+  total_duration_seconds?: number;
+  /** @deprecated 구형 저장 결과 호환 */
+  copy_ready_prompt_ko?: string;
 }
 
 // ─── API 요청/응답 타입 ───────────────────────────────────
@@ -120,6 +190,9 @@ export interface AnalyzeResponse {
   data?: GenerationOutput;
   cached?: boolean;
   creditsRemaining?: number;
+  creditCostApplied?: number;
+  durationSeconds?: number;
+  requiredCredits?: number;
   error?: string;
   errorCode?: string;
 }

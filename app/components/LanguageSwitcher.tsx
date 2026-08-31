@@ -280,6 +280,11 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_sample_label: '원클릭 샘플:',
     gen_sample_us_tiktok: '미국 틱톡 100만뷰 챌린지',
     gen_sample_yt_shorts: '유튜브 쇼츠 지식창업',
+    plan_create: '바이럴 영상 제작 플랜 만들기', plan_new_from_structure: '이 구조로 새 영상 만들기', plan_view_original: '원본 영상 보기',
+    plan_generate_5: '제작 플랜 생성 — 5크레딧', plan_cost_5: '생성 1회 5크레딧', plan_label: '제작 플랜', plan_viral_structure: '바이럴 구조',
+    plan_scenes: '장면별 제작 플랜', plan_ai_prompts: 'AI 영상 프롬프트', plan_voice_captions: '음성·자막', plan_editing_timeline: '편집 타임라인',
+    plan_copy_veo: 'Veo 프롬프트 복사', plan_copy_runway: 'Runway 프롬프트 복사', plan_copy_kling: 'Kling 프롬프트 복사', plan_copy_generic: '범용 프롬프트 복사',
+    plan_copy_all: '전체 결과 복사', plan_download_json: 'JSON 다운로드', plan_original_structure: '원본 구조를 참고한 새 콘텐츠', plan_original_recreation: '원본을 복제하지 않은 재창작 결과',
 
     // ─── Remix Panel ───
     remix_title: 'AI 리믹스',
@@ -566,6 +571,11 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_sample_label: 'Try a Sample:',
     gen_sample_us_tiktok: 'US TikTok 1M View Challenge',
     gen_sample_yt_shorts: 'YouTube Shorts Knowledge Biz',
+    plan_create: 'Create a Viral Video Production Plan', plan_new_from_structure: 'Create a New Video from This Structure', plan_view_original: 'View Original Video',
+    plan_generate_5: 'Generate Production Plan — 5 Credits', plan_cost_5: '5 Credits per Generation', plan_label: 'Production Plan', plan_viral_structure: 'Viral Structure',
+    plan_scenes: 'Scene Production Plan', plan_ai_prompts: 'AI Video Prompts', plan_voice_captions: 'Voice & Captions', plan_editing_timeline: 'Editing Timeline',
+    plan_copy_veo: 'Copy Veo Prompt', plan_copy_runway: 'Copy Runway Prompt', plan_copy_kling: 'Copy Kling Prompt', plan_copy_generic: 'Copy Generic Prompt',
+    plan_copy_all: 'Copy All Results', plan_download_json: 'Download JSON', plan_original_structure: 'New Content Inspired by the Original Structure', plan_original_recreation: 'A Recreation That Does Not Copy the Original',
 
     // ─── Remix Panel ───
     remix_title: 'AI Remix',
@@ -852,6 +862,11 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_sample_label: '一键试用：',
     gen_sample_us_tiktok: '美国TikTok百万观看挑战',
     gen_sample_yt_shorts: 'YouTube Shorts知识创业',
+    plan_create: '创建爆款视频制作方案', plan_new_from_structure: '用此结构制作新视频', plan_view_original: '查看原始视频',
+    plan_generate_5: '生成制作方案 — 5积分', plan_cost_5: '每次生成5积分', plan_label: '制作方案', plan_viral_structure: '爆款结构',
+    plan_scenes: '逐场景制作方案', plan_ai_prompts: 'AI视频提示词', plan_voice_captions: '语音与字幕', plan_editing_timeline: '剪辑时间线',
+    plan_copy_veo: '复制Veo提示词', plan_copy_runway: '复制Runway提示词', plan_copy_kling: '复制Kling提示词', plan_copy_generic: '复制通用提示词',
+    plan_copy_all: '复制全部结果', plan_download_json: '下载JSON', plan_original_structure: '参考原始结构的新内容', plan_original_recreation: '未复制原作的再创作结果',
 
     // ─── Remix Panel ───
     remix_title: 'AI混音',
@@ -1138,6 +1153,11 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_sample_label: 'サンプルを試す：',
     gen_sample_us_tiktok: '米国TikTok 100万再生チャレンジ',
     gen_sample_yt_shorts: 'YouTube Shorts 知識起業',
+    plan_create: 'バイラル動画制作プランを作る', plan_new_from_structure: 'この構造で新しい動画を作る', plan_view_original: '元動画を見る',
+    plan_generate_5: '制作プラン生成 — 5クレジット', plan_cost_5: '1回5クレジット', plan_label: '制作プラン', plan_viral_structure: 'バイラル構造',
+    plan_scenes: 'シーン別制作プラン', plan_ai_prompts: 'AI動画プロンプト', plan_voice_captions: '音声・字幕', plan_editing_timeline: '編集タイムライン',
+    plan_copy_veo: 'Veoプロンプトをコピー', plan_copy_runway: 'Runwayプロンプトをコピー', plan_copy_kling: 'Klingプロンプトをコピー', plan_copy_generic: '汎用プロンプトをコピー',
+    plan_copy_all: '結果をすべてコピー', plan_download_json: 'JSONをダウンロード', plan_original_structure: '元の構造を参考にした新コンテンツ', plan_original_recreation: '元動画を複製しない再創作結果',
 
     // ─── Remix Panel ───
     remix_title: 'AIリミックス',
