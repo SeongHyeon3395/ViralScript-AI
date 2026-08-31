@@ -10,6 +10,7 @@ interface AuthContextValue {
   isLoading: boolean;
   credits: number | undefined;
   refreshCredits: () => Promise<void>;
+  applyCreditsFromServer: (credits: number) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -66,6 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Keep the last known balance when a refresh temporarily fails.
     }
+  }, []);
+
+  const applyCreditsFromServer = useCallback((nextCredits: number) => {
+    if (!Number.isFinite(nextCredits) || nextCredits < 0) return;
+    requestIdRef.current += 1;
+    clearUserCreditsCache();
+    setCredits(nextCredits);
   }, []);
 
   useEffect(() => {
@@ -136,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearSessionTimestamp, refreshCredits, setSessionTimestamp, triggerSessionKillSwitch]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, credits, refreshCredits }}>
+    <AuthContext.Provider value={{ user, isLoading, credits, refreshCredits, applyCreditsFromServer }}>
       {children}
     </AuthContext.Provider>
   );

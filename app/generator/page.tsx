@@ -149,7 +149,7 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
 
 export default function GeneratorPage() {
   const navbarRef = useRef<NavbarRef>(null);
-  const { user, isLoading: authLoading, credits, refreshCredits } = useAuth();
+  const { user, isLoading: authLoading, credits, refreshCredits, applyCreditsFromServer } = useAuth();
   const [url, setUrl] = useState('');
   const [sourcePlatform, setSourcePlatform] = useState<string | null>(null);
   const [trendReference, setTrendReference] = useState<{ region: string | null; title: string | null; thumbnail: string | null; trendId: string | null } | null>(null);
@@ -175,6 +175,7 @@ export default function GeneratorPage() {
   const [rewardPopupOpen, setRewardPopupOpen] = useState(false);
   const [adBlockDetected, setAdBlockDetected] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+  const submittingRef = useRef(false);
   const expectedScenes = Number.parseInt(duration, 10) <= 15 ? 5 : Number.parseInt(duration, 10) <= 30 ? 6 : 8;
 
   useEffect(() => {
@@ -203,6 +204,7 @@ export default function GeneratorPage() {
   }, []);
 
   async function handleAnalyze() {
+    if (submittingRef.current) return;
     if (!url.trim()) return;
     if (credits !== undefined && credits < 5) {
       setError(t('gen_no_credits'));
@@ -210,6 +212,7 @@ export default function GeneratorPage() {
     }
     const validationErr = validateShortFormUrl(url);
     if (validationErr) { setUrlError(validationErr); return; }
+    submittingRef.current = true;
     setUrlError(null); setLoading(true); setProgress(8); setProgressLabel('영상 정보 확인 중...'); setError(null); setResult(null); setEstimatedCost(null);
     try {
       const supabase = (await import('@/lib/supabase/client')).getSupabaseBrowserClient();
@@ -236,7 +239,7 @@ export default function GeneratorPage() {
           ].filter(Boolean).join('\n'),
         }),
       });
-      const data: AnalyzeResponse & { creditCostApplied?: number; creditsRemaining?: number } = await res.json();
+      const data: AnalyzeResponse = await res.json();
       if (!res.ok || !data.success) {
         const code = data.errorCode ?? '';
         const friendlyMsg =
@@ -249,12 +252,13 @@ export default function GeneratorPage() {
         setError(friendlyMsg);
         return;
       }
-      setProgress(100); setProgressLabel('대본 생성 완료');
+      setProgress(100); setProgressLabel('제작 플랜 생성 완료');
       setResult(data.data!); setCached(data.cached ?? false);
       setEstimatedCost(data.creditCostApplied ?? 5);
+      if (typeof data.creditsRemaining === 'number') applyCreditsFromServer(data.creditsRemaining);
       clearUserCreditsCache();
       void refreshCredits();
-    } catch { setError('분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'); } finally { setLoading(false); }
+    } catch { setError('분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'); } finally { submittingRef.current = false; setLoading(false); }
   }
 
   function handleRewardClaimed() { void refreshCredits(); }

@@ -104,11 +104,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   const { url, targetProduct: requestedTargetProduct, userCustomPrompt } = body;
 
-  if (!url) {
+  if (typeof url !== 'string' || !url.trim() || url.length > 2048 || (requestedTargetProduct !== undefined && typeof requestedTargetProduct !== 'string') || (userCustomPrompt !== undefined && typeof userCustomPrompt !== 'string')) {
     return NextResponse.json(
-      { success: false, error: 'url is required', errorCode: ERROR_CODES.INVALID_URL_FORMAT },
+      { success: false, error: 'Invalid request fields', errorCode: ERROR_CODES.INVALID_URL_FORMAT },
       { status: 400 }
     );
+  }
+
+  if ((requestedTargetProduct?.length ?? 0) > 200 || (userCustomPrompt?.length ?? 0) > 4000) {
+    return NextResponse.json({ success: false, error: 'Request fields are too long', errorCode: ERROR_CODES.INVALID_URL_FORMAT }, { status: 413 });
   }
 
   const targetProduct = requestedTargetProduct?.trim() || '홍보할 제품 또는 서비스';
@@ -159,6 +163,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   // 6. 캐시 히트: DB에서 바로 반환
   if (isCacheHit && cached) {
+    let cachedResult: GenerationOutput;
+    try {
+      cachedResult = normalizeGenerationOutput(cached.analysis_result, normalizedUrl);
+    } catch {
+      await supabase.from('script_cache').delete().eq('url_hash', resultCacheKey);
+      return NextResponse.json({ success: false, error: 'Cached result was invalid and removed. Please retry.', errorCode: ERROR_CODES.AI_GENERATION_FAILED }, { status: 409 });
+    }
+
     // 캐시 hit_count 비동기 업데이트 (응답 지연 없이)
     supabase
       .from('script_cache')
@@ -170,9 +182,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     const { error: rpcError } = await supabase.rpc('execute_script_generation', {
       p_user_id: user.id,
       p_source_url: normalizedUrl,
-      p_project_title: (cached.analysis_result as GenerationOutput).project_title,
+      p_project_title: cachedResult.project_title,
       p_target_product: targetProduct,
-      p_generated_json: cached.analysis_result,
+      p_generated_json: cachedResult,
       p_cost: creditCost,
     });
 
@@ -195,13 +207,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       .select('credits_remaining')
       .eq('id', user.id)
       .maybeSingle();
-
-    let cachedResult: GenerationOutput;
-    try {
-      cachedResult = normalizeGenerationOutput(cached.analysis_result, normalizedUrl);
-    } catch {
-      return NextResponse.json({ success: false, error: 'Cached result is invalid. Please retry.', errorCode: ERROR_CODES.AI_GENERATION_FAILED }, { status: 500 });
-    }
 
     return NextResponse.json({
       success: true,

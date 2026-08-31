@@ -92,12 +92,17 @@ export default function HistoryPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setDeletingId(null); return; }
 
-    await fetch(`/api/v1/history?id=${id}`, {
+    const response = await fetch(`/api/v1/history?id=${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
+    if (!response.ok) {
+      window.dispatchEvent(new CustomEvent('app:toast', { detail: { message: '히스토리를 삭제하지 못했습니다.', variant: 'error' } }));
+      setDeletingId(null);
+      return;
+    }
     setItems(prev => prev.filter(i => i.id !== id));
-    setTotal(prev => prev - 1);
+    setTotal(prev => Math.max(0, prev - 1));
     setDeletingId(null);
   }
 

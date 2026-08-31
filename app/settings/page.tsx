@@ -423,22 +423,12 @@ export default function SettingsPage() {
       const supabase = getSupabaseBrowserClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any).rpc('update_user_settings', {
+        p_full_name:               settings.full_name,
         p_default_language:        settings.default_language,
         p_email_notifications:     settings.email_notifications,
         p_default_target_platform: settings.default_target_platform,
       });
       if (error) throw error;
-
-      // full_name은 직접 UPDATE (RPC에 포함하지 않음)
-      if (settings.full_name !== null) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: nameErr } = await (supabase as any)
-          .from('profiles')
-          .update({ full_name: settings.full_name, updated_at: new Date().toISOString() })
-          .eq('id', user.id);
-        if (nameErr) throw nameErr;
-      }
-
 
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);

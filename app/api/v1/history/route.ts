@@ -20,8 +20,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   const { searchParams } = new URL(req.url);
-  const limit = Math.min(parseInt(searchParams.get('limit') ?? '20', 10), 50);
-  const offset = parseInt(searchParams.get('offset') ?? '0', 10);
+  const parsedLimit = Number.parseInt(searchParams.get('limit') ?? '20', 10);
+  const parsedOffset = Number.parseInt(searchParams.get('offset') ?? '0', 10);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 50) : 20;
+  const offset = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0;
 
   const { data, error, count } = await supabase
     .from('user_generation_history')

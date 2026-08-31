@@ -24,9 +24,19 @@ function splitTimestamp(timestamp: string, duration: number): [string, string] {
   return [parts[0] || '00:00', parts[1] || `00:${String(duration).padStart(2, '0')}`];
 }
 
+function timeToSeconds(value: string): number | null {
+  const parts = value.split(':').map(Number);
+  if (parts.some((part) => !Number.isFinite(part)) || parts.length < 2 || parts.length > 3) return null;
+  return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0] * 3600 + parts[1] * 60 + parts[2];
+}
+
 function normalizeScene(value: unknown, index: number): SceneScript {
   const item = record(value);
-  const legacyDuration = typeof item.duration_seconds === 'number' ? item.duration_seconds : 3;
+  const explicitDuration = typeof item.duration_seconds === 'number' ? item.duration_seconds : null;
+  const preliminaryStart = text(item.start_time);
+  const preliminaryEnd = text(item.end_time);
+  const calculatedDuration = preliminaryStart && preliminaryEnd ? (timeToSeconds(preliminaryEnd) ?? 0) - (timeToSeconds(preliminaryStart) ?? 0) : 0;
+  const legacyDuration = explicitDuration && explicitDuration > 0 ? explicitDuration : calculatedDuration > 0 ? calculatedDuration : 3;
   const [legacyStart, legacyEnd] = splitTimestamp(text(item.timestamp), legacyDuration);
   const scripts = audio(item.audio_script);
   const genericPrompt = text(item.ai_video_prompt_en, text(record(item.ai_prompts).generic));
