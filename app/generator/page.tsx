@@ -39,6 +39,8 @@ const PURPOSES = ['구매 전환', '브랜드 인지도', '앱 설치', '이벤�
 const CONCEPTS = ['문제 해결형', '리뷰형', '언박싱형', '전후 비교형', '사용법 설명형', '감성 스토리형', '코미디·밈형', '제품 집중형', '얼굴 없는 광고'];
 const DURATIONS = ['10초', '15초', '30초', '45초', '60초'];
 const LANGUAGES = ['한국어', '영어', '일본어'];
+const PRODUCTION_METHODS = ['직접 촬영', 'AI 영상 생성', '기존 영상 편집', '얼굴 없는 콘텐츠', '제품 중심 광고', '인물 중심 광고'];
+const AI_VIDEO_TOOLS = ['Google Veo', 'Runway', 'Kling', 'Adobe Firefly', '범용 프롬프트'];
 
 function ChoiceChips({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
   return (
@@ -158,6 +160,8 @@ export default function GeneratorPage() {
   const [duration, setDuration] = useState('30초');
   const [cast, setCast] = useState('출연자 있음');
   const [language, setLanguage] = useState('한국어');
+  const [productionMethod, setProductionMethod] = useState('직접 촬영');
+  const [aiVideoTool, setAiVideoTool] = useState('Google Veo');
   const [customPrompt, setCustomPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -223,6 +227,8 @@ export default function GeneratorPage() {
             `영상 길이: ${duration}`,
             `출연자: ${cast}`,
             `우선 언어: ${language}`,
+            `제작 방식: ${productionMethod}`,
+            productionMethod === 'AI 영상 생성' ? `AI 영상 도구: ${aiVideoTool} (실제 생성 API 호출 없이 복사 가능한 프롬프트만 제공)` : '',
             customPrompt.trim(),
           ].filter(Boolean).join('\n'),
         }),
@@ -325,8 +331,19 @@ export default function GeneratorPage() {
               </div>
             </div>
 
+            <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black">3</span><div><h3 className="text-sm font-bold text-white">제작 방식 선택</h3><p className="text-xs text-white/40">플랜에 반영할 제작 환경을 선택하세요.</p></div></div>
+              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">제작 방식</label><ChoiceChips options={PRODUCTION_METHODS} value={productionMethod} onChange={setProductionMethod} /></div>
+              {productionMethod === 'AI 영상 생성' && (
+                <div className="space-y-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.07] p-4 fade-in-up">
+                  <div><p className="text-xs font-bold text-violet-100">AI 영상 생성 도구</p><p className="mt-1 text-[11px] leading-relaxed text-white/45">실제 영상 생성 API는 연결하지 않습니다. 선택한 도구에 복사해 넣을 수 있는 프롬프트만 제작 플랜에 제공합니다.</p></div>
+                  <ChoiceChips options={AI_VIDEO_TOOLS} value={aiVideoTool} onChange={setAiVideoTool} />
+                </div>
+              )}
+            </div>
+
             <div className="rounded-2xl p-5 sm:p-7 space-y-4" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
-              <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black">3</span><div><h3 className="text-sm font-bold text-white">바이럴 구조 분석 및 제작 플랜 생성</h3><p className="text-xs text-white/40">참고 영상의 구조만 분석해 원본과 다른 새 콘텐츠를 설계합니다.</p></div></div>
+              <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">바이럴 구조 분석 및 제작 플랜 생성</h3><p className="text-xs text-white/40">참고 영상의 구조만 분석해 원본과 다른 새 콘텐츠를 설계합니다.</p></div></div>
               {credits !== undefined && credits < 5 && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
@@ -361,7 +378,7 @@ export default function GeneratorPage() {
                 <button onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('gen_credits_low_cta')}<RefreshCw size={11} /></button>
               </div>
             </div>
-            {result && <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.025] p-5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">완성된 영상 제작 플랜</h3><p className="text-xs text-white/40">장면별 구성과 현지화 대본, AI 영상 프롬프트를 확인하세요.</p></div></div>}
+            {result && <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.025] p-5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500 text-xs font-black">5</span><div><h3 className="text-sm font-bold text-white">완성된 영상 제작 플랜</h3><p className="text-xs text-white/40">장면별 구성과 현지화 대본, AI 영상 프롬프트를 확인하세요.</p></div></div>}
             </div>
 
             {error && (
