@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, startTransition } from 'react';
+import NextImage from 'next/image';
 import type { AnalyzeResponse, GenerationOutput, SceneScript } from '@/types';
 import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
@@ -11,12 +12,11 @@ import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
 import { clearUserCreditsCache } from '@/lib/profile';
-import { CREDIT_COST } from '@/lib/credits';
 import {
   Link2, ShoppingBag, SlidersHorizontal, Rocket, Loader2, Zap,
   Film, Clock, TrendingUp, ChevronDown, ChevronUp,
   Sparkles, BarChart3, ArrowRight, Gift, RefreshCw, Shuffle,
-  CheckCircle2, Shield, LogIn, Copy,
+  CheckCircle2, Shield, LogIn, Copy, Clapperboard, Users, Languages,
 } from 'lucide-react';
 
 const DIRECT_SHORT_FORM_REGEX = /^https?:\/\/(?:www\.|vm\.|vt\.)?(?:tiktok\.com\/(?:(?:@[^\/\s]+)\/video\/\d+|v\/\d+)|vm\.tiktok\.com\/[\w-]+|vt\.tiktok\.com\/[\w-]+|youtube\.com\/shorts\/[^\s?]+|youtu\.be\/[^\s?]+)(?:[\/?#].*)?$/i;
@@ -33,6 +33,24 @@ const LOCALE_TABS = [
   { key: 'us' as const, flag: '🇺🇸', label: '미국' },
   { key: 'jp' as const, flag: '🇯🇵', label: '일본' },
 ];
+
+const ANALYSIS_POINTS = ['첫 1~3초 후킹', '장면 전환 속도', '내레이션 구조', '자막 패턴', '감정 변화', '제품 노출 방식', '마지막 CTA'];
+const PURPOSES = ['구매 전환', '브랜드 인지도', '앱 설치', '이벤트 홍보', '제품 리뷰', '팔로워 증가', '정보 전달'];
+const CONCEPTS = ['문제 해결형', '리뷰형', '언박싱형', '전후 비교형', '사용법 설명형', '감성 스토리형', '코미디·밈형', '제품 집중형', '얼굴 없는 광고'];
+const DURATIONS = ['10초', '15초', '30초', '45초', '60초'];
+const LANGUAGES = ['한국어', '영어', '일본어'];
+
+function ChoiceChips({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => (
+        <button key={option} type="button" onClick={() => onChange(option)} className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all ${value === option ? 'border-violet-400/70 bg-violet-500/20 text-violet-100' : 'border-white/10 bg-white/5 text-white/45 hover:border-white/25 hover:text-white/75'}`}>
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function SceneCard({ scene, activeLocale }: { scene: SceneScript; activeLocale: 'kr' | 'us' | 'jp' }) {
   const [expanded, setExpanded] = useState(false);
@@ -130,7 +148,16 @@ export default function GeneratorPage() {
   const { user, isLoading: authLoading, credits, refreshCredits } = useAuth();
   const [url, setUrl] = useState('');
   const [sourcePlatform, setSourcePlatform] = useState<string | null>(null);
+  const [trendReference, setTrendReference] = useState<{ region: string | null; title: string | null; thumbnail: string | null; trendId: string | null } | null>(null);
   const [targetProduct, setTargetProduct] = useState('');
+  const [productFeatures, setProductFeatures] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [purpose, setPurpose] = useState('구매 전환');
+  const [concept, setConcept] = useState('문제 해결형');
+  const [mood, setMood] = useState('');
+  const [duration, setDuration] = useState('30초');
+  const [cast, setCast] = useState('출연자 있음');
+  const [language, setLanguage] = useState('한국어');
   const [customPrompt, setCustomPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -151,17 +178,29 @@ export default function GeneratorPage() {
     return () => window.clearInterval(timer);
   }, [loading]);
 
-  // 트렌드 피드에서 넘어온 url/platform 쿼리파라미터 자동완성
+  // 트렌드 피드에서 넘어온 참고 영상 정보를 자동완성
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sourceUrl = params.get('url');
     const platform = params.get('platform');
     if (sourceUrl) startTransition(() => setUrl(sourceUrl));
     if (platform) startTransition(() => setSourcePlatform(platform));
+    if (sourceUrl || platform || params.get('trendId')) {
+      startTransition(() => setTrendReference({
+        region: params.get('region'),
+        title: params.get('title'),
+        thumbnail: params.get('thumbnail'),
+        trendId: params.get('trendId'),
+      }));
+    }
   }, []);
 
   async function handleAnalyze() {
     if (!url.trim()) return;
+    if (credits !== undefined && credits < 5) {
+      setError(t('gen_no_credits'));
+      return;
+    }
     const validationErr = validateShortFormUrl(url);
     if (validationErr) { setUrlError(validationErr); return; }
     setUrlError(null); setLoading(true); setProgress(8); setProgressLabel('영상 정보 확인 중...'); setError(null); setResult(null); setEstimatedCost(null);
@@ -172,7 +211,21 @@ export default function GeneratorPage() {
       setProgress(22); setProgressLabel('영상 구조 분석 중...');
       const res = await fetch('/api/v1/analyze', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ url: url.trim(), targetProduct: targetProduct.trim() || undefined, userCustomPrompt: customPrompt.trim() || undefined }),
+        body: JSON.stringify({
+          url: url.trim(),
+          targetProduct: targetProduct.trim() || undefined,
+          userCustomPrompt: [
+            `제작 목적: ${purpose}`,
+            `콘셉트: ${concept}`,
+            `상품 특징: ${productFeatures || '미입력'}`,
+            `타깃 고객: ${targetAudience || '미입력'}`,
+            `원하는 분위기: ${mood || '미입력'}`,
+            `영상 길이: ${duration}`,
+            `출연자: ${cast}`,
+            `우선 언어: ${language}`,
+            customPrompt.trim(),
+          ].filter(Boolean).join('\n'),
+        }),
       });
       const data: AnalyzeResponse & { creditCostApplied?: number; creditsRemaining?: number } = await res.json();
       if (!res.ok || !data.success) {
@@ -189,11 +242,9 @@ export default function GeneratorPage() {
       }
       setProgress(100); setProgressLabel('대본 생성 완료');
       setResult(data.data!); setCached(data.cached ?? false);
-      if (data.creditCostApplied) setEstimatedCost(data.creditCostApplied);
-      if (typeof data.creditsRemaining === 'number') {
-        clearUserCreditsCache();
-        await refreshCredits();
-      }
+      setEstimatedCost(data.creditCostApplied ?? 5);
+      clearUserCreditsCache();
+      void refreshCredits();
     } catch { setError('분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'); } finally { setLoading(false); }
   }
 
@@ -235,31 +286,56 @@ export default function GeneratorPage() {
               <p className="text-xs sm:text-sm text-white/40">{t('gen_subtitle')}</p>
             </div>
 
-            <div className="rounded-2xl p-5 sm:p-7 space-y-4 sm:space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+            <div className="space-y-5">
+            <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-xs font-black">1</span><div><h3 className="text-sm font-bold text-white">참고 영상 입력</h3><p className="text-xs text-white/40">YouTube Shorts, TikTok 또는 최신 트렌드에서 선택한 영상을 입력하세요.</p></div></div>
+              {trendReference && (
+                <div className="flex gap-3 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-3 fade-in-up">
+                  {trendReference.thumbnail && <NextImage src={trendReference.thumbnail} alt="참고 영상 썸네일" width={80} height={56} unoptimized className="h-14 w-20 shrink-0 rounded-lg object-cover" />}
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">참고 영상 정보</p>
+                    <p className="mt-1 truncate text-xs font-semibold text-white/80">{trendReference.title || '트렌드 참고 영상'}</p>
+                    <p className="mt-1 text-[11px] text-white/40">{[sourcePlatform, trendReference.region, trendReference.trendId ? `Trend #${trendReference.trendId}` : null].filter(Boolean).join(' · ')}</p>
+                    {url && <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-300 hover:text-cyan-100"><Link2 size={11} />원본 영상 보기</a>}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')}{sourcePlatform && <span className="text-[10px] font-normal text-cyan-300/70">{sourcePlatform}</span>}</label>
                 <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder={t('gen_url_placeholder')} className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
                 {urlError && <p className="flex items-center gap-1.5 text-xs text-red-400 fade-in-up"><span>⚠️</span> {urlError}</p>}
               </div>
+              <div className="rounded-xl border border-white/8 bg-white/[0.025] p-4"><p className="mb-3 text-xs font-bold text-white/65">분석할 바이럴 구조</p><div className="flex flex-wrap gap-2">{ANALYSIS_POINTS.map((point) => <span key={point} className="rounded-full border border-cyan-400/15 bg-cyan-400/5 px-2.5 py-1 text-[11px] text-cyan-100/75">{point}</span>)}</div></div>
+            </div>
+
+            <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black">2</span><div><h3 className="text-sm font-bold text-white">내 콘텐츠 정보</h3><p className="text-xs text-white/40">상품과 목표를 입력해 새로운 영상 제작 플랜을 맞춤 설계합니다.</p></div></div>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><ShoppingBag size={14} className="text-emerald-400" />{t('gen_product_label')}</label>
                 <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder={t('gen_product_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
               </div>
+              <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">상품 특징</label><textarea value={productFeatures} onChange={e => setProductFeatures(e.target.value)} rows={2} placeholder="예: 5분 만에 사용 가능한 저자극 클렌저" className="w-full rounded-xl px-3 py-2.5 text-xs input-dark resize-none" /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Users size={13} className="text-cyan-400" />타깃 고객</label><textarea value={targetAudience} onChange={e => setTargetAudience(e.target.value)} rows={2} placeholder="예: 피부 고민이 있는 20~30대" className="w-full rounded-xl px-3 py-2.5 text-xs input-dark resize-none" /></div></div>
+              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">영상 제작 목적</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
+              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">콘셉트</label><ChoiceChips options={CONCEPTS} value={concept} onChange={setConcept} /></div>
+              <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">원하는 분위기</label><input value={mood} onChange={e => setMood(e.target.value)} placeholder="예: 감각적, 밝고 신뢰감 있게" className="w-full rounded-xl px-3 py-2.5 text-xs input-dark" /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Clapperboard size={13} className="text-pink-400" />출연자 유무</label><ChoiceChips options={['출연자 있음', '출연자 없음']} value={cast} onChange={setCast} /></div></div>
+              <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">영상 길이</label><ChoiceChips options={DURATIONS} value={duration} onChange={setDuration} /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Languages size={13} className="text-emerald-400" />언어</label><ChoiceChips options={LANGUAGES} value={language} onChange={setLanguage} /></div></div>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><SlidersHorizontal size={14} className="text-amber-400" />{t('gen_custom_prompt_label')} <span className="text-xs text-white/25 font-normal">({t('gen_optional')})</span></label>
                 <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder={t('gen_custom_prompt_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
               </div>
+            </div>
 
-              {credits !== undefined && credits < CREDIT_COST.FULL_ANALYSIS && (
+            <div className="rounded-2xl p-5 sm:p-7 space-y-4" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+              <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black">3</span><div><h3 className="text-sm font-bold text-white">바이럴 구조 분석 및 제작 플랜 생성</h3><p className="text-xs text-white/40">참고 영상의 구조만 분석해 원본과 다른 새 콘텐츠를 설계합니다.</p></div></div>
+              {credits !== undefined && credits < 5 && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
                   <button onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>
                 </div>
               )}
-
-              <button onClick={handleAnalyze} disabled={loading || !url.trim()} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
+              <button onClick={handleAnalyze} disabled={loading || !url.trim() || (credits !== undefined && credits < 5)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
                 {loading ? (
-                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />대본 생성 중... {progress}%</span>
+                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />제작 플랜 생성 중... {progress}%</span>
                 ) : (
                   <>
                     <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />{t('gen_analyze_btn')}<ArrowRight size={15} /></span>
@@ -284,6 +360,8 @@ export default function GeneratorPage() {
               <div className="flex items-center justify-center gap-1">
                 <button onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('gen_credits_low_cta')}<RefreshCw size={11} /></button>
               </div>
+            </div>
+            {result && <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.025] p-5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">완성된 영상 제작 플랜</h3><p className="text-xs text-white/40">장면별 구성과 현지화 대본, AI 영상 프롬프트를 확인하세요.</p></div></div>}
             </div>
 
             {error && (

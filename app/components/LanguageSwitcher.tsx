@@ -240,11 +240,11 @@ export const T: Record<Lang, Record<string, string>> = {
     pricing_invite_action: '초대하기',
 
     // ─── Generator Page ───
-    gen_title: 'AI 대본 생성기',
-    gen_subtitle: '숏폼 URL을 입력하고 3개국 바이럴 대본을 생성하세요',
+    gen_title: 'AI 숏폼 영상 제작 플래너',
+    gen_subtitle: '참고할 숏폼 영상의 바이럴 구조를 분석하고 내 상품에 맞는 새로운 영상 제작 플랜을 만들어보세요.',
     gen_url_placeholder: '숏폼 URL을 입력하세요 (TikTok, YouTube Shorts)',
     gen_product_placeholder: '홍보할 제품/서비스명 (선택사항)',
-    gen_analyze_btn: '대본 생성',
+    gen_analyze_btn: '영상 분석 시작',
     gen_analyzing: '분석 중...',
     gen_credits_required: '필요 크레딧',
     gen_no_credits: '크레딧이 부족합니다',
@@ -526,11 +526,11 @@ export const T: Record<Lang, Record<string, string>> = {
     pricing_invite_action: 'Invite',
 
     // ─── Generator Page ───
-    gen_title: 'AI Script Generator',
-    gen_subtitle: 'Enter a short-form URL and generate viral scripts in 3 languages',
+    gen_title: 'AI Short-Form Video Production Planner',
+    gen_subtitle: 'Analyze the viral structure of a reference video and create a new production plan for your product.',
     gen_url_placeholder: 'Enter a short-form URL (TikTok or YouTube Shorts)',
     gen_product_placeholder: 'Product/Service to promote (optional)',
-    gen_analyze_btn: 'Generate Script',
+    gen_analyze_btn: 'Start Video Analysis',
     gen_analyzing: 'Analyzing...',
     gen_credits_required: 'Credits Required',
     gen_no_credits: 'Insufficient Credits',
@@ -812,11 +812,11 @@ export const T: Record<Lang, Record<string, string>> = {
     pricing_invite_action: '邀请好友',
 
     // ─── Generator Page ───
-    gen_title: 'AI脚本生成器',
-    gen_subtitle: '输入短视频链接，生成三种语言的爆款脚本',
+    gen_title: 'AI短视频制作策划器',
+    gen_subtitle: '分析参考短视频的爆款结构，为您的商品创建全新视频制作方案。',
     gen_url_placeholder: '输入短视频链接（TikTok、YouTube Shorts）',
     gen_product_placeholder: '要推广的产品/服务（可选）',
-    gen_analyze_btn: '开始分析',
+    gen_analyze_btn: '开始视频分析',
     gen_analyzing: '分析中...',
     gen_credits_required: '所需积分',
     gen_no_credits: '积分不足',
@@ -1098,11 +1098,11 @@ export const T: Record<Lang, Record<string, string>> = {
     pricing_invite_action: '招待する',
 
     // ─── Generator Page ───
-    gen_title: 'AI脚本ジェネレーター',
-    gen_subtitle: 'ショート動画URLを入力して3ヶ国語のバイラル脚本を生成',
+    gen_title: 'AIショート動画制作プランナー',
+    gen_subtitle: '参考ショート動画のバイラル構造を分析し、商品に合う新しい動画制作プランを作成します。',
     gen_url_placeholder: 'ショート動画URLを入力（TikTok、YouTube Shorts）',
     gen_product_placeholder: '宣伝する商品/サービス（任意）',
-    gen_analyze_btn: '分析開始',
+    gen_analyze_btn: '動画分析を開始',
     gen_analyzing: '分析中...',
     gen_credits_required: '必要クレジット',
     gen_no_credits: 'クレジット不足',
