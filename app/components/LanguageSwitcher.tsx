@@ -16,7 +16,7 @@ const LANGS: { code: Lang; label: string; flag: string }[] = [
 export const T: Record<Lang, Record<string, string>> = {
   ko: {
     // ─── Navbar ───
-    nav_generator: '대본 생성',
+    nav_generator: '제작 플랜 만들기',
     nav_credits: '크레딧',
     nav_trends: '최신 트렌드',
     nav_invite: '초대하기',
@@ -37,10 +37,11 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Hero ───
     hero_tag: 'AI 기반 숏폼 마케팅 분석',
-    hero_title: '숏폼 URL 하나로',
-    hero_title2: '3개국 바이럴 대본 생성',
-    hero_desc: 'AI가 영상 구조를 분석하고 귀사의 상품에 맞춘 한국·미국·일본 현지화 대본을 1분 만에 완성합니다.',
-    cta_start: '지금 무료로 시작',
+    hero_title: '참고 숏폼 하나로',
+    hero_title2: '바이럴 영상 제작 플랜 완성',
+    hero_desc: '참고할 숏폼 영상을 입력하면 상품에 맞는 콘셉트, 장면 구성, 내레이션, 자막, AI 영상 프롬프트를 한 번에 만들어드립니다.',
+    cta_start: '바이럴 영상 제작 플랜 만들기',
+    cta_trends: '최신 트렌드에서 시작하기',
     cta_credits: '크레딧 보기',
 
     // ─── Stats ───
@@ -54,16 +55,18 @@ export const T: Record<Lang, Record<string, string>> = {
     stats_scripts: '생성된 대본',
 
     // ─── Features ───
-    features_title: '왜 ViralScript AI인가요?',
-    features_desc: '단순한 번역이 아닙니다. 각국의 트렌드와 감성을 이해한 AI가 진짜 바이럴을 만듭니다.',
+    features_title: '재창작 영상 제작에 필요한 모든 것',
+    features_desc: '원본을 복제하지 않고 바이럴 구조를 참고해, 상품에 맞는 새 숏폼 제작 플랜을 설계합니다.',
     feature_viral_title: '바이럴 구조 분석',
     feature_viral_desc: 'AI가 숏폼 영상의 후킹 패턴, 감정 곡선, 전환 구조를 초 단위로 분석합니다.',
-    feature_localize_title: '3개국 동시 로컬라이징',
-    feature_localize_desc: '한국·미국·일본의 문화적 맥락과 인터넷 밈을 반영한 현지화 대본을 즉시 생성합니다.',
-    feature_visual_title: 'AI 비주얼 콘티',
-    feature_visual_desc: 'Runway, Midjourney용 영상 프롬프트를 씬별로 자동 생성합니다.',
-    feature_cache_title: '캐시 적중 시 70% 절감',
-    feature_cache_desc: '동일 URL 재분석 시 크레딧 3개 → 1개. 팀 협업에 최적화된 스마트 캐싱.',
+    feature_concept_title: '상품별 새 콘셉트 제작',
+    feature_concept_desc: '상품과 타깃 고객에 맞춘 새로운 콘셉트와 핵심 후킹을 제안합니다.',
+    feature_video_prompt_title: 'Veo · Runway · Kling용 프롬프트',
+    feature_video_prompt_desc: '각 AI 영상 생성기에 바로 붙여 넣을 수 있는 장면별 프롬프트를 제공합니다.',
+    feature_localize_title: '3개국 현지화 대본',
+    feature_localize_desc: '한국어·영어·일본어 내레이션과 자막을 제작 목적에 맞춰 설계합니다.',
+    feature_editing_title: '장면별 자막 · 효과음 · 편집 타임라인',
+    feature_editing_desc: '화면, 카메라, 조명, 제품 노출과 편집 흐름까지 한 번에 계획합니다.',
 
     // ─── Pricing / Free Credits ───
     pricing_title: '무료로 시작하세요',
@@ -210,8 +213,8 @@ export const T: Record<Lang, Record<string, string>> = {
     trend_load_more: '더 보기',
     trend_views: '조회수',
     trend_likes: '좋아요',
-    trend_visit: '바로가기',
-    trend_generate: '이 게시물로 대본 생성하기',
+    trend_visit: '원본 영상 보기',
+    trend_generate: '이 구조로 새 영상 만들기',
     trend_verified: '실제 게시물 확인됨',
 
     // ─── Trends Page ───
@@ -319,7 +322,8 @@ export const T: Record<Lang, Record<string, string>> = {
     hero_title: 'From One Short-Form URL,',
     hero_title2: 'Generate Viral Scripts in 3 Languages',
     hero_desc: 'AI analyzes video structure and creates localized scripts for US, Korea, and Japan markets in under 1 minute.',
-    cta_start: 'Start Free',
+    cta_start: 'Create a Viral Video Production Plan',
+    cta_trends: 'Start from Latest Trends',
     cta_credits: 'View Credits',
 
     // ─── Stats ───
@@ -343,6 +347,12 @@ export const T: Record<Lang, Record<string, string>> = {
     feature_visual_desc: 'Auto-generate video prompts for Runway and Midjourney scene by scene.',
     feature_cache_title: '70% Savings on Cache Hit',
     feature_cache_desc: 'Same URL re-analysis: 3 credits → 1 credit. Smart caching optimized for team collaboration.',
+    feature_concept_title: 'New Product-Specific Concepts',
+    feature_concept_desc: 'Create an original concept and core hook tailored to your product and audience.',
+    feature_video_prompt_title: 'Prompts for Veo, Runway & Kling',
+    feature_video_prompt_desc: 'Get scene-by-scene prompts ready to paste into AI video generators.',
+    feature_editing_title: 'Captions, SFX & Editing Timeline',
+    feature_editing_desc: 'Plan visuals, camera, lighting, product placement, and editing flow together.',
 
     // ─── Pricing / Free Credits ───
     pricing_title: 'Start For Free',
@@ -489,8 +499,8 @@ export const T: Record<Lang, Record<string, string>> = {
     trend_load_more: 'Load More',
     trend_views: 'Views',
     trend_likes: 'Likes',
-    trend_visit: 'Visit',
-    trend_generate: 'Generate Script',
+    trend_visit: 'View Original Video',
+    trend_generate: 'Create a New Video from This Structure',
     trend_verified: 'Verified Post',
 
     // ─── Trends Page ───
@@ -598,7 +608,8 @@ export const T: Record<Lang, Record<string, string>> = {
     hero_title: '只需一个短视频链接，',
     hero_title2: '生成三种语言的爆款脚本',
     hero_desc: 'AI分析视频结构，为您量身定制面向美国、韩国和日本市场的本土化脚本，一分钟完成。',
-    cta_start: '免费开始',
+    cta_start: '创建爆款视频制作方案',
+    cta_trends: '从最新趋势开始',
     cta_credits: '查看积分',
 
     // ─── Stats ───
@@ -622,6 +633,12 @@ export const T: Record<Lang, Record<string, string>> = {
     feature_visual_desc: '为Runway和Midjourney逐场景自动生成视频提示词。',
     feature_cache_title: '缓存命中节省70%',
     feature_cache_desc: '同一URL重新分析：3积分→1积分。为团队协作优化的智能缓存。',
+    feature_concept_title: '按商品打造新概念',
+    feature_concept_desc: '根据商品和目标受众打造原创概念与核心钩子。',
+    feature_video_prompt_title: 'Veo、Runway、Kling 提示词',
+    feature_video_prompt_desc: '提供可直接粘贴到 AI 视频生成器的逐场景提示词。',
+    feature_editing_title: '逐场景字幕、音效与剪辑时间线',
+    feature_editing_desc: '一次规划画面、镜头、灯光、商品露出与剪辑节奏。',
 
     // ─── Pricing / Free Credits ───
     pricing_title: '免费开始',
@@ -768,8 +785,8 @@ export const T: Record<Lang, Record<string, string>> = {
     trend_load_more: '加载更多',
     trend_views: '观看',
     trend_likes: '点赞',
-    trend_visit: '访问',
-    trend_generate: '用此帖子生成脚本',
+    trend_visit: '查看原始视频',
+    trend_generate: '用此结构制作新视频',
     trend_verified: '已验证真实帖子',
 
     // ─── Trends Page ───
@@ -826,7 +843,7 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_custom_prompt_placeholder: '例：目标20岁女性、MZ风格、幽默语气、最大化转化率...',
     gen_ad_topup_btn: '看广告免费充值',
     gen_credits_balance: '持有 {credits} 积分',
-    gen_credits_cost_range: '消耗1~8积分',
+    gen_credits_cost_range: '每次生成消耗5积分',
     gen_credits_low_cta: '积分不够？观看30秒广告免费获取积分',
     gen_complete_msg: '{cost} 积分已消耗 · 剩余 {remaining} 积分',
     gen_adblock_title: '检测到广告拦截器',
@@ -877,7 +894,8 @@ export const T: Record<Lang, Record<string, string>> = {
     hero_title: 'ショート動画URLひとつで、',
     hero_title2: '3ヶ国語のバイラル脚本を生成',
     hero_desc: 'AIが動画構造を解析し、米国・韓国・日本市場向けのローカライズ脚本を1分以内に作成します。',
-    cta_start: '無料で始める',
+    cta_start: 'バイラル動画制作プランを作る',
+    cta_trends: '最新トレンドから始める',
     cta_credits: 'クレジットを見る',
 
     // ─── Stats ───
@@ -901,6 +919,12 @@ export const T: Record<Lang, Record<string, string>> = {
     feature_visual_desc: 'Runway、Midjourney用の動画プロンプトをシーンごとに自動生成します。',
     feature_cache_title: 'キャッシュヒットで70%節約',
     feature_cache_desc: '同一URL再分析：3クレジット→1クレジット。チーム協業に最適化されたスマートキャッシング。',
+    feature_concept_title: '商品別の新コンセプト制作',
+    feature_concept_desc: '商品とターゲットに合わせたオリジナルのコンセプトとフックを提案します。',
+    feature_video_prompt_title: 'Veo・Runway・Kling用プロンプト',
+    feature_video_prompt_desc: 'AI動画生成ツールにすぐ貼り付けられるシーン別プロンプトを提供します。',
+    feature_editing_title: 'シーン別字幕・効果音・編集タイムライン',
+    feature_editing_desc: '画面、カメラ、照明、商品露出、編集の流れをまとめて計画します。',
 
     // ─── Pricing / Free Credits ───
     pricing_title: '無料でスタート',
@@ -1047,8 +1071,8 @@ export const T: Record<Lang, Record<string, string>> = {
     trend_load_more: 'もっと見る',
     trend_views: '視聴',
     trend_likes: 'いいね',
-    trend_visit: 'アクセス',
-    trend_generate: 'この投稿で台本を生成',
+    trend_visit: '元動画を見る',
+    trend_generate: 'この構造で新しい動画を作る',
     trend_verified: '実在する投稿を確認済み',
 
     // ─── Trends Page ───
@@ -1105,7 +1129,7 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_custom_prompt_placeholder: '例：20代女性ターゲット、MZスタイル、ユーモラスなトーン、コンバージョン最大化...',
     gen_ad_topup_btn: '広告を見てチャージ',
     gen_credits_balance: '保有 {credits} クレジット',
-    gen_credits_cost_range: '1~8クレジット消費',
+    gen_credits_cost_range: '1回5クレジット消費',
     gen_credits_low_cta: 'クレジットが不足？30秒広告で無料クレジットを獲得',
     gen_complete_msg: '{cost} クレジット消費 · 残り {remaining} クレジット',
     gen_adblock_title: '広告ブロッカーが検出されました',

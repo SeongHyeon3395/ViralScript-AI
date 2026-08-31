@@ -23,7 +23,7 @@ const FULL_PAGE_SIZE = 24;
 const PAGE_BUTTON_WINDOW = 6;
 
 interface TrendFeedProps {
-  onGenerate?: (url: string, platform: string) => void;
+  onGenerate?: (params: URLSearchParams) => void;
   mode?: 'home' | 'fullPage';
 }
 
@@ -115,14 +115,18 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
   }
 
   function handleGenerate(item: TrendItem) {
-    if (onGenerate && item.video_url) {
-      onGenerate(item.video_url, item.platform);
-      return;
-    }
-    // 직접 라우팅: video_url + platform 쿼리파라미터로 자동완성
     const params = new URLSearchParams();
     if (item.video_url) params.set('url', item.video_url);
     params.set('platform', item.platform);
+    params.set('region', item.region);
+    params.set('title', item.title);
+    if (item.thumb_url) params.set('thumbnail', item.thumb_url);
+    params.set('trendId', item.id);
+
+    if (onGenerate) {
+      onGenerate(params);
+      return;
+    }
     router.push(`/generator?${params.toString()}`);
   }
 

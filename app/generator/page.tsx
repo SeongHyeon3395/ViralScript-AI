@@ -10,6 +10,8 @@ import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
+import { clearUserCreditsCache } from '@/lib/profile';
+import { CREDIT_COST } from '@/lib/credits';
 import {
   Link2, ShoppingBag, SlidersHorizontal, Rocket, Loader2, Zap,
   Film, Clock, TrendingUp, ChevronDown, ChevronUp,
@@ -188,7 +190,10 @@ export default function GeneratorPage() {
       setProgress(100); setProgressLabel('대본 생성 완료');
       setResult(data.data!); setCached(data.cached ?? false);
       if (data.creditCostApplied) setEstimatedCost(data.creditCostApplied);
-      if (typeof data.creditsRemaining === 'number') void refreshCredits();
+      if (typeof data.creditsRemaining === 'number') {
+        clearUserCreditsCache();
+        await refreshCredits();
+      }
     } catch { setError('분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'); } finally { setLoading(false); }
   }
 
@@ -245,7 +250,7 @@ export default function GeneratorPage() {
                 <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder={t('gen_custom_prompt_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
               </div>
 
-              {credits !== undefined && credits < 3 && (
+              {credits !== undefined && credits < CREDIT_COST.FULL_ANALYSIS && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
                   <button onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>

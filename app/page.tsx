@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import {
   Sparkles, Rocket, ArrowRight, Play, Globe, BarChart3, Film, Zap,
-  Gift, Star, Users,
+  Gift, Star, Users, TrendingUp,
 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -14,9 +14,10 @@ import { t } from './components/LanguageSwitcher';
 
 const FEATURES = [
   { icon: BarChart3, titleKey: 'feature_viral_title', descKey: 'feature_viral_desc', color: 'text-blue-600', bg: 'rgba(37,99,235,0.07)', border: 'rgba(37,99,235,0.18)' },
+  { icon: Sparkles, titleKey: 'feature_concept_title', descKey: 'feature_concept_desc', color: 'text-violet-400', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
+  { icon: Film, titleKey: 'feature_video_prompt_title', descKey: 'feature_video_prompt_desc', color: 'text-pink-400', bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.2)' },
   { icon: Globe, titleKey: 'feature_localize_title', descKey: 'feature_localize_desc', color: 'text-cyan-400', bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.2)' },
-  { icon: Film, titleKey: 'feature_visual_title', descKey: 'feature_visual_desc', color: 'text-pink-400', bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.2)' },
-  { icon: Zap, titleKey: 'feature_cache_title', descKey: 'feature_cache_desc', color: 'text-amber-400', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
+  { icon: Zap, titleKey: 'feature_editing_title', descKey: 'feature_editing_desc', color: 'text-amber-400', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
 ];
 
 const STATS = [
@@ -28,12 +29,12 @@ const STATS = [
 
 export default function Home() {
   const navbarRef = useRef<NavbarRef>(null);
-  function handleTrendGenerate(url: string) {
+  function handleTrendGenerate(params: URLSearchParams) {
     if (!navbarRef.current?.getUser()) {
       navbarRef.current?.openLoginModal();
       return;
     }
-    window.location.href = `/generator?url=${encodeURIComponent(url)}`;
+    window.location.href = `/generator?${params.toString()}`;
   }
   
   return (
@@ -53,6 +54,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2 w-full sm:w-auto">
               <a href="/generator" className="btn-primary flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto"><Rocket size={16} />{t('cta_start')}<ArrowRight size={15} /></a>
+              <a href="#trends" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-6 py-3 text-sm font-semibold text-cyan-100 transition-all hover:bg-cyan-400/20 w-full sm:w-auto"><TrendingUp size={16} />{t('cta_trends')}</a>
             </div>
           </div>
         </section>
