@@ -1,22 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ToastHost from "./components/ToastHost";
 import { AuthProvider } from "./components/AuthProvider";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://viralscript-ai-inky.vercel.app";
-
-const inter = Inter({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -61,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <body className="min-h-screen flex flex-col mesh-bg">
         <AuthProvider>

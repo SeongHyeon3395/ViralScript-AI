@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -34,6 +34,11 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
   const [referralOpen, setReferralOpen] = useState(false);
   const { user, isLoading, credits } = useAuth();
   const pathname = usePathname();
+  useEffect(() => {
+    const handler = () => setReferralOpen(true);
+    window.addEventListener('referral:open', handler);
+    return () => window.removeEventListener('referral:open', handler);
+  }, []);
   const metadataName = user?.user_metadata?.full_name;
   const displayName = typeof metadataName === 'string' && metadataName.trim()
     ? metadataName.trim()
@@ -100,7 +105,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               {[
                 { label: t('nav_generator'), href: '/generator' },
                 { label: t('nav_credits'), href: '/pricing' },
-                { label: t('nav_trends'), href: '/trends' },
+                { label: t('nav_trends'), href: pathname === '/' ? '#trends' : '/trends' },
               ].map((item) => (
                 <Link
                   key={item.label}
@@ -221,7 +226,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
             {[
               { label: t('nav_generator'), href: '/generator' },
               { label: t('nav_credits'), href: '/pricing' },
-              { label: t('nav_trends'), href: '/trends' },
+              { label: t('nav_trends'), href: pathname === '/' ? '#trends' : '/trends' },
             ].map((item) => (
               <Link
                 key={item.label}

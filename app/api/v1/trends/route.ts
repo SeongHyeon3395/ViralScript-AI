@@ -22,6 +22,7 @@ export async function GET(): Promise<NextResponse> {
 
     const trends = (data ?? []).map((item) => {
       const videoUrl = item.video_url ?? item.url ?? null;
+      if (!item.thumb_url?.trim()) return null;
       if (!videoUrl) return null;
       try {
         const normalized = normalizeAndValidateUrl(videoUrl);

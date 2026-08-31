@@ -534,8 +534,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   )}
 
                   {message && (
-                    <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
-                      {message.type === 'success' ? <CheckCircle2 size={15} className="shrink-0" /> : <AlertCircle size={15} className="shrink-0" />}
+                    <div className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
+                      {message.type === 'success'
+                        ? mode === 'login'
+                          ? <Loader2 size={15} className="shrink-0 animate-spin" />
+                          : <CheckCircle2 size={15} className="shrink-0" />
+                        : <AlertCircle size={15} className="shrink-0" />}
                       {message.text}
                     </div>
                   )}

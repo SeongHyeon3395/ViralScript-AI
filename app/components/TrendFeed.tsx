@@ -20,6 +20,7 @@ const REGION_LABELS: Record<string, string> = { all: 'trend_region_all', KR: 'tr
 const HOME_INITIAL_COUNT = 6;
 const HOME_PAGE_SIZE = 12;
 const FULL_PAGE_SIZE = 24;
+const PAGE_BUTTON_WINDOW = 6;
 
 interface TrendFeedProps {
   onGenerate?: (url: string, platform: string) => void;
@@ -138,7 +139,6 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
 
   function changePage(page: number) {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   const kstFormattedTime = lastUpdated ? formatKstTime(lastUpdated) : null;
@@ -153,6 +153,8 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
   });
   const pageSize = isFullPage ? FULL_PAGE_SIZE : HOME_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const pageWindowStart = Math.floor((currentPage - 1) / PAGE_BUTTON_WINDOW) * PAGE_BUTTON_WINDOW + 1;
+  const pageWindowEnd = Math.min(totalPages, pageWindowStart + PAGE_BUTTON_WINDOW - 1);
   const displayed = isFullPage
     ? sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
     : homeExpanded
@@ -292,7 +294,7 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
               >
                 <ChevronLeft size={15} />
               </button>
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+              {Array.from({ length: pageWindowEnd - pageWindowStart + 1 }, (_, index) => pageWindowStart + index).map((page) => (
                 <button
                   type="button"
                   key={page}
@@ -305,8 +307,8 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
               ))}
               <button
                 type="button"
-                onClick={() => changePage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
+                onClick={() => changePage(Math.min(totalPages, pageWindowStart + PAGE_BUTTON_WINDOW))}
+                disabled={pageWindowEnd === totalPages}
                 className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
                 aria-label="Next page"
               >

@@ -29,8 +29,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: Arial, "Noto Sans KR", sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, monospace;
 }
 
 html {
@@ -40,7 +40,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -565,4 +565,3 @@ body {
 [style*='rgba(13,13,20'] { background: rgba(13,13,20,0.8) !important; }
 [style*='rgba(124,58,237'] { background: rgba(124,58,237,0.15) !important; border-color: rgba(124,58,237,0.4) !important; }
 [style*='rgba(79,70,229'] { background: rgba(79,70,229,0.10) !important; border-color: rgba(79,70,229,0.3) !important; }
-

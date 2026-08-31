@@ -89,10 +89,12 @@ function buildRow(platform: TrendPlatform, region: Region, item: ApifyItem, vide
   if (views <= 0) return null;
   const title = cleanText(item.title ?? item.caption ?? item.description ?? item.text, `${platform} viral short`);
   if (isKidsContent(title) || !matchesRegionLanguage(region, title)) return null;
+  const thumbUrl = item.cover ?? item.coverUrl ?? item.videoMeta?.coverUrl ?? null;
+  if (!thumbUrl?.trim()) return null;
   return {
     platform, region, title, subtitle: regionSubtitle(region, views), views: formatCount(views),
     likes: formatCount(finiteNumber(item.diggCount ?? item.likeCount ?? item.likes)), tags: '',
-    thumb_url: item.cover ?? item.coverUrl ?? item.videoMeta?.coverUrl ?? null,
+    thumb_url: thumbUrl,
     url: videoUrl, video_url: videoUrl,
   };
 }
@@ -120,7 +122,7 @@ async function collectYouTube(region: Region): Promise<TrendRow[]> {
     const videoUrl = `https://www.youtube.com/shorts/${item.id}`;
     const views = finiteNumber(item.statistics?.viewCount);
     return { platform: 'YouTube Shorts' as const, region, title: cleanText(item.snippet?.title, 'YouTube Short'), sourceText: `${item.snippet?.title ?? ''} ${item.snippet?.description ?? ''}`, subtitle: regionSubtitle(region, views), views: formatCount(views), likes: formatCount(finiteNumber(item.statistics?.likeCount)), tags: '', thumb_url: item.snippet?.thumbnails?.high?.url ?? item.snippet?.thumbnails?.medium?.url ?? null, url: videoUrl, video_url: videoUrl };
-  }).filter((row: TrendRow & { sourceText?: string }) => validPermalink(row.platform, row.video_url) && !isKidsContent(row.sourceText ?? row.title) && matchesRegionLanguage(region, row.title)).map((row: TrendRow & { sourceText?: string }) => {
+  }).filter((row: TrendRow & { sourceText?: string }) => validPermalink(row.platform, row.video_url) && !!row.thumb_url?.trim() && !isKidsContent(row.sourceText ?? row.title) && matchesRegionLanguage(region, row.title)).map((row: TrendRow & { sourceText?: string }) => {
     const { sourceText, ...dbRow } = row;
     void sourceText;
     return dbRow;

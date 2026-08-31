@@ -87,7 +87,7 @@ export default function Home() {
         </section>
 
         {/* TREND FEED */}
-        <section className="py-12 sm:py-16 px-4 sm:px-6 border-t border-white/5">
+        <section id="trends" className="py-12 sm:py-16 px-4 sm:px-6 border-t border-white/5 scroll-mt-20">
           <div className="mx-auto max-w-5xl">
             <TrendFeed onGenerate={handleTrendGenerate} />
           </div>
@@ -107,7 +107,17 @@ export default function Home() {
                 { icon: Play, titleKey: 'free_ad_title', descKey: 'free_ad_desc', badgeKey: 'free_ad_badge', badgeClass: 'badge-amber', highlight: true },
                 { icon: Users, titleKey: 'free_invite_title', descKey: 'free_invite_desc', badgeKey: 'free_invite_badge', badgeClass: 'badge-purple', highlight: false },
               ].map(({ icon: Icon, titleKey, descKey, badgeKey, badgeClass, highlight }) => (
-                <div key={titleKey} className={`relative rounded-2xl p-6 card-hover flex flex-col ${highlight ? 'glow-purple' : ''}`}
+                <div key={titleKey} role="button" tabIndex={0} onClick={() => {
+                  if (titleKey === 'free_roulette_title') {
+                    if (navbarRef.current?.getUser()) window.dispatchEvent(new CustomEvent('daily-roulette:open'));
+                    else navbarRef.current?.openLoginModal();
+                  } else if (titleKey === 'free_invite_title') {
+                    if (navbarRef.current?.getUser()) window.dispatchEvent(new CustomEvent('referral:open'));
+                    else navbarRef.current?.openLoginModal();
+                  }
+                }} onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') event.currentTarget.click();
+                }} className={`relative rounded-2xl p-6 card-hover flex flex-col cursor-pointer ${highlight ? 'glow-purple' : ''}`}
                   style={{ background: highlight ? 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(79,70,229,0.10) 100%)' : 'rgba(13,13,20,0.6)', border: highlight ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.08)' }}>
                   {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-amber px-3 py-1 text-xs"><Star size={10} fill="currentColor" />{t('recommended')}</span></div>}
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/20 to-indigo-600/20 border border-violet-500/20 flex items-center justify-center mb-4"><Icon size={18} className="text-violet-400" /></div>
