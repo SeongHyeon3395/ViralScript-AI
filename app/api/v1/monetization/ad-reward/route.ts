@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -30,9 +29,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const gate = assertAdsEnabled();
   if (gate) return gate;
 
-  // 인증 확인
-  const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  // 브라우저 Supabase 클라이언트는 세션을 localStorage에 보관하므로 Bearer 토큰을 명시적으로 검증한다.
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+  }
+  const admin = createAdminClient();
+  const { data: { user }, error: authError } = await admin.auth.getUser(authHeader.slice(7));
 
   if (authError || !user) {
     return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
@@ -49,7 +52,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const adUnitId = body.adUnitId ?? process.env.NEXT_PUBLIC_ADSENSE_REWARDED_AD_SLOT ?? 'unknown';
 
   // Admin 클라이언트로 RPC 호출 (SECURITY DEFINER 함수라 RLS 우회)
-  const admin = createAdminClient();
   const { error: profileError } = await admin.from('profiles').upsert(
     { id: user.id, email: user.email ?? '' } as never,
     { onConflict: 'id', ignoreDuplicates: true },

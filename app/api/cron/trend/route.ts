@@ -145,7 +145,8 @@ async function collectTikTok(region: Region): Promise<TrendRow[]> {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const expected = process.env.CRON_SECRET;
-  if (expected && req.headers.get('authorization') !== `Bearer ${expected}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!expected) return NextResponse.json({ error: 'CRON_SECRET is not configured' }, { status: 500 });
+  if (req.headers.get('authorization') !== `Bearer ${expected}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const regions: Region[] = ['US', 'KR', 'JP'];
     const settled = await Promise.allSettled(regions.map(async (region) => {

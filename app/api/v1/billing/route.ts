@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -24,20 +24,26 @@ function assertPaymentEnabled(): NextResponse | null {
 
 // ─── GET /api/v1/billing — 플랜 목록 및 현재 구독 조회 ───────────────────────
 
-export async function GET(): Promise<NextResponse> {
+function getAuthenticatedUser(req: NextRequest) {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  return createAdminClient().auth.getUser(authHeader.slice(7));
+}
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
   const gate = assertPaymentEnabled();
   if (gate) return gate;
 
-  const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const userResult = await getAuthenticatedUser(req);
+  const { data: { user }, error: authError } = userResult ?? { data: { user: null }, error: new Error('Unauthorized') };
 
   if (authError || !user) {
     return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
   }
 
-  const { data: profile, error } = await supabase
+  const { data: profile, error } = await createAdminClient()
     .from('profiles')
-    .select('tier, credits, stripe_customer_id')
+    .select('subscription_plan, credits_remaining, stripe_customer_id')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -54,8 +60,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const gate = assertPaymentEnabled();
   if (gate) return gate;
 
-  const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const userResult = await getAuthenticatedUser(req);
+  const { data: { user }, error: authError } = userResult ?? { data: { user: null }, error: new Error('Unauthorized') };
 
   if (authError || !user) {
     return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });

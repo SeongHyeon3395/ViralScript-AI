@@ -52,9 +52,12 @@ export default function RewardedAdPopup({
 
   const handleAdRewardGranted = useCallback(async function handleAdRewardGranted() {
     try {
+      const supabase = (await import('@/lib/supabase/client')).getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('로그인이 필요합니다.');
       const res = await fetch('/api/v1/monetization/ad-reward', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ adUnitId: ADSENSE_SLOT }),
       });
 
