@@ -14,10 +14,10 @@ import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
 import { clearUserCreditsCache } from '@/lib/profile';
 import {
-  Link2, ShoppingBag, SlidersHorizontal, Rocket, Loader2, Zap,
+  Link2, SlidersHorizontal, Rocket, Loader2, Zap,
   Film, Clock, TrendingUp, ChevronDown, ChevronUp,
   Sparkles, BarChart3, ArrowRight, Gift, RefreshCw, Shuffle,
-  CheckCircle2, Shield, LogIn, Copy, Clapperboard, Users, Languages,
+  CheckCircle2, Shield, LogIn, Copy, Clapperboard, Languages,
 } from 'lucide-react';
 
 const DIRECT_SHORT_FORM_REGEX = /^https?:\/\/(?:www\.|vm\.|vt\.)?(?:tiktok\.com\/(?:(?:@[^\/\s]+)\/video\/\d+|v\/\d+)|vm\.tiktok\.com\/[\w-]+|vt\.tiktok\.com\/[\w-]+|youtube\.com\/shorts\/[^\s?]+|youtu\.be\/[^\s?]+)(?:[\/?#].*)?$/i;
@@ -35,12 +35,12 @@ const LOCALE_TABS = [
   { key: 'jp' as const, flag: '🇯🇵', label: '일본' },
 ];
 
-const ANALYSIS_POINTS = ['첫 1~3초 후킹', '장면 전환 속도', '내레이션 구조', '자막 패턴', '감정 변화', '제품 노출 방식', '마지막 CTA'];
-const PURPOSES = ['구매 전환', '브랜드 인지도', '앱 설치', '이벤트 홍보', '제품 리뷰', '팔로워 증가', '정보 전달'];
-const CONCEPTS = ['문제 해결형', '리뷰형', '언박싱형', '전후 비교형', '사용법 설명형', '감성 스토리형', '코미디·밈형', '제품 집중형', '얼굴 없는 광고'];
+const ANALYSIS_POINTS = ['첫 1~3초 후킹', '장면 전환 속도', '내레이션 구조', '자막 패턴', '감정 변화', '핵심 대상 노출 방식', '마지막 CTA'];
+const PURPOSES = ['정보 전달', '재미·공감', '경험 공유', '스토리 전달', '챌린지 참여', '팔로워 증가', '커뮤니티 소통'];
+const CONCEPTS = ['문제 해결형', '리뷰형', '전후 비교형', '사용법 설명형', '감성 스토리형', '코미디·밈형', '브이로그형', '정보 요약형', '얼굴 없는 콘텐츠'];
 const DURATIONS = ['10초', '15초', '30초', '45초', '60초'];
 const LANGUAGES = ['한국어', '영어', '일본어'];
-const PRODUCTION_METHODS = ['직접 촬영', 'AI 영상 생성', '기존 영상 편집', '얼굴 없는 콘텐츠', '제품 중심 광고', '인물 중심 광고'];
+const PRODUCTION_METHODS = ['직접 촬영', 'AI 영상 생성', '기존 영상 편집', '얼굴 없는 콘텐츠', '화면 녹화', '사진·이미지 활용'];
 const AI_VIDEO_TOOLS = ['Google Veo', 'Runway', 'Kling', 'Adobe Firefly', '범용 프롬프트'];
 
 function ChoiceChips({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
@@ -154,9 +154,7 @@ export default function GeneratorPage() {
   const [sourcePlatform, setSourcePlatform] = useState<string | null>(null);
   const [trendReference, setTrendReference] = useState<{ region: string | null; title: string | null; thumbnail: string | null; trendId: string | null } | null>(null);
   const [targetProduct, setTargetProduct] = useState('');
-  const [productFeatures, setProductFeatures] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
-  const [purpose, setPurpose] = useState('구매 전환');
+  const [purpose, setPurpose] = useState('정보 전달');
   const [concept, setConcept] = useState('문제 해결형');
   const [mood, setMood] = useState('');
   const [duration, setDuration] = useState('30초');
@@ -223,12 +221,10 @@ export default function GeneratorPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           url: url.trim(),
-          targetProduct: targetProduct.trim() || undefined,
+          targetProduct: targetProduct.trim() || '자유 주제 콘텐츠',
           userCustomPrompt: [
             `제작 목적: ${purpose}`,
             `콘셉트: ${concept}`,
-            `상품 특징: ${productFeatures || '미입력'}`,
-            `타깃 고객: ${targetAudience || '미입력'}`,
             `원하는 분위기: ${mood || '미입력'}`,
             `영상 길이: ${duration}`,
             `출연자: ${cast}`,
@@ -322,13 +318,12 @@ export default function GeneratorPage() {
             </div>
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
-              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black">2</span><div><h3 className="text-sm font-bold text-white">내 콘텐츠 정보</h3><p className="text-xs text-white/40">상품과 목표를 입력해 새로운 영상 제작 플랜을 맞춤 설계합니다.</p></div></div>
+              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black">2</span><div><h3 className="text-sm font-bold text-white">내 콘텐츠 설정</h3><p className="text-xs text-white/40">만들고 싶은 주제와 영상 스타일을 자유롭게 선택하세요.</p></div></div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><ShoppingBag size={14} className="text-emerald-400" />{t('gen_product_label')}</label>
-                <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder={t('gen_product_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Sparkles size={14} className="text-emerald-400" />콘텐츠 주제 <span className="text-xs font-normal text-white/25">(선택)</span></label>
+                <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder="예: 자취 요리, 운동 루틴, 여행 팁, 일상 브이로그" className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">상품 특징</label><textarea value={productFeatures} onChange={e => setProductFeatures(e.target.value)} rows={2} placeholder="예: 5분 만에 사용 가능한 저자극 클렌저" className="w-full rounded-xl px-3 py-2.5 text-xs input-dark resize-none" /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Users size={13} className="text-cyan-400" />타깃 고객</label><textarea value={targetAudience} onChange={e => setTargetAudience(e.target.value)} rows={2} placeholder="예: 피부 고민이 있는 20~30대" className="w-full rounded-xl px-3 py-2.5 text-xs input-dark resize-none" /></div></div>
-              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">영상 제작 목적</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
+              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">콘텐츠 목적</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
               <div className="space-y-2"><label className="text-xs font-semibold text-white/70">콘셉트</label><ChoiceChips options={CONCEPTS} value={concept} onChange={setConcept} /></div>
               <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">원하는 분위기</label><input value={mood} onChange={e => setMood(e.target.value)} placeholder="예: 감각적, 밝고 신뢰감 있게" className="w-full rounded-xl px-3 py-2.5 text-xs input-dark" /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Clapperboard size={13} className="text-pink-400" />출연자 유무</label><ChoiceChips options={['출연자 있음', '출연자 없음']} value={cast} onChange={setCast} /></div></div>
               <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">영상 길이</label><ChoiceChips options={DURATIONS} value={duration} onChange={setDuration} /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Languages size={13} className="text-emerald-400" />언어</label><ChoiceChips options={LANGUAGES} value={language} onChange={setLanguage} /></div></div>
@@ -353,8 +348,8 @@ export default function GeneratorPage() {
               <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">생성 옵션 확인</h3><p className="text-xs text-white/40">입력한 정보를 확인한 뒤 제작 플랜을 생성하세요.</p></div></div>
               <div className="grid gap-2 rounded-xl border border-white/8 bg-white/[0.025] p-4 sm:grid-cols-2">
                 {[
-                  ['참고 영상', trendReference?.title || url], ['상품명', targetProduct || '미입력'], ['타깃 고객', targetAudience || '미입력'],
-                  ['영상 목적', purpose], ['영상 길이', duration], ['제작 방식', productionMethod], ['선택한 AI 도구', productionMethod === 'AI 영상 생성' ? aiVideoTool : '해당 없음'],
+                  ['참고 영상', trendReference?.title || url], ['콘텐츠 주제', targetProduct || '자유 주제'],
+                  ['콘텐츠 목적', purpose], ['영상 길이', duration], ['제작 방식', productionMethod], ['선택한 AI 도구', productionMethod === 'AI 영상 생성' ? aiVideoTool : '해당 없음'],
                   ['예상 장면 수', `${expectedScenes}개`], ['생성 비용', '제작 플랜 생성 1회 — 5크레딧'],
                 ].map(([label, value]) => <div key={label} className="rounded-lg bg-black/15 p-3"><p className="text-[10px] font-bold text-white/35">{label}</p><p className="mt-1 truncate text-xs text-white/75">{value}</p></div>)}
               </div>

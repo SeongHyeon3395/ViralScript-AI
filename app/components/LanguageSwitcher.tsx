@@ -241,9 +241,9 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Generator Page ───
     gen_title: 'AI 숏폼 영상 제작 플래너',
-    gen_subtitle: '참고할 숏폼 영상의 바이럴 구조를 분석하고 내 상품에 맞는 새로운 영상 제작 플랜을 만들어보세요.',
+    gen_subtitle: '참고할 숏폼 영상의 바이럴 구조를 분석하고 내 주제에 맞는 새로운 영상 제작 플랜을 만들어보세요.',
     gen_url_placeholder: '숏폼 URL을 입력하세요 (TikTok, YouTube Shorts)',
-    gen_product_placeholder: '홍보할 제품/서비스명 (선택사항)',
+    gen_product_placeholder: '만들고 싶은 콘텐츠 주제 (선택사항)',
     gen_analyze_btn: '영상 분석 시작',
     gen_analyzing: '분석 중...',
     gen_credits_required: '필요 크레딧',
@@ -265,7 +265,7 @@ export const T: Record<Lang, Record<string, string>> = {
     gen_login_btn: '로그인 하기',
     gen_url_invalid: '유튜브 쇼츠와 틱톡 링크만 분석 가능합니다.',
     gen_url_label: '숏폼 영상 URL',
-    gen_product_label: '홍보할 상품 / 서비스명',
+    gen_product_label: '콘텐츠 주제',
     gen_custom_prompt_label: '추가 요청사항',
     gen_optional: '선택',
     gen_custom_prompt_placeholder: '예: 20대 여성 타겟, MZ 감성, 유머러스한 톤, 전환율 극대화...',
@@ -532,7 +532,7 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Generator Page ───
     gen_title: 'AI Short-Form Video Production Planner',
-    gen_subtitle: 'Analyze the viral structure of a reference video and create a new production plan for your product.',
+    gen_subtitle: 'Analyze a reference video’s viral structure and create a new production plan for your topic.',
     gen_url_placeholder: 'Enter a short-form URL (TikTok or YouTube Shorts)',
     gen_product_placeholder: 'Product/Service to promote (optional)',
     gen_analyze_btn: 'Start Video Analysis',
@@ -823,7 +823,7 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Generator Page ───
     gen_title: 'AI短视频制作策划器',
-    gen_subtitle: '分析参考短视频的爆款结构，为您的商品创建全新视频制作方案。',
+    gen_subtitle: '分析参考短视频的爆款结构，为您的主题创建全新视频制作方案。',
     gen_url_placeholder: '输入短视频链接（TikTok、YouTube Shorts）',
     gen_product_placeholder: '要推广的产品/服务（可选）',
     gen_analyze_btn: '开始视频分析',
@@ -1114,7 +1114,7 @@ export const T: Record<Lang, Record<string, string>> = {
 
     // ─── Generator Page ───
     gen_title: 'AIショート動画制作プランナー',
-    gen_subtitle: '参考ショート動画のバイラル構造を分析し、商品に合う新しい動画制作プランを作成します。',
+    gen_subtitle: '参考ショート動画のバイラル構造を分析し、テーマに合う新しい動画制作プランを作成します。',
     gen_url_placeholder: 'ショート動画URLを入力（TikTok、YouTube Shorts）',
     gen_product_placeholder: '宣伝する商品/サービス（任意）',
     gen_analyze_btn: '動画分析を開始',
