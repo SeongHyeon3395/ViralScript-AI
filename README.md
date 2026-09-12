@@ -14,6 +14,7 @@ TikTok과 YouTube Shorts 영상을 분석하고, Gemini AI로 숏폼 영상 대�
 - 트렌드 썸네일, 플랫폼·지역 필터, 인기순·최신순 정렬
 - 메인 트렌드 6개 → 12개 → 페이지네이션
 - 전체 트렌드 페이지의 24개 단위 페이지네이션
+- 관리자 전용 사용자·트렌드·감사 로그 콘솔
 
 ## 기술 스택
 
@@ -178,6 +179,7 @@ Invoke-WebRequest `
 | `/trends` | 전체 트렌드 페이지 |
 | `/history` | 로그인 사용자의 생성 이력 |
 | `/settings` | 계정·프로필 설정 |
+| `/Master` | 비공개 마스터 운영 콘솔 |
 | `/api/v1/analyze` | 영상 분석·대본 생성 API |
 | `/api/v1/trends` | 트렌드 조회 API |
 | `/api/cron/trend` | 일일 트렌드 수집 Cron API |
@@ -231,3 +233,29 @@ npm.cmd test -- --run
 - API 키와 사용자 비밀번호를 SQL migration, README, Git 커밋에 기록하지 않습니다.
 - 원격 Supabase 스키마는 Dashboard에서 직접 수정하지 말고 migration 파일로 변경합니다.
 - 외부 플랫폼의 이용약관과 API quota를 준수해야 합니다.
+
+## 마스터 콘솔 운영
+
+`/Master`는 별도 비밀번호를 소스에 저장하지 않고 Supabase Auth 세션과
+`admin_users` 권한을 모두 검증합니다. `20260912000024_master_console.sql` 적용 시
+이미 존재하는 `psunghyi@gmail.com` Auth 계정에 최초 `master` 역할을 부여합니다.
+
+운영 순서:
+
+1. Supabase Authentication에 관리자 계정이 존재하고 이메일 인증이 완료되었는지 확인합니다.
+2. `npx supabase db push`로 최신 마이그레이션을 적용합니다.
+3. `/Master`에서 해당 Supabase Auth 계정으로 로그인합니다.
+
+마이그레이션 이후 계정을 새로 만들었다면 이메일만으로 권한을 자동 부여하지 않습니다.
+Supabase SQL Editor에서 실제 Auth 사용자 UUID를 확인한 뒤 다음처럼 명시적으로 등록합니다.
+
+```sql
+INSERT INTO public.admin_users (user_id, role, is_active)
+VALUES ('실제-auth-user-uuid', 'master', true)
+ON CONFLICT (user_id) DO NOTHING;
+```
+
+- 비밀번호, service role key, API 키는 소스·마이그레이션·문서에 기록하지 않습니다.
+- 트렌드 삭제는 소프트 삭제이므로 콘솔의 삭제 보관함에서 복원할 수 있습니다.
+- 사용자/피드 변경은 `admin_audit_logs`에 기록됩니다.
+- 결제 키, 사용자 API 키, 비밀번호는 관리자 API에서도 조회하거나 표시하지 않습니다.

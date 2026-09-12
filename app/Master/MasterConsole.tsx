@@ -1,0 +1,269 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Activity, ArchiveRestore, BarChart3, ChevronLeft, ChevronRight, CircleDollarSign,
+  Edit3, Eye, EyeOff, FileClock, Film, Loader2, LockKeyhole, LogOut, RefreshCw,
+  Search, ShieldCheck, Trash2, UserRoundCog, Users, X,
+} from 'lucide-react';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+
+type Tab = 'dashboard' | 'users' | 'trends' | 'audits';
+
+interface DashboardData {
+  stats: {
+    users: number; suspendedUsers: number; activeTrends: number; deletedTrends: number;
+    generations: number; todayGenerations: number; revenue: { krw: number; usd: number };
+  };
+  recentAudit: AuditRow[];
+}
+
+interface UserRow {
+  id: string; email: string; full_name: string | null; subscription_plan: 'free' | 'pro' | 'agency';
+  credits_remaining: number; theme_preference: 'dark' | 'light' | 'system'; default_language: 'ko' | 'en' | 'ja' | 'zh';
+  email_notifications: boolean; default_target_platform: 'tiktok' | 'youtube'; is_suspended: boolean;
+  suspended_at: string | null; suspension_reason: string | null; created_at: string; updated_at: string;
+  last_sign_in_at: string | null; email_confirmed_at: string | null; admin_role: string | null;
+}
+
+interface TrendRow {
+  id: string; platform: string; region: string; title: string; subtitle: string; views: string; likes: string;
+  tags: string; thumb_url: string | null; video_url: string | null; created_at: string; deleted_at: string | null;
+  delete_reason: string | null;
+}
+
+interface AuditRow {
+  id: string; admin_user_id?: string; action: string; target_type: string; target_id: string | null;
+  before_data?: Record<string, unknown>; after_data?: Record<string, unknown>; reason: string | null; created_at: string;
+}
+
+interface PageData<T> { page: number; pageSize: number; total: number; users?: T[]; trends?: T[]; audits?: T[] }
+
+function formatDate(value: string | null): string {
+  if (!value) return '-';
+  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(value));
+}
+
+function actionLabel(action: string): string {
+  return ({
+    'user.update': '사용자 수정', 'user.suspend': '계정 정지', 'user.restore': '계정 복원',
+    'trend.update': '피드 수정', 'trend.delete': '피드 삭제', 'trend.restore': '피드 복원',
+  } as Record<string, string>)[action] ?? action;
+}
+
+export default function MasterConsole() {
+  const [status, setStatus] = useState<'checking' | 'login' | 'ready' | 'denied'>('checking');
+  const [email, setEmail] = useState('psunghyi@gmail.com');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [tab, setTab] = useState<Tab>('dashboard');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [users, setUsers] = useState<PageData<UserRow>>({ page: 1, pageSize: 25, total: 0, users: [] });
+  const [trends, setTrends] = useState<PageData<TrendRow>>({ page: 1, pageSize: 25, total: 0, trends: [] });
+  const [audits, setAudits] = useState<PageData<AuditRow>>({ page: 1, pageSize: 25, total: 0, audits: [] });
+  const [search, setSearch] = useState('');
+  const [trendStatus, setTrendStatus] = useState<'active' | 'deleted'>('active');
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null);
+  const [editingTrend, setEditingTrend] = useState<TrendRow | null>(null);
+
+  const api = useCallback(async (query = '', init?: RequestInit) => {
+    const { data: { session } } = await getSupabaseBrowserClient().auth.getSession();
+    if (!session) throw new Error('로그인이 필요합니다.');
+    const response = await fetch(`/api/master${query}`, {
+      ...init,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, ...init?.headers },
+    });
+    const payload = await response.json() as { data?: unknown; admin?: { email?: string }; error?: string };
+    if (!response.ok) {
+      const nextError = new Error(payload.error ?? '요청에 실패했습니다.');
+      Object.assign(nextError, { status: response.status });
+      throw nextError;
+    }
+    if (payload.admin?.email) setAdminEmail(payload.admin.email);
+    return payload.data;
+  }, []);
+
+  const load = useCallback(async (nextTab: Tab, page = 1, query = search) => {
+    setLoading(true); setError('');
+    try {
+      if (nextTab === 'dashboard') setDashboard(await api('?resource=dashboard') as DashboardData);
+      if (nextTab === 'users') setUsers(await api(`?resource=users&page=${page}&search=${encodeURIComponent(query)}`) as PageData<UserRow>);
+      if (nextTab === 'trends') setTrends(await api(`?resource=trends&page=${page}&status=${trendStatus}&search=${encodeURIComponent(query)}`) as PageData<TrendRow>);
+      if (nextTab === 'audits') setAudits(await api(`?resource=audits&page=${page}`) as PageData<AuditRow>);
+      setStatus('ready');
+    } catch (caught) {
+      const err = caught as Error & { status?: number };
+      setError(err.message);
+      if (err.status === 401) setStatus('login');
+      if (err.status === 403) setStatus('denied');
+    } finally { setLoading(false); }
+  }, [api, search, trendStatus]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSupabaseBrowserClient().auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      if (!data.session) setStatus('login');
+      else {
+        setLoading(true);
+        api('?resource=dashboard')
+          .then((result) => { if (!cancelled) { setDashboard(result as DashboardData); setStatus('ready'); } })
+          .catch((caught) => {
+            if (cancelled) return;
+            const err = caught as Error & { status?: number };
+            setError(err.message);
+            setStatus(err.status === 403 ? 'denied' : 'login');
+          })
+          .finally(() => { if (!cancelled) setLoading(false); });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [api]);
+
+  useEffect(() => {
+    if (status !== 'ready' || tab === 'dashboard') return;
+    const timer = window.setTimeout(() => void load(tab, 1, search), 300);
+    return () => window.clearTimeout(timer);
+  }, [search, trendStatus, tab, status, load]);
+
+  async function login(event: React.FormEvent) {
+    event.preventDefault(); setLoading(true); setError('');
+    const { error: loginError } = await getSupabaseBrowserClient().auth.signInWithPassword({ email: email.trim(), password });
+    if (loginError) { setError('아이디 또는 비밀번호가 올바르지 않습니다.'); setLoading(false); return; }
+    setPassword('');
+    await load('dashboard');
+  }
+
+  async function logout() {
+    await getSupabaseBrowserClient().auth.signOut();
+    setStatus('login'); setAdminEmail(''); setPassword(''); setDashboard(null);
+  }
+
+  async function mutate(body: Record<string, unknown>, success: string) {
+    setLoading(true); setError(''); setNotice('');
+    try {
+      await api('', { method: 'PATCH', body: JSON.stringify(body) });
+      setNotice(success); setEditingUser(null); setEditingTrend(null);
+      await load(tab, tab === 'users' ? users.page : tab === 'trends' ? trends.page : 1);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : '작업에 실패했습니다.'); }
+    finally { setLoading(false); }
+  }
+
+  function switchTab(next: Tab) {
+    setTab(next); setSearch(''); setNotice(''); setError('');
+    if (next === 'dashboard') void load(next, 1, '');
+  }
+
+  if (status === 'checking') return <FullScreenLoader />;
+  if (status === 'login' || status === 'denied') return (
+    <main className="min-h-screen grid place-items-center px-4 py-12">
+      <form onSubmit={login} className="glass-strong w-full max-w-md rounded-3xl p-8 shadow-2xl">
+        <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-violet-500/15 text-violet-300"><LockKeyhole size={26} /></div>
+        <p className="mb-1 text-center text-xs font-bold uppercase tracking-[0.35em] text-violet-300">Restricted Area</p>
+        <h1 className="text-center text-2xl font-black text-white">Master Console</h1>
+        <p className="mt-2 text-center text-sm text-white/45">승인된 관리자 계정으로 로그인하세요.</p>
+        {status === 'denied' && <div className="mt-5 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-200">현재 계정에는 관리자 권한이 없습니다. 계정을 전환하세요.</div>}
+        {error && <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
+        <label className="mt-6 block text-xs font-bold text-white/55">관리자 이메일</label>
+        <input className="input-dark mt-2 w-full rounded-xl px-4 py-3 text-sm" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <label className="mt-4 block text-xs font-bold text-white/55">비밀번호</label>
+        <div className="relative mt-2">
+          <input className="input-dark w-full rounded-xl px-4 py-3 pr-12 text-sm" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+        </div>
+        <button disabled={loading} className="btn-primary mt-6 flex w-full items-center justify-center gap-2" type="submit">{loading && <Loader2 size={17} className="animate-spin" />}관리자 로그인</button>
+        {status === 'denied' && <button type="button" onClick={logout} className="mt-3 w-full py-2 text-xs text-white/45 hover:text-white">현재 계정 로그아웃</button>}
+      </form>
+    </main>
+  );
+
+  const nav = [
+    { id: 'dashboard' as const, label: '대시보드', icon: BarChart3 },
+    { id: 'users' as const, label: '사용자 관리', icon: Users },
+    { id: 'trends' as const, label: '트렌드 피드', icon: Film },
+    { id: 'audits' as const, label: '감사 로그', icon: FileClock },
+  ];
+
+  return (
+    <main className="min-h-screen bg-[#06070b] text-white">
+      <div className="mx-auto flex min-h-screen max-w-[1800px] flex-col lg:flex-row">
+        <aside className="border-b border-white/8 bg-[#0b0d14]/95 p-4 lg:w-64 lg:border-b-0 lg:border-r lg:p-6">
+          <div className="flex items-center justify-between lg:block">
+            <div><p className="text-[10px] font-bold uppercase tracking-[.35em] text-violet-300">ViralScript AI</p><h1 className="mt-1 text-xl font-black">Master Console</h1></div>
+            <ShieldCheck className="text-emerald-400 lg:mt-5" />
+          </div>
+          <nav className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-1">
+            {nav.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => switchTab(id)} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${tab === id ? 'bg-violet-600 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}><Icon size={16} />{label}</button>)}
+          </nav>
+          <div className="mt-5 border-t border-white/8 pt-4 lg:mt-auto lg:fixed lg:bottom-6 lg:w-[215px]">
+            <p className="truncate text-xs text-white/45">{adminEmail}</p>
+            <button onClick={logout} className="mt-2 flex items-center gap-2 text-xs text-red-300/70 hover:text-red-300"><LogOut size={14} />로그아웃</button>
+          </div>
+        </aside>
+
+        <section className="min-w-0 flex-1 p-4 sm:p-7 lg:p-10">
+          <header className="mb-7 flex flex-wrap items-center justify-between gap-3">
+            <div><p className="text-xs text-white/35">운영 및 보안 관리</p><h2 className="mt-1 text-2xl font-black">{nav.find((item) => item.id === tab)?.label}</h2></div>
+            <button onClick={() => void load(tab, tab === 'users' ? users.page : tab === 'trends' ? trends.page : tab === 'audits' ? audits.page : 1)} className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/5 hover:text-white"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />새로고침</button>
+          </header>
+          {error && <Message color="red" text={error} onClose={() => setError('')} />}
+          {notice && <Message color="emerald" text={notice} onClose={() => setNotice('')} />}
+          {tab === 'dashboard' && dashboard && <Dashboard data={dashboard} />}
+          {tab === 'users' && <UsersPanel data={users} search={search} setSearch={setSearch} edit={setEditingUser} page={(page) => void load('users', page)} />}
+          {tab === 'trends' && <TrendsPanel data={trends} search={search} setSearch={setSearch} status={trendStatus} setStatus={setTrendStatus} edit={setEditingTrend} moderate={(row, restore) => { if (window.confirm(restore ? '이 피드를 복원하시겠습니까?' : '이 피드를 피드에서 숨기시겠습니까? 언제든 복원할 수 있습니다.')) void mutate({ action: restore ? 'restore_trend' : 'delete_trend', trendId: row.id }, restore ? '피드를 복원했습니다.' : '피드를 삭제 보관함으로 이동했습니다.'); }} page={(page) => void load('trends', page)} />}
+          {tab === 'audits' && <AuditsPanel data={audits} page={(page) => void load('audits', page)} />}
+          {loading && <div className="pointer-events-none fixed inset-0 z-40 grid place-items-center bg-black/15"><Loader2 className="animate-spin text-violet-300" size={30} /></div>}
+        </section>
+      </div>
+      {editingUser && <UserEditor user={editingUser} close={() => setEditingUser(null)} save={(body) => void mutate({ action: 'update_user', userId: editingUser.id, ...body }, '사용자 정보를 저장했습니다.')} />}
+      {editingTrend && <TrendEditor trend={editingTrend} close={() => setEditingTrend(null)} save={(body) => void mutate({ action: 'update_trend', trendId: editingTrend.id, ...body }, '피드 정보를 저장했습니다.')} />}
+    </main>
+  );
+}
+
+function FullScreenLoader() { return <main className="min-h-screen grid place-items-center"><Loader2 className="animate-spin text-violet-300" size={32} /></main>; }
+
+function Message({ color, text, onClose }: { color: 'red' | 'emerald'; text: string; onClose: () => void }) { return <div className={`mb-5 flex items-center justify-between rounded-xl border p-3 text-sm ${color === 'red' ? 'border-red-500/25 bg-red-500/10 text-red-200' : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'}`}><span>{text}</span><button onClick={onClose}><X size={15} /></button></div>; }
+
+function Dashboard({ data }: { data: DashboardData }) {
+  const cards = [
+    ['전체 사용자', data.stats.users.toLocaleString(), Users], ['정지 사용자', data.stats.suspendedUsers.toLocaleString(), UserRoundCog],
+    ['활성 피드', data.stats.activeTrends.toLocaleString(), Film], ['누적 생성', data.stats.generations.toLocaleString(), Activity],
+    ['오늘 생성', data.stats.todayGenerations.toLocaleString(), BarChart3], ['누적 매출', `₩${data.stats.revenue.krw.toLocaleString()}`, CircleDollarSign],
+  ] as const;
+  return <div className="space-y-7"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{cards.map(([label, value, Icon]) => <div key={label} className="rounded-2xl border border-white/8 bg-white/[.025] p-5"><Icon size={18} className="mb-5 text-violet-300" /><p className="text-xs text-white/40">{label}</p><p className="mt-1 text-2xl font-black">{value}</p></div>)}</div><div className="rounded-2xl border border-white/8 bg-white/[.025] p-5"><h3 className="font-bold">최근 관리자 작업</h3><div className="mt-4 divide-y divide-white/6">{data.recentAudit.length ? data.recentAudit.map((row) => <div key={row.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{actionLabel(row.action)} <span className="text-white/35">· {row.target_type}</span></span><span className="text-xs text-white/35">{formatDate(row.created_at)}</span></div>) : <Empty />}</div></div></div>;
+}
+
+function SearchBar({ value, setValue }: { value: string; setValue: (value: string) => void }) { return <div className="relative"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" /><input value={value} onChange={(e) => setValue(e.target.value)} className="input-dark w-full rounded-xl py-2.5 pl-9 pr-3 text-sm sm:w-80" placeholder="이름 또는 이메일 검색" /></div>; }
+
+function UsersPanel({ data, search, setSearch, edit, page }: { data: PageData<UserRow>; search: string; setSearch: (v: string) => void; edit: (v: UserRow) => void; page: (v: number) => void }) {
+  return <div><div className="mb-4 flex items-center justify-between gap-3"><SearchBar value={search} setValue={setSearch} /><span className="text-xs text-white/35">총 {data.total.toLocaleString()}명</span></div><div className="overflow-x-auto rounded-2xl border border-white/8"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-white/[.035] text-xs text-white/40"><tr><th className="p-4">사용자</th><th>플랜</th><th>크레딧</th><th>상태</th><th>최근 로그인</th><th>가입일</th><th className="pr-4 text-right">관리</th></tr></thead><tbody className="divide-y divide-white/6">{data.users?.map((user) => <tr key={user.id} className="hover:bg-white/[.02]"><td className="p-4"><p className="font-bold">{user.full_name || '이름 없음'} {user.admin_role && <span className="ml-1 rounded bg-violet-500/20 px-1.5 py-0.5 text-[10px] text-violet-200">{user.admin_role}</span>}</p><p className="mt-1 text-xs text-white/35">{user.email}</p></td><td className="uppercase text-white/65">{user.subscription_plan}</td><td>{user.credits_remaining.toLocaleString()}</td><td><span className={`rounded-full px-2 py-1 text-xs ${user.is_suspended ? 'bg-red-500/15 text-red-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{user.is_suspended ? '정지' : '정상'}</span></td><td className="text-xs text-white/45">{formatDate(user.last_sign_in_at)}</td><td className="text-xs text-white/45">{formatDate(user.created_at)}</td><td className="pr-4 text-right"><button onClick={() => edit(user)} className="rounded-lg border border-white/10 p-2 text-white/50 hover:bg-white/5 hover:text-white"><Edit3 size={14} /></button></td></tr>)}</tbody></table>{!data.users?.length && <Empty />}</div><Pagination page={data.page} total={data.total} size={data.pageSize} go={page} /></div>;
+}
+
+function TrendsPanel({ data, search, setSearch, status, setStatus, edit, moderate, page }: { data: PageData<TrendRow>; search: string; setSearch: (v: string) => void; status: 'active' | 'deleted'; setStatus: (v: 'active' | 'deleted') => void; edit: (v: TrendRow) => void; moderate: (v: TrendRow, restore: boolean) => void; page: (v: number) => void }) {
+  return <div><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex gap-2"><button onClick={() => setStatus('active')} className={`rounded-xl px-3 py-2 text-xs font-bold ${status === 'active' ? 'bg-violet-600' : 'bg-white/5 text-white/45'}`}>활성 피드</button><button onClick={() => setStatus('deleted')} className={`rounded-xl px-3 py-2 text-xs font-bold ${status === 'deleted' ? 'bg-violet-600' : 'bg-white/5 text-white/45'}`}>삭제 보관함</button></div><SearchBar value={search} setValue={setSearch} /></div><div className="grid gap-3 xl:grid-cols-2">{data.trends?.map((trend) => <article key={trend.id} className="flex gap-4 rounded-2xl border border-white/8 bg-white/[.025] p-4">{trend.thumb_url ? <div role="img" aria-label={trend.title} className="h-24 w-36 shrink-0 rounded-xl bg-cover bg-center" style={{ backgroundImage: `url(${JSON.stringify(trend.thumb_url)})` }} /> : <div className="h-24 w-36 shrink-0 rounded-xl bg-white/5" />}<div className="min-w-0 flex-1"><div className="flex gap-2 text-[10px] font-bold uppercase text-violet-300"><span>{trend.platform}</span><span>·</span><span>{trend.region}</span></div><h3 className="mt-2 line-clamp-2 text-sm font-bold">{trend.title}</h3><p className="mt-2 text-xs text-white/35">조회 {trend.views} · 좋아요 {trend.likes}</p>{trend.delete_reason && <p className="mt-1 truncate text-xs text-red-300/60">{trend.delete_reason}</p>}</div><div className="flex flex-col gap-2">{status === 'active' && <button onClick={() => edit(trend)} title="수정" className="rounded-lg border border-white/10 p-2 text-white/50 hover:text-white"><Edit3 size={14} /></button>}<button onClick={() => moderate(trend, status === 'deleted')} title={status === 'deleted' ? '복원' : '삭제'} className={`rounded-lg border p-2 ${status === 'deleted' ? 'border-emerald-500/20 text-emerald-300' : 'border-red-500/20 text-red-300'}`}>{status === 'deleted' ? <ArchiveRestore size={14} /> : <Trash2 size={14} />}</button></div></article>)}</div>{!data.trends?.length && <div className="rounded-2xl border border-white/8"><Empty /></div>}<Pagination page={data.page} total={data.total} size={data.pageSize} go={page} /></div>;
+}
+
+function AuditsPanel({ data, page }: { data: PageData<AuditRow>; page: (v: number) => void }) { return <div><div className="overflow-x-auto rounded-2xl border border-white/8"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-white/[.035] text-xs text-white/40"><tr><th className="p-4">작업</th><th>대상</th><th>사유</th><th>관리자 ID</th><th className="pr-4">일시</th></tr></thead><tbody className="divide-y divide-white/6">{data.audits?.map((row) => <tr key={row.id}><td className="p-4 font-bold">{actionLabel(row.action)}</td><td className="text-white/50">{row.target_type} · {row.target_id?.slice(0, 8) ?? '-'}</td><td className="max-w-xs truncate text-white/50">{row.reason ?? '-'}</td><td className="font-mono text-xs text-white/35">{row.admin_user_id?.slice(0, 8) ?? '-'}</td><td className="pr-4 text-xs text-white/40">{formatDate(row.created_at)}</td></tr>)}</tbody></table>{!data.audits?.length && <Empty />}</div><Pagination page={data.page} total={data.total} size={data.pageSize} go={page} /></div>; }
+
+function Pagination({ page, total, size, go }: { page: number; total: number; size: number; go: (v: number) => void }) { const pages = Math.max(1, Math.ceil(total / size)); return <div className="mt-5 flex items-center justify-center gap-3 text-xs text-white/45"><button disabled={page <= 1} onClick={() => go(page - 1)} className="rounded-lg border border-white/10 p-2 disabled:opacity-25"><ChevronLeft size={14} /></button><span>{page} / {pages}</span><button disabled={page >= pages} onClick={() => go(page + 1)} className="rounded-lg border border-white/10 p-2 disabled:opacity-25"><ChevronRight size={14} /></button></div>; }
+function Empty() { return <div className="p-10 text-center text-sm text-white/30">표시할 데이터가 없습니다.</div>; }
+
+function Modal({ title, close, children }: { title: string; close: () => void; children: React.ReactNode }) { return <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm"><div className="my-8 w-full max-w-2xl rounded-3xl border border-white/10 bg-[#10121b] p-6 shadow-2xl"><div className="mb-5 flex items-center justify-between"><h2 className="text-lg font-black">{title}</h2><button onClick={close} className="text-white/45 hover:text-white"><X size={20} /></button></div>{children}</div></div>; }
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-2 block text-xs font-bold text-white/45">{label}</span>{children}</label>; }
+const inputClass = 'input-dark w-full rounded-xl px-3 py-2.5 text-sm';
+
+function UserEditor({ user, close, save }: { user: UserRow; close: () => void; save: (v: Record<string, unknown>) => void }) {
+  const [fullName, setFullName] = useState(user.full_name ?? ''); const [plan, setPlan] = useState(user.subscription_plan); const [credits, setCredits] = useState(String(user.credits_remaining)); const [language, setLanguage] = useState(user.default_language); const [platform, setPlatform] = useState(user.default_target_platform); const [notifications, setNotifications] = useState(user.email_notifications); const [suspended, setSuspended] = useState(user.is_suspended); const [reason, setReason] = useState(user.suspension_reason ?? '');
+  return <Modal title="사용자 관리" close={close}><p className="mb-5 rounded-xl bg-white/5 p-3 text-sm text-white/55">{user.email}</p><div className="grid gap-4 sm:grid-cols-2"><Field label="이름"><input className={inputClass} value={fullName} onChange={(e) => setFullName(e.target.value)} /></Field><Field label="구독 플랜"><select className={inputClass} value={plan} onChange={(e) => setPlan(e.target.value as typeof plan)}><option value="free">Free</option><option value="pro">Pro</option><option value="agency">Agency</option></select></Field><Field label="크레딧"><input className={inputClass} type="number" min="0" max="1000000" value={credits} onChange={(e) => setCredits(e.target.value)} /></Field><Field label="기본 언어"><select className={inputClass} value={language} onChange={(e) => setLanguage(e.target.value as typeof language)}><option value="ko">한국어</option><option value="en">English</option><option value="ja">日本語</option><option value="zh">中文</option></select></Field><Field label="기본 플랫폼"><select className={inputClass} value={platform} onChange={(e) => setPlatform(e.target.value as typeof platform)}><option value="tiktok">TikTok</option><option value="youtube">YouTube</option></select></Field><Field label="이메일 알림"><select className={inputClass} value={String(notifications)} onChange={(e) => setNotifications(e.target.value === 'true')}><option value="true">수신</option><option value="false">수신 안 함</option></select></Field></div><div className="mt-5 rounded-xl border border-red-500/15 bg-red-500/5 p-4"><label className="flex items-center gap-3 text-sm font-bold"><input type="checkbox" checked={suspended} disabled={Boolean(user.admin_role)} onChange={(e) => setSuspended(e.target.checked)} />계정 로그인 정지</label><textarea className={`${inputClass} mt-3 min-h-20`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="변경 사유" /></div><div className="mt-6 flex justify-end gap-2"><button onClick={close} className="rounded-xl px-4 py-2 text-sm text-white/50">취소</button><button onClick={() => save({ fullName, subscriptionPlan: plan, creditsRemaining: Number(credits), defaultLanguage: language, defaultTargetPlatform: platform, emailNotifications: notifications, ...(suspended !== user.is_suspended ? { suspended } : {}), reason })} className="btn-primary-compact px-5 py-2.5 text-sm">저장</button></div></Modal>;
+}
+
+function TrendEditor({ trend, close, save }: { trend: TrendRow; close: () => void; save: (v: Record<string, unknown>) => void }) {
+  const [title, setTitle] = useState(trend.title); const [subtitle, setSubtitle] = useState(trend.subtitle ?? ''); const [views, setViews] = useState(trend.views); const [likes, setLikes] = useState(trend.likes); const [tags, setTags] = useState(trend.tags ?? ''); const [reason, setReason] = useState('');
+  return <Modal title="트렌드 피드 수정" close={close}><div className="space-y-4"><Field label="제목"><textarea className={`${inputClass} min-h-20`} value={title} onChange={(e) => setTitle(e.target.value)} /></Field><Field label="설명"><textarea className={`${inputClass} min-h-20`} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="조회수"><input className={inputClass} value={views} onChange={(e) => setViews(e.target.value)} /></Field><Field label="좋아요"><input className={inputClass} value={likes} onChange={(e) => setLikes(e.target.value)} /></Field></div><Field label="태그"><input className={inputClass} value={tags} onChange={(e) => setTags(e.target.value)} /></Field><Field label="수정 사유"><input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} /></Field></div><div className="mt-6 flex justify-end gap-2"><button onClick={close} className="rounded-xl px-4 py-2 text-sm text-white/50">취소</button><button onClick={() => save({ title, subtitle, views, likes, tags, reason })} className="btn-primary-compact px-5 py-2.5 text-sm">저장</button></div></Modal>;
+}

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import { normalizeAndValidateUrl } from '@/utils/urlNormalizer';
 
 export const runtime = 'nodejs';
@@ -8,10 +8,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const supabase = createAdminClient();
+    const supabase = createServerClient();
     const { data, error } = await supabase
       .from('trend_feed')
       .select('id, platform, region, title, subtitle, views, likes, tags, thumb_url, video_url, url, created_at')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(500);
 
