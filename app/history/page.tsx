@@ -9,8 +9,11 @@ import {
 import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
+import GenerationResult from '@/app/components/GenerationResult';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { normalizeGenerationOutput } from '@/lib/generationOutput';
 import { useAuth } from '@/app/components/AuthProvider';
+import type { GenerationOutput } from '@/types';
 
 interface HistoryItem {
   id: string;
@@ -37,6 +40,34 @@ function platformColor(url: string): string {
   if (url.includes('tiktok')) return 'text-pink-400 bg-pink-400/10 border-pink-400/20';
   if (url.includes('youtube') || url.includes('youtu.be')) return 'text-red-400 bg-red-400/10 border-red-400/20';
   return 'text-white/40 bg-white/5 border-white/10';
+}
+
+function normalizedHistoryResult(item: HistoryItem): GenerationOutput | null {
+  try {
+    return normalizeGenerationOutput(item.generated_json, item.source_url);
+  } catch {
+    return null;
+  }
+}
+
+function promptsFor(result: GenerationOutput): string {
+  return result.scenes.map((scene) => [
+    `Scene ${scene.scene_number} (${scene.start_time}~${scene.end_time})`,
+    `Veo:\n${scene.ai_prompts.veo}`,
+    `Runway:\n${scene.ai_prompts.runway}`,
+    `Kling:\n${scene.ai_prompts.kling}`,
+    `범용:\n${scene.ai_prompts.generic}`,
+  ].join('\n\n')).join('\n\n---\n\n');
+}
+
+function downloadJson(item: HistoryItem) {
+  const content = JSON.stringify(item.generated_json ?? {}, null, 2);
+  const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `${item.project_title || 'production-plan'}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function HistoryPage() {
@@ -164,7 +195,9 @@ export default function HistoryPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {items.map(item => (
+              {items.map(item => {
+                const normalizedResult = normalizedHistoryResult(item);
+                return (
                 <div
                   key={item.id}
                   className="rounded-2xl p-5"
@@ -214,9 +247,9 @@ export default function HistoryPage() {
 
                     {/* 액션 */}
                     <div className="flex flex-col gap-2 shrink-0">
-                      <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/20 bg-cyan-400/8 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/15"><Eye size={12} />영상 제작 플랜 보기</button>
-                      <button onClick={() => void navigator.clipboard.writeText(JSON.stringify(item.generated_json ?? {}, null, 2))} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white"><Copy size={12} />프롬프트 복사</button>
-                      <button onClick={() => { const content = JSON.stringify(item.generated_json ?? {}, null, 2); const url = URL.createObjectURL(new Blob([content], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = `${item.project_title || 'production-plan'}.json`; a.click(); URL.revokeObjectURL(url); }} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white"><Download size={12} />JSON 다운로드</button>
+                      <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} disabled={!normalizedResult} className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/20 bg-cyan-400/8 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-40"><Eye size={12} />{expandedId === item.id ? '결과 닫기' : '전체 결과 보기'}</button>
+                      <button onClick={() => normalizedResult && void navigator.clipboard.writeText(promptsFor(normalizedResult))} disabled={!normalizedResult} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"><Copy size={12} />전체 프롬프트 복사</button>
+                      <button onClick={() => downloadJson(item)} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white"><Download size={12} />원본 JSON 다운로드</button>
                       <a
                         href={`/generator?url=${encodeURIComponent(item.source_url)}`}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-400/8 px-3 py-2 text-xs font-semibold text-violet-300 hover:bg-violet-400/15 transition-colors"
@@ -235,9 +268,11 @@ export default function HistoryPage() {
                       </button>
                     </div>
                   </div>
-                  {expandedId === item.id && <pre className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-white/8 bg-black/20 p-4 text-[11px] leading-relaxed text-white/55">{JSON.stringify(item.generated_json ?? { message: '기존 결과 상세 데이터가 없습니다.' }, null, 2)}</pre>}
+                  {!normalizedResult && <p className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">이전 형식의 결과라 화면으로 표시할 수 없습니다. 원본 JSON은 다운로드할 수 있습니다.</p>}
+                  {expandedId === item.id && normalizedResult && <div className="mt-5 border-t border-white/8 pt-5"><GenerationResult result={normalizedResult} showCreditSummary={false} /></div>}
                 </div>
-              ))}
+                );
+              })}
 
               {hasMore && (
                 <div className="text-center pt-4">

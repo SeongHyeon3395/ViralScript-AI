@@ -24,11 +24,20 @@ function ScenePlan({ scene }: { scene: SceneScript }) {
   return <article className="rounded-2xl border border-white/8 bg-white/[0.025] p-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-bold text-white">Scene {scene.scene_number} — {scene.purpose}</p><p className="mt-1 text-xs text-cyan-300">{scene.start_time}~{scene.end_time}</p></div><CopyButton text={scene.ai_prompts.generic} label="장면별 프롬프트 복사" /></div><div className="grid gap-3 sm:grid-cols-2">{details.map(([label, value]) => <div key={label} className="rounded-xl bg-black/15 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-white/35">{label}</p><p className="mt-1 text-xs leading-relaxed text-white/70">{value}</p></div>)}</div></article>;
 }
 
-export default function GenerationResult({ result, creditsRemaining }: { result: GenerationOutput; creditsRemaining: number | undefined }) {
+export default function GenerationResult({ result, creditsRemaining, showCreditSummary = true }: { result: GenerationOutput; creditsRemaining?: number; showCreditSummary?: boolean }) {
   const [tab, setTab] = useState<Tab>('한눈에 보기');
   const json = JSON.stringify(result, null, 2);
   const allPrompts = result.scenes.map((scene) => `Scene ${scene.scene_number}\nVeo:\n${scene.ai_prompts.veo}\n\nRunway:\n${scene.ai_prompts.runway}\n\nKling:\n${scene.ai_prompts.kling}\n\nGeneric:\n${scene.ai_prompts.generic}`).join('\n\n---\n\n');
-  const overview = [['프로젝트 제목', result.project_title], ['새 영상 콘셉트', result.concept], ['콘텐츠 목적', result.video_goal], ['예상 영상 길이', `${result.duration_seconds}초`], ['핵심 후킹 문구', result.hook], ['마무리 문구', result.final_cta], ['바이럴 전략', result.overall_viral_strategy], ['크레딧', `5크레딧 소모 · 현재 잔여 ${creditsRemaining ?? '—'}크레딧`]];
+  const overview = [
+    ['프로젝트 제목', result.project_title],
+    ['새 영상 콘셉트', result.concept],
+    ['콘텐츠 목적', result.video_goal],
+    ['예상 영상 길이', `${result.duration_seconds}초`],
+    ['핵심 후킹 문구', result.hook],
+    ['마무리 문구', result.final_cta],
+    ['바이럴 전략', result.overall_viral_strategy],
+    ...(showCreditSummary ? [['크레딧', `5크레딧 소모 · 현재 잔여 ${creditsRemaining ?? '—'}크레딧`]] : []),
+  ];
   const structure = Object.entries(result.structure_analysis).filter(([key]) => key !== 'restricted_elements');
 
   return <section className="space-y-4 fade-in-up"><div role="tablist" aria-label="제작 플랜 결과" className="flex gap-2 overflow-x-auto rounded-2xl border border-white/8 bg-[#0d0d14]/90 p-2">{TABS.map((item) => <button key={item} role="tab" aria-selected={tab === item} onClick={() => setTab(item)} className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${tab === item ? 'bg-violet-600 text-white' : 'text-white/45 hover:bg-white/5 hover:text-white'}`}>{item}</button>)}</div>
