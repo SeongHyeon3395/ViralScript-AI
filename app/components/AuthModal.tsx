@@ -36,8 +36,8 @@ const PHONE_COUNTRIES = [
   ['BR', '+55', 'Brazil'], ['MX', '+52', 'Mexico'], ['AR', '+54', 'Argentina'], ['CL', '+56', 'Chile'], ['CO', '+57', 'Colombia'], ['PE', '+51', 'Peru'], ['VE', '+58', 'Venezuela'], ['CR', '+506', 'Costa Rica'], ['PA', '+507', 'Panama'], ['DO', '+1', 'Dominican Republic'], ['JM', '+1', 'Jamaica'],
 ] as const;
 
-function flagEmoji(countryCode: string): string {
-  return countryCode.toUpperCase().replace(/[A-Z]/g, (letter) => String.fromCodePoint(letter.charCodeAt(0) + 127397));
+function FlagIcon({ countryCode }: { countryCode: string }) {
+  return <span className={`fi fi-${countryCode.toLowerCase()} h-4 w-6 shrink-0 rounded-sm`} aria-hidden="true" />;
 }
 
 function CountrySelect({ value, countryIso, onChange }: { value: string; countryIso: string; onChange: (dial: string, iso: string) => void }) {
@@ -47,7 +47,7 @@ function CountrySelect({ value, countryIso, onChange }: { value: string; country
   return (
     <div className="relative min-w-[190px]">
       <button type="button" onClick={() => setOpen((current) => !current)} className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-3 text-left text-sm text-white hover:border-white/25">
-        <span className="text-lg leading-none" aria-hidden="true">{flagEmoji(selected[0])}</span>
+        <FlagIcon countryCode={selected[0]} />
         <span className="truncate">{selected[0]} {selected[1]} {selected[2]}</span>
         <ChevronDown size={14} className={`ml-auto shrink-0 text-white/50 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -57,7 +57,7 @@ function CountrySelect({ value, countryIso, onChange }: { value: string; country
           <div role="listbox" className="absolute left-0 top-full z-50 mt-2 max-h-64 w-[min(360px,calc(100vw-4rem))] overflow-y-auto rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-2xl">
             {PHONE_COUNTRIES.map(([code, dial, name]) => (
               <button key={`${code}-${dial}`} type="button" role="option" aria-selected={value === dial && countryIso === code} onClick={() => { onChange(dial, code); setOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-white/80 hover:bg-white/10">
-                <span className="text-lg leading-none" aria-hidden="true">{flagEmoji(code)}</span>
+                <FlagIcon countryCode={code} />
                 <span className="whitespace-nowrap">{code} {dial}</span>
                 <span className="truncate text-white/55">{name}</span>
               </button>
