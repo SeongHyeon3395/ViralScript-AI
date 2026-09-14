@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Globe } from 'lucide-react';
 
 type Lang = 'ko' | 'en' | 'zh' | 'ja';
@@ -242,6 +242,7 @@ export const T: Record<Lang, Record<string, string>> = {
     // ─── Generator Page ───
     gen_title: 'AI 숏폼 영상 제작 플래너',
     gen_subtitle: '참고할 숏폼 영상의 바이럴 구조를 분석하고 내 주제에 맞는 새로운 영상 제작 플랜을 만들어보세요.',
+    gen_beginner_guide: '처음이라면 이렇게 생각하면 됩니다. 콘텐츠 주제는 무엇을 보여줄지, 참고 영상은 어떤 영상 흐름을 참고할지 정하는 항목입니다. 참고 영상 없이도 콘텐츠 주제만 입력하면 새 영상 설계안을 만들 수 있습니다.', gen_reference_heading: '참고 영상 입력', gen_reference_desc: 'YouTube Shorts나 TikTok 링크를 선택적으로 입력하세요. 영상 없이도 주제만으로 만들 수 있습니다.', gen_topic_heading: '내 콘텐츠 설정', gen_topic_desc: '만들고 싶은 주제와 영상 스타일을 설정하세요.', gen_topic_label: '콘텐츠 주제', gen_topic_required: '콘텐츠 주제를 입력해 주세요. 예: 초보자를 위한 1인 가구 저녁 레시피', gen_topic_hint: '소개하거나 보여줄 내용을 구체적으로 적어주세요. 예: 초보자를 위한 10분 저녁 레시피', gen_method_heading: '제작 방식 선택', gen_method_desc: '영상 제작에 사용할 방식을 선택하세요.', gen_options_heading: '생성 옵션 확인', gen_options_desc: '입력한 내용을 확인한 뒤 영상 설계안을 생성하세요.', gen_reference_none: '참고 영상 없이 생성', gen_input_required: '입력 필요', gen_previous: '이전 단계', gen_edit_options: '옵션 수정', gen_complete_title: '영상 설계안이 완성되었습니다', gen_complete_desc: '아래 결과를 확인하세요. 생성한 모든 내용은 생성 히스토리에서 다시 볼 수 있습니다.',
     gen_url_placeholder: '숏폼 URL을 입력하세요 (TikTok, YouTube Shorts)',
     gen_product_placeholder: '만들고 싶은 콘텐츠 주제 (선택사항)',
     gen_analyze_btn: '영상 분석 시작',
@@ -533,6 +534,7 @@ export const T: Record<Lang, Record<string, string>> = {
     // ─── Generator Page ───
     gen_title: 'AI Short-Form Video Production Planner',
     gen_subtitle: 'Analyze a reference video’s viral structure and create a new production plan for your topic.',
+    gen_beginner_guide: 'New here? The content topic is what you want to show, while the reference video is an optional example of the flow you want to study. You can create a new plan with only a topic.', gen_reference_heading: 'Reference Video', gen_reference_desc: 'Optionally add a YouTube Shorts or TikTok link. You can also create a plan from your topic alone.', gen_topic_heading: 'Your Content Settings', gen_topic_desc: 'Set the topic and visual style for your new video.', gen_topic_label: 'Content Topic', gen_topic_required: 'Enter a content topic. Example: 10-minute dinner recipes for busy beginners', gen_topic_hint: 'Describe what you want to show specifically. Example: A quick 10-minute dinner recipe for college students', gen_method_heading: 'Production Method', gen_method_desc: 'Choose how you plan to produce the video.', gen_options_heading: 'Review Generation Options', gen_options_desc: 'Review your inputs before creating the video plan.', gen_reference_none: 'No reference video', gen_input_required: 'Required', gen_previous: 'Previous step', gen_edit_options: 'Edit options', gen_complete_title: 'Your video plan is ready', gen_complete_desc: 'Review the result below. You can find everything again in Generation History.',
     gen_url_placeholder: 'Enter a short-form URL (TikTok or YouTube Shorts)',
     gen_product_placeholder: 'Product/Service to promote (optional)',
     gen_analyze_btn: 'Start Video Analysis',
@@ -824,6 +826,7 @@ export const T: Record<Lang, Record<string, string>> = {
     // ─── Generator Page ───
     gen_title: 'AI短视频制作策划器',
     gen_subtitle: '分析参考短视频的爆款结构，为您的主题创建全新视频制作方案。',
+    gen_beginner_guide: '如果你是第一次使用：内容主题是你想展示的内容，参考视频是可选的节奏参考。只输入内容主题也可以生成新方案。', gen_reference_heading: '参考视频', gen_reference_desc: '可选输入 YouTube Shorts 或 TikTok 链接，也可以只根据主题生成方案。', gen_topic_heading: '我的内容设置', gen_topic_desc: '设置新视频的主题和风格。', gen_topic_label: '内容主题', gen_topic_required: '请输入内容主题。例如：适合忙碌新手的十分钟晚餐食谱', gen_topic_hint: '请具体描述要展示的内容。例如：适合大学生的十分钟晚餐食谱', gen_method_heading: '制作方式', gen_method_desc: '选择视频的制作方式。', gen_options_heading: '确认生成选项', gen_options_desc: '确认输入内容后生成视频方案。', gen_reference_none: '不使用参考视频', gen_input_required: '需要输入', gen_previous: '上一步', gen_edit_options: '修改选项', gen_complete_title: '视频方案已完成', gen_complete_desc: '请查看下方结果。所有内容都可以在生成历史中再次查看。',
     gen_url_placeholder: '输入短视频链接（TikTok、YouTube Shorts）',
     gen_product_placeholder: '要推广的产品/服务（可选）',
     gen_analyze_btn: '开始视频分析',
@@ -1115,6 +1118,7 @@ export const T: Record<Lang, Record<string, string>> = {
     // ─── Generator Page ───
     gen_title: 'AIショート動画制作プランナー',
     gen_subtitle: '参考ショート動画のバイラル構造を分析し、テーマに合う新しい動画制作プランを作成します。',
+    gen_beginner_guide: '初めての方へ：コンテンツテーマは見せたい内容、参考動画は流れを学ぶための任意の例です。テーマだけでも新しいプランを作成できます。', gen_reference_heading: '参考動画', gen_reference_desc: 'YouTube ShortsまたはTikTokのリンクを任意で入力できます。テーマだけでも作成できます。', gen_topic_heading: 'コンテンツ設定', gen_topic_desc: '新しい動画のテーマとスタイルを設定します。', gen_topic_label: 'コンテンツテーマ', gen_topic_required: 'コンテンツテーマを入力してください。例：忙しい初心者向け10分夕食レシピ', gen_topic_hint: '見せたい内容を具体的に書いてください。例：大学生向けの10分夕食レシピ', gen_method_heading: '制作方法', gen_method_desc: '動画の制作方法を選択します。', gen_options_heading: '生成オプションの確認', gen_options_desc: '入力内容を確認して動画プランを作成します。', gen_reference_none: '参考動画なし', gen_input_required: '入力が必要', gen_previous: '前のステップ', gen_edit_options: 'オプションを編集', gen_complete_title: '動画プランが完成しました', gen_complete_desc: '下の結果を確認してください。すべての内容は生成履歴から再確認できます。',
     gen_url_placeholder: 'ショート動画URLを入力（TikTok、YouTube Shorts）',
     gen_product_placeholder: '宣伝する商品/サービス（任意）',
     gen_analyze_btn: '動画分析を開始',
@@ -1179,18 +1183,27 @@ export const T: Record<Lang, Record<string, string>> = {
 const LANG_KEY = 'viralLang';
 
 export function getLang(): Lang {
-  if (typeof window === 'undefined') return 'ko';
+  if (typeof window === 'undefined') return 'en';
   return (localStorage.getItem(LANG_KEY) as Lang) || 'en';
 }
 
 export function t(key: string): string {
   const lang = getLang();
-  return T[lang]?.[key] ?? T.ko[key] ?? key;
+  return T[lang]?.[key] ?? T.en[key] ?? key;
 }
 
 export default function LanguageSwitcher() {
   const [lang, setLang] = useState<Lang>(getLang);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleLanguageChanged = (event: Event) => {
+      const next = (event as CustomEvent<Lang>).detail;
+      if (next && next in T) setLang(next);
+    };
+    window.addEventListener('language:changed', handleLanguageChanged);
+    return () => window.removeEventListener('language:changed', handleLanguageChanged);
+  }, []);
 
   async function switchLang(code: Lang) {
     localStorage.setItem(LANG_KEY, code);

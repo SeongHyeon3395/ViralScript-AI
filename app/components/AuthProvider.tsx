@@ -60,7 +60,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const requestId = ++requestIdRef.current;
     try {
       clearUserCreditsCache();
-      const nextCredits = await fetchUserCredits();
+      let nextCredits: number | null = null;
+      for (let attempt = 0; attempt < 3 && nextCredits === null; attempt += 1) {
+        try {
+          nextCredits = await fetchUserCredits();
+        } catch {
+          if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
+        }
+      }
+      if (nextCredits === null) return;
       if (requestId === requestIdRef.current && userRef.current?.id === activeUser.id) {
         setCredits(nextCredits);
       }
@@ -97,12 +105,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearSessionTimestamp();
       } else {
         setSessionTimestamp();
-        void refreshCredits();
-        void fetchUserLanguage().then((language) => {
-          localStorage.setItem('viralLang', language);
-        }).catch(() => {
-          // 언어 조회가 실패해도 인증 상태와 크레딧 처리는 계속합니다.
-        });
+        // Supabase auth callbacks must not call another auth method synchronously.
+        window.setTimeout(() => {
+          void refreshCredits();
+          void fetchUserLanguage().then((language) => {
+            localStorage.setItem('viralLang', language);
+            window.dispatchEvent(new CustomEvent('language:changed', { detail: language }));
+          }).catch(() => {
+            // 언어 조회가 실패해도 인증 상태와 크레딧 처리는 계속합니다.
+          });
+        }, 0);
       }
     };
 
