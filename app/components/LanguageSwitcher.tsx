@@ -1180,7 +1180,7 @@ const LANG_KEY = 'viralLang';
 
 export function getLang(): Lang {
   if (typeof window === 'undefined') return 'ko';
-  return (localStorage.getItem(LANG_KEY) as Lang) || 'ko';
+  return (localStorage.getItem(LANG_KEY) as Lang) || 'en';
 }
 
 export function t(key: string): string {
@@ -1192,10 +1192,22 @@ export default function LanguageSwitcher() {
   const [lang, setLang] = useState<Lang>(getLang);
   const [isOpen, setIsOpen] = useState(false);
 
-  function switchLang(code: Lang) {
+  async function switchLang(code: Lang) {
     localStorage.setItem(LANG_KEY, code);
     setLang(code);
     setIsOpen(false);
+    try {
+      const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<unknown>)('update_user_settings', {
+          p_default_language: code,
+        });
+      }
+    } catch {
+      // 브라우저 언어는 저장하고, 프로필 저장 실패는 다음 설정 저장에서 재시도합니다.
+    }
     window.location.reload();
   }
 

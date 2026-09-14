@@ -32,7 +32,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, email, credits_remaining, last_roulette_spin_at')
+    .select('id, email, credits_remaining, default_language, last_roulette_spin_at')
     .eq('id', user.id)
     .maybeSingle();
 

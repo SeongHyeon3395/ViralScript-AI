@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { clearUserCreditsCache, fetchUserCredits } from '@/lib/profile';
+import { clearUserCreditsCache, fetchUserCredits, fetchUserLanguage } from '@/lib/profile';
 
 interface AuthContextValue {
   user: SupabaseUser | null;
@@ -98,6 +98,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setSessionTimestamp();
         void refreshCredits();
+        void fetchUserLanguage().then((language) => {
+          localStorage.setItem('viralLang', language);
+        }).catch(() => {
+          // 언어 조회가 실패해도 인증 상태와 크레딧 처리는 계속합니다.
+        });
       }
     };
 

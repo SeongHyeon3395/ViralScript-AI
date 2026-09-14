@@ -398,7 +398,7 @@ export default function SettingsPage() {
     setSettings({
       full_name:               (data.full_name as string | null) ?? null,
       email:                   (data.email as string | null) ?? user.email ?? '',
-      default_language:        (data.default_language as UserSettings['default_language']) ?? 'ko',
+      default_language:        (data.default_language as UserSettings['default_language']) ?? 'en',
       email_notifications:     (data.email_notifications as boolean | null) ?? true,
       default_target_platform: (data.default_target_platform as UserSettings['default_target_platform']) ?? 'tiktok',
     });

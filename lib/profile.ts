@@ -43,3 +43,18 @@ export async function fetchUserCredits(): Promise<number> {
 export function clearUserCreditsCache() {
   creditsCache.clear();
 }
+
+export async function fetchUserLanguage(): Promise<'ko' | 'en' | 'ja' | 'zh'> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token || !session.user.id) throw new Error('No authenticated session');
+
+  const response = await fetch('/api/v1/profile', {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (!response.ok) throw new Error(`Profile API failed: ${response.status}`);
+  const payload = await response.json() as { data?: { default_language?: string } };
+  return payload.data?.default_language === 'ko' || payload.data?.default_language === 'ja' || payload.data?.default_language === 'zh'
+    ? payload.data.default_language
+    : 'en';
+}
