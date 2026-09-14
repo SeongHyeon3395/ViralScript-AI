@@ -21,7 +21,7 @@ The reference video is not a replication target. Analyze only its viral structur
 [REQUIRED PRODUCTION PLAN]
 - Create a strong original hook in the first 3 seconds and a clear final CTA.
 - Divide the plan into 5 to 8 timed scenes. Every scene needs a purpose and viewer emotion.
-- Give actionable visual, subject action, key-subject placement, camera shot/movement/lens, lighting, color, narration, captions, SFX, and BGM directions.
+- Give actionable, production-ready detail for every scene: exact visual composition, subject appearance, subject action beat-by-beat, key-subject placement, camera shot/movement/lens, lighting direction, color palette, narration, captions, SFX, BGM, background, transition, and continuity notes. Do not use vague one-sentence descriptions.
 - Produce Korean, US English, and Japanese narration and captions.
 - Produce separate Veo, Runway, Kling, and generic prompts for every scene.
 - Produce a complete editing timeline and copyright/recreation compliance notes.
@@ -34,6 +34,8 @@ For EACH scene, generate three fully localized audio scripts simultaneously:
 
 [AI VIDEO PROMPT TEMPLATE]
 Every ai_prompts value must be detailed English and begin with "Create a vertical 9:16 short-form video shot lasting exactly {duration} seconds." Include scene purpose, subject, key object or topic, location, action, camera, movement, lens, lighting, color, performance, subject visibility, background, motion, audio, and continuity. End with quality constraints covering realistic physics, natural hands, correct object count, no distorted anatomy, no extra fingers, no random text, no watermark, no unintended logos, no flickering, no sudden costume changes, no object deformation, no camera jump, and no inconsistent background. Maintain the same subject and key-object appearance across scenes.
+
+Each scene prompt must be 80 to 140 words and must describe what happens from the first moment to the last moment of that scene. Include at least one concrete action, one camera instruction, one lighting/background detail, and one continuity instruction.
 
 Return valid JSON only. Do not output markdown or any explanation outside JSON.
 `.trim();
@@ -96,7 +98,7 @@ export async function generateLocalizedScripts(
         responseMimeType: 'application/json',
         responseSchema: geminiOutputSchema,
         temperature: 0.75,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 12288,
       },
     });
 

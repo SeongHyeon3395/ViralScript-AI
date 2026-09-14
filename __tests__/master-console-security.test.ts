@@ -13,6 +13,16 @@ describe('master console security contracts', () => {
     expect(auth).toContain('admin?.is_active');
   });
 
+  it('does not persist Master Console sessions in browser storage', () => {
+    const client = read('lib/supabase/client.ts');
+    const consoleSource = read('app/Master/MasterConsole.tsx');
+    expect(client).toContain('persistSession: false');
+    expect(client).toContain('autoRefreshToken: false');
+    expect(client).toContain('detectSessionInUrl: false');
+    expect(consoleSource).toContain('createMasterBrowserClient');
+    expect(consoleSource).toContain("signOut({ scope: 'local' })");
+  });
+
   it('never embeds the administrator password in tracked source', () => {
     const files = [
       'app/Master/MasterConsole.tsx',

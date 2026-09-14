@@ -6,7 +6,7 @@ import {
   Edit3, Eye, EyeOff, FileClock, Film, Loader2, LockKeyhole, LogOut, RefreshCw,
   Search, ShieldCheck, Trash2, UserRoundCog, Users, X,
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createMasterBrowserClient } from '@/lib/supabase/client';
 
 type Tab = 'dashboard' | 'users' | 'trends' | 'audits';
 
@@ -52,6 +52,7 @@ function actionLabel(action: string): string {
 }
 
 export default function MasterConsole() {
+  const [masterClient] = useState(createMasterBrowserClient);
   const [status, setStatus] = useState<'checking' | 'login' | 'ready' | 'denied'>('checking');
   const [email, setEmail] = useState('psunghyi@gmail.com');
   const [password, setPassword] = useState('');
@@ -71,7 +72,7 @@ export default function MasterConsole() {
   const [editingTrend, setEditingTrend] = useState<TrendRow | null>(null);
 
   const api = useCallback(async (query = '', init?: RequestInit) => {
-    const { data: { session } } = await getSupabaseBrowserClient().auth.getSession();
+    const { data: { session } } = await masterClient.auth.getSession();
     if (!session) throw new Error('로그인이 필요합니다.');
     const response = await fetch(`/api/master${query}`, {
       ...init,
@@ -86,7 +87,7 @@ export default function MasterConsole() {
     }
     if (payload.admin?.email) setAdminEmail(payload.admin.email);
     return payload.data;
-  }, []);
+  }, [masterClient]);
 
   const load = useCallback(async (nextTab: Tab, page = 1, query = search) => {
     setLoading(true); setError('');
@@ -106,7 +107,7 @@ export default function MasterConsole() {
 
   useEffect(() => {
     let cancelled = false;
-    getSupabaseBrowserClient().auth.getSession().then(({ data }) => {
+    masterClient.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       if (!data.session) setStatus('login');
       else {
@@ -122,8 +123,11 @@ export default function MasterConsole() {
           .finally(() => { if (!cancelled) setLoading(false); });
       }
     });
-    return () => { cancelled = true; };
-  }, [api]);
+    return () => {
+      cancelled = true;
+      void masterClient.auth.signOut({ scope: 'local' });
+    };
+  }, [api, masterClient]);
 
   useEffect(() => {
     if (status !== 'ready' || tab === 'dashboard') return;
@@ -133,14 +137,14 @@ export default function MasterConsole() {
 
   async function login(event: React.FormEvent) {
     event.preventDefault(); setLoading(true); setError('');
-    const { error: loginError } = await getSupabaseBrowserClient().auth.signInWithPassword({ email: email.trim(), password });
+    const { error: loginError } = await masterClient.auth.signInWithPassword({ email: email.trim(), password });
     if (loginError) { setError('아이디 또는 비밀번호가 올바르지 않습니다.'); setLoading(false); return; }
     setPassword('');
     await load('dashboard');
   }
 
   async function logout() {
-    await getSupabaseBrowserClient().auth.signOut();
+    await masterClient.auth.signOut({ scope: 'local' });
     setStatus('login'); setAdminEmail(''); setPassword(''); setDashboard(null);
   }
 

@@ -180,7 +180,7 @@ export interface GenerationOutput {
 // ─── API 요청/응답 타입 ───────────────────────────────────
 
 export interface AnalyzeRequest {
-  url: string;
+  url?: string;
   targetProduct?: string;
   userCustomPrompt?: string;
 }

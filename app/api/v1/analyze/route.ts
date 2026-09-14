@@ -104,7 +104,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   const { url, targetProduct: requestedTargetProduct, userCustomPrompt } = body;
 
-  if (typeof url !== 'string' || !url.trim() || url.length > 2048 || (requestedTargetProduct !== undefined && typeof requestedTargetProduct !== 'string') || (userCustomPrompt !== undefined && typeof userCustomPrompt !== 'string')) {
+  if ((url !== undefined && (typeof url !== 'string' || url.length > 2048)) || typeof requestedTargetProduct !== 'string' || !requestedTargetProduct.trim() || (userCustomPrompt !== undefined && typeof userCustomPrompt !== 'string')) {
     return NextResponse.json(
       { success: false, error: 'Invalid request fields', errorCode: ERROR_CODES.INVALID_URL_FORMAT },
       { status: 400 }
@@ -115,21 +115,26 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     return NextResponse.json({ success: false, error: 'Request fields are too long', errorCode: ERROR_CODES.INVALID_URL_FORMAT }, { status: 413 });
   }
 
-  const targetProduct = requestedTargetProduct?.trim() || '홍보할 제품 또는 서비스';
+  const targetProduct = requestedTargetProduct.trim();
 
-  // 3. URL 정규화 및 검증
-  let normalized: ReturnType<typeof normalizeAndValidateUrl>;
-  try {
-    normalized = normalizeAndValidateUrl(url);
-  } catch (err) {
-    const code = err instanceof Error ? err.message : ERROR_CODES.INVALID_URL_FORMAT;
-    return NextResponse.json(
-      { success: false, error: 'Invalid or unsupported URL', errorCode: code },
-      { status: mapErrorToStatus(code) }
-    );
+  // 3. URL이 있으면 참고 영상 구조를 분석하고, 없으면 주제만으로 새 콘텐츠를 설계한다.
+  let platform: 'tiktok' | 'youtube' = 'youtube';
+  let normalizedUrl = '';
+  let urlHash = createHash('sha256').update(`topic-only:${targetProduct}`).digest('hex');
+  if (url?.trim()) {
+    try {
+      const normalized = normalizeAndValidateUrl(url);
+      platform = normalized.platform;
+      normalizedUrl = normalized.normalizedUrl;
+      urlHash = normalized.urlHash;
+    } catch (err) {
+      const code = err instanceof Error ? err.message : ERROR_CODES.INVALID_URL_FORMAT;
+      return NextResponse.json(
+        { success: false, error: 'Invalid or unsupported URL', errorCode: code },
+        { status: mapErrorToStatus(code) }
+      );
+    }
   }
-
-  const { platform, normalizedUrl, urlHash } = normalized;
   const resultCacheKey = createHash('sha256').update(`${urlHash}\n${targetProduct}\n${userCustomPrompt ?? ''}\nschema-v2`).digest('hex');
   console.log('[analyze] route entry', {
     rawUrl: url,
@@ -217,15 +222,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     });
   }
 
-  // 7. 캐시 미스: 미들웨어 스크래핑
+  // 7. 캐시 미스: 참고 영상이 있을 때만 스크래핑하고, 없으면 주제 기반 메타데이터를 사용한다.
   // BYOK: profile에 custom_apify_token이 있으면 사용
   let metadata;
   try {
-    metadata = await fetchVideoMetadata(
-      normalizedUrl,
-      platform,
-      profile.custom_apify_token ?? undefined
-    );
+    metadata = normalizedUrl
+      ? await fetchVideoMetadata(normalizedUrl, platform, profile.custom_apify_token ?? undefined)
+      : {
+        durationSeconds: 30,
+        transcriptText: 'No reference video provided. Build the structure from the content topic and user requirements.',
+        creatorCountry: 'Global',
+        engagementMetrics: { views: 0, likes: 0 },
+      };
   } catch (err) {
     const code = err instanceof Error ? err.message : ERROR_CODES.MIDDLEWARE_SCRAPING_FAILED;
     return NextResponse.json(

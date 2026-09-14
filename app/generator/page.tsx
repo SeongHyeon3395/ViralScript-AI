@@ -172,7 +172,6 @@ export default function GeneratorPage() {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [rewardPopupOpen, setRewardPopupOpen] = useState(false);
   const [adBlockDetected, setAdBlockDetected] = useState(false);
-  const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   const submittingRef = useRef(false);
   const expectedScenes = Number.parseInt(duration, 10) <= 15 ? 5 : Number.parseInt(duration, 10) <= 30 ? 6 : 8;
 
@@ -203,7 +202,10 @@ export default function GeneratorPage() {
 
   async function handleAnalyze() {
     if (submittingRef.current) return;
-    if (!url.trim()) return;
+    if (!targetProduct.trim()) {
+      setError('콘텐츠 주제를 입력해 주세요. 예: 곡선 목재를 측정하는 스마트 롤링 자');
+      return;
+    }
     if (credits !== undefined && credits < 5) {
       setError(t('gen_no_credits'));
       return;
@@ -211,7 +213,7 @@ export default function GeneratorPage() {
     const validationErr = validateShortFormUrl(url);
     if (validationErr) { setUrlError(validationErr); return; }
     submittingRef.current = true;
-    setUrlError(null); setLoading(true); setProgress(8); setProgressLabel('영상 정보 확인 중...'); setError(null); setResult(null); setEstimatedCost(null);
+    setUrlError(null); setLoading(true); setProgress(8); setProgressLabel('영상 정보 확인 중...'); setError(null); setResult(null);
     try {
       const supabase = (await import('@/lib/supabase/client')).getSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -220,8 +222,8 @@ export default function GeneratorPage() {
       const res = await fetch('/api/v1/analyze', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
-          url: url.trim(),
-          targetProduct: targetProduct.trim() || '자유 주제 콘텐츠',
+          ...(url.trim() ? { url: url.trim() } : {}),
+          targetProduct: targetProduct.trim(),
           userCustomPrompt: [
             `제작 목적: ${purpose}`,
             `콘셉트: ${concept}`,
@@ -250,7 +252,6 @@ export default function GeneratorPage() {
       }
       setProgress(100); setProgressLabel('제작 플랜 생성 완료');
       setResult(data.data!); setCached(data.cached ?? false);
-      setEstimatedCost(data.creditCostApplied ?? 5);
       if (typeof data.creditsRemaining === 'number') applyCreditsFromServer(data.creditsRemaining);
       clearUserCreditsCache();
       void refreshCredits();
@@ -295,6 +296,8 @@ export default function GeneratorPage() {
               <p className="text-xs sm:text-sm text-white/40">{t('gen_subtitle')}</p>
             </div>
 
+            <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-4 text-xs leading-relaxed text-cyan-100/75">처음이라면 이렇게 생각하면 됩니다. <b className="text-cyan-100">콘텐츠 주제</b>는 무엇을 보여줄지, <b className="text-cyan-100">참고 영상</b>은 어떤 영상 흐름을 참고할지 정하는 항목입니다. 참고 영상 없이도 콘텐츠 주제만 입력하면 새 영상 설계안을 만들 수 있습니다.</div>
+
             <div className="space-y-5">
             <div id="content-options" className="rounded-2xl p-5 sm:p-7 space-y-5 scroll-mt-24" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-xs font-black">1</span><div><h3 className="text-sm font-bold text-white">참고 영상 입력</h3><p className="text-xs text-white/40">YouTube Shorts, TikTok 또는 최신 트렌드에서 선택한 영상을 입력하세요.</p></div></div>
@@ -310,8 +313,8 @@ export default function GeneratorPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')}{sourcePlatform && <span className="text-[10px] font-normal text-cyan-300/70">{sourcePlatform}</span>}</label>
-                <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder={t('gen_url_placeholder')} className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')} <span className="text-[10px] font-normal text-white/35">(선택)</span>{sourcePlatform && <span className="text-[10px] font-normal text-cyan-300/70">{sourcePlatform}</span>}</label>
+                <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder="선택 입력: YouTube Shorts 또는 TikTok 링크" className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
                 {urlError && <p className="flex items-center gap-1.5 text-xs text-red-400 fade-in-up"><span>⚠️</span> {urlError}</p>}
               </div>
               <div className="rounded-xl border border-white/8 bg-white/[0.025] p-4"><p className="mb-3 text-xs font-bold text-white/65">분석할 바이럴 구조</p><div className="flex flex-wrap gap-2">{ANALYSIS_POINTS.map((point) => <span key={point} className="rounded-full border border-cyan-400/15 bg-cyan-400/5 px-2.5 py-1 text-[11px] text-cyan-100/75">{point}</span>)}</div></div>
@@ -320,8 +323,9 @@ export default function GeneratorPage() {
             <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black">2</span><div><h3 className="text-sm font-bold text-white">내 콘텐츠 설정</h3><p className="text-xs text-white/40">만들고 싶은 주제와 영상 스타일을 자유롭게 선택하세요.</p></div></div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Sparkles size={14} className="text-emerald-400" />콘텐츠 주제 <span className="text-xs font-normal text-white/25">(선택)</span></label>
-                <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder="예: 자취 요리, 운동 루틴, 여행 팁, 일상 브이로그" className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Sparkles size={14} className="text-emerald-400" />콘텐츠 주제 <span className="text-xs font-bold text-amber-300">(필수)</span></label>
+                <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder="예: 곡선 목재를 측정하는 스마트 롤링 자" className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
+                <p className="text-[11px] leading-relaxed text-white/40">무엇을 소개하거나 보여줄 영상인지 구체적으로 적어주세요. 예: “초보 목공자를 위한 곡선 측정 도구 사용법”</p>
               </div>
               <div className="space-y-2"><label className="text-xs font-semibold text-white/70">콘텐츠 목적</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
               <div className="space-y-2"><label className="text-xs font-semibold text-white/70">콘셉트</label><ChoiceChips options={CONCEPTS} value={concept} onChange={setConcept} /></div>
@@ -348,7 +352,7 @@ export default function GeneratorPage() {
               <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">생성 옵션 확인</h3><p className="text-xs text-white/40">입력한 정보를 확인한 뒤 제작 플랜을 생성하세요.</p></div></div>
               <div className="grid gap-2 rounded-xl border border-white/8 bg-white/[0.025] p-4 sm:grid-cols-2">
                 {[
-                  ['참고 영상', trendReference?.title || url], ['콘텐츠 주제', targetProduct || '자유 주제'],
+                  ['참고 영상', trendReference?.title || url || '참고 영상 없이 생성'], ['콘텐츠 주제', targetProduct || '입력 필요'],
                   ['콘텐츠 목적', purpose], ['영상 길이', duration], ['제작 방식', productionMethod], ['선택한 AI 도구', productionMethod === 'AI 영상 생성' ? aiVideoTool : '해당 없음'],
                   ['예상 장면 수', `${expectedScenes}개`], ['생성 비용', '제작 플랜 생성 1회 — 5크레딧'],
                 ].map(([label, value]) => <div key={label} className="rounded-lg bg-black/15 p-3"><p className="text-[10px] font-bold text-white/35">{label}</p><p className="mt-1 truncate text-xs text-white/75">{value}</p></div>)}
@@ -359,7 +363,7 @@ export default function GeneratorPage() {
                   <button onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>
                 </div>
               )}
-              <button onClick={handleAnalyze} disabled={loading || !url.trim() || (credits !== undefined && credits < 5)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
+              <button onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (credits !== undefined && credits < 5)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
                 {loading ? (
                   <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />제작 플랜 생성 중... {progress}%</span>
                 ) : (
@@ -388,21 +392,15 @@ export default function GeneratorPage() {
                 <button onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('gen_credits_low_cta')}<RefreshCw size={11} /></button>
               </div>
             </div>
-            {result && <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.025] p-5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500 text-xs font-black">5</span><div><h3 className="text-sm font-bold text-white">완성된 영상 제작 플랜</h3><p className="text-xs text-white/40">장면별 구성과 현지화 대본, AI 영상 프롬프트를 확인하세요.</p></div></div>}
+            {result && <div className="flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-5"><span className="mt-0.5 text-emerald-300">✓</span><div><h3 className="text-sm font-bold text-white">영상 설계안이 완성되었습니다</h3><p className="mt-1 text-xs leading-relaxed text-white/55">아래 결과를 확인하세요. 생성한 모든 내용은 생성 히스토리에서 다시 볼 수 있습니다.</p></div></div>}
             </div>
 
             {error && (
               <div className="flex items-start gap-3 rounded-xl px-5 py-4 text-sm text-red-300 fade-in-up" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}><span className="shrink-0 mt-0.5">⚠️</span>{error}</div>
             )}
 
-            {result && estimatedCost !== null && (
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl fade-in-up" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.15)' }}>
-                <Zap size={13} className="text-violet-400 shrink-0" />
-                <p className="text-xs text-white/50">{t('gen_complete_msg').replace('{cost}', String(estimatedCost)).replace('{remaining}', credits === undefined ? '—' : String(credits))}</p>
-              </div>
-            )}
 
-            {result && <GenerationResult result={result} creditsRemaining={credits} />}
+            {result && <GenerationResult result={result} creditsRemaining={credits} showCreditSummary={false} />}
           </div>
         </section>
         )}
