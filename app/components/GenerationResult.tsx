@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CheckCircle2, Copy, Download, ExternalLink, Info } from 'lucide-react';
 import type { GenerationOutput, SceneScript } from '@/types';
 import { getLang } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 
 const TABS = ['overview', 'structure', 'scenes', 'prompts', 'voice', 'timeline'] as const;
 type Tab = typeof TABS[number];
@@ -34,6 +35,7 @@ function ScenePlan({ scene, ui }: { scene: SceneScript; ui: ResultUi }) {
 }
 
 export default function GenerationResult({ result, creditsRemaining, showCreditSummary = true }: { result: GenerationOutput; creditsRemaining?: number; showCreditSummary?: boolean }) {
+  useLanguage();
   const [tab, setTab] = useState<Tab>('overview');
   const [guideTab, setGuideTab] = useState<Tab | null>(null);
   const language = getLang();

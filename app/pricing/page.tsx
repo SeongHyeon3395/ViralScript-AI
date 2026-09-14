@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Star, Shield, Zap, Check, ArrowRight, Gift, Play, Users, LogIn } from 'lucide-react';
 import { CREDIT_PLANS } from '@/lib/credits';
 import Navbar from '@/app/components/Navbar';
@@ -11,14 +11,49 @@ import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
+import { useLanguage } from '@/app/components/LanguageProvider';
 
 const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
 
 export default function PricingPage() {
+  useLanguage();
   const navbarRef = useRef<NavbarRef>(null);
   const [referralOpen, setReferralOpen] = useState(false);
   const [adOpen, setAdOpen] = useState(false);
+  const [purchasingPlanId, setPurchasingPlanId] = useState<string | null>(null);
+  const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
   const { user, credits, isLoading, refreshCredits } = useAuth();
+
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get('payment');
+    const timer = window.setTimeout(() => {
+      if (status === 'success') {
+        setPaymentMessage('Payment completed. Refreshing your credit balance…');
+        void refreshCredits();
+      } else if (status === 'cancelled') setPaymentMessage('Payment was cancelled.');
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [refreshCredits]);
+
+  async function startPayment(planId: string) {
+    if (!user) { navbarRef.current?.openLoginModal(); return; }
+    setPurchasingPlanId(planId); setPaymentMessage(null);
+    try {
+      const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
+      const { data: { session } } = await getSupabaseBrowserClient().auth.getSession();
+      if (!session?.access_token) throw new Error('Please sign in to continue.');
+      const response = await fetch('/api/v1/billing', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ planId }),
+      });
+      const payload = await response.json() as { checkoutUrl?: string; error?: string };
+      if (!response.ok || !payload.checkoutUrl) throw new Error(payload.error ?? 'Payment checkout is unavailable.');
+      window.location.assign(payload.checkoutUrl);
+    } catch (error) {
+      setPaymentMessage(error instanceof Error ? error.message : 'Payment checkout failed.');
+      setPurchasingPlanId(null);
+    }
+  }
 
   return (
     <>
@@ -46,11 +81,12 @@ export default function PricingPage() {
                         <p className="text-xs text-white/30">${plan.priceUsd} USD</p>
                         <p className="text-sm text-white/50 mt-4 leading-relaxed">{plan.description}</p>
                       </div>
-                      <button className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${isPro ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{t('pricing_charge_btn')}<ArrowRight size={14} /></button>
+                      <button type="button" onClick={() => void startPayment(plan.id)} disabled={purchasingPlanId !== null} className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${isPro ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{purchasingPlanId === plan.id ? 'Opening checkout…' : t('pricing_charge_btn')}<ArrowRight size={14} /></button>
                     </div>
                   );
                 })}
               </div>
+              {paymentMessage && <p className="mt-5 text-center text-sm text-white/60" role="status">{paymentMessage}</p>}
               <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-xs text-white/30">
                 {[{ icon: Shield, text: t('pricing_secure') }, { icon: Zap, text: t('pricing_instant') }, { icon: Check, text: t('pricing_refund') }].map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-1.5"><Icon size={13} />{text}</div>

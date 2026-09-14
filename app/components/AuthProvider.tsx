@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.setTimeout(() => {
           void refreshCredits();
           void fetchUserLanguage().then((language) => {
-            localStorage.setItem('viralLang', language);
+            window.localStorage.setItem('viralLang', language);
             window.dispatchEvent(new CustomEvent('language:changed', { detail: language }));
           }).catch(() => {
             // 언어 조회가 실패해도 인증 상태와 크레딧 처리는 계속합니다.

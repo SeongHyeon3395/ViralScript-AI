@@ -12,6 +12,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 
 const REMIX_MODES = [
   {
@@ -59,6 +60,7 @@ interface RemixPanelProps {
 }
 
 export default function RemixPanel({ targetProduct, onRemixComplete }: RemixPanelProps) {
+  useLanguage();
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);

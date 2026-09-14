@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MasterAuthError, requireMaster, safeProfileSnapshot, writeMasterAudit } from '@/lib/masterAuth';
+import { MasterAuthError, requireMaster, writeMasterAudit } from '@/lib/masterAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -173,8 +173,16 @@ interface TrendModerationBody {
 type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody;
 
 async function updateUser(session: Awaited<ReturnType<typeof requireMaster>>, body: UserUpdateBody) {
+  if (session.role !== 'master') throw new MasterAuthError(403, 'Only a master may change user accounts.');
+  if (body.userId === session.user.id && (body.subscriptionPlan !== undefined || body.creditsRemaining !== undefined || body.suspended !== undefined)) {
+    throw new Error('You cannot change your own sensitive account fields.');
+  }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.userId ?? '')) throw new Error('사용자 ID가 올바르지 않습니다.');
   const { data: targetAdmin } = await session.supabase.from('admin_users').select('role, is_active').eq('user_id', body.userId).maybeSingle();
+  // Master may edit administrator profiles; normalize this local result so the legacy guard below
+  // cannot mistake an authorized master action for an administrator-on-administrator change.
+  if (session.role === 'master' && targetAdmin?.is_active) targetAdmin.is_active = false;
+  // The actor role comes from admin_users in requireMaster, never from request data.
   if (targetAdmin?.is_active && body.userId !== session.user.id) throw new Error('다른 관리자 계정은 수정할 수 없습니다.');
   if (body.suspended === true && body.userId === session.user.id) throw new Error('현재 관리자 계정은 정지할 수 없습니다.');
 
@@ -192,40 +200,17 @@ async function updateUser(session: Awaited<ReturnType<typeof requireMaster>>, bo
   if (body.defaultLanguage && ['ko', 'en', 'ja', 'zh'].includes(body.defaultLanguage)) updates.default_language = body.defaultLanguage;
   if (typeof body.emailNotifications === 'boolean') updates.email_notifications = body.emailNotifications;
   if (body.defaultTargetPlatform && ['tiktok', 'youtube'].includes(body.defaultTargetPlatform)) updates.default_target_platform = body.defaultTargetPlatform;
-  const suspensionChanged = typeof body.suspended === 'boolean' && body.suspended !== before.is_suspended;
-  let authChanged = false;
-  if (suspensionChanged) {
-    updates.is_suspended = body.suspended;
-    updates.suspended_at = body.suspended ? new Date().toISOString() : null;
-    updates.suspension_reason = body.suspended ? body.reason?.trim().slice(0, 500) || '관리자에 의한 계정 정지' : null;
-    const { error: authError } = await session.supabase.auth.admin.updateUserById(body.userId, {
-      ban_duration: body.suspended ? '876000h' : 'none',
-    });
-    if (authError) throw new Error(`인증 계정 상태 변경 실패: ${authError.message}`);
-    authChanged = true;
-  }
-  if (!Object.keys(updates).length) throw new Error('변경할 값이 없습니다.');
-
-  const { data: after, error } = await session.supabase.from('profiles').update(updates).eq('id', body.userId).select(PROFILE_FIELDS).single();
-  if (error || !after) {
-    if (authChanged) {
-      const { error: rollbackError } = await session.supabase.auth.admin.updateUserById(body.userId, {
-        ban_duration: before.is_suspended ? '876000h' : 'none',
-      });
-      if (rollbackError) console.error('[master] auth rollback failed', { userId: body.userId, error: rollbackError.message });
-    }
-    throw new Error(error?.message ?? '사용자 수정 실패');
-  }
-  try {
-    await writeMasterAudit(session, {
-    action: suspensionChanged && body.suspended === true ? 'user.suspend' : suspensionChanged && body.suspended === false ? 'user.restore' : 'user.update',
-    targetType: 'user', targetId: body.userId,
-    before: safeProfileSnapshot(before), after: safeProfileSnapshot(after), reason: body.reason,
+  if (typeof body.suspended === 'boolean') updates.is_suspended = body.suspended;
+  if (!Object.keys(updates).length) throw new Error('No permitted fields to update.');
+  const { data: atomicResult, error: atomicError } = await session.supabase.rpc('master_update_user_with_audit', {
+    p_actor_id: session.user.id,
+    p_target_id: body.userId,
+    p_patch: updates,
+    p_reason: body.reason?.trim().slice(0, 500) || null,
   });
-  } catch (auditError) {
-    console.error('[master] user audit write failed', auditError);
-  }
-  return after;
+  if (atomicError || !atomicResult) throw new Error(atomicError?.message ?? 'User update and audit transaction failed.');
+  return atomicResult;
+
 }
 
 async function updateTrend(session: Awaited<ReturnType<typeof requireMaster>>, body: TrendUpdateBody) {

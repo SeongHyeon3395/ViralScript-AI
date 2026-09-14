@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { normalizeAndValidateUrl } from '../utils/urlNormalizer';
 import { ERROR_CODES } from '../types';
 
@@ -33,9 +35,10 @@ describe('URL routing and session security logic', () => {
     expect(() => normalizeAndValidateUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toThrow(ERROR_CODES.NOT_A_YOUTUBE_SHORTS_URL);
   });
 
-  it('auto-logout kill switch triggers after 12 hours in session storage', () => {
-    const ms12Hours = 43_200_000;
+  it('auto-logout kill switch and test value both use six hours', () => {
+    const ms6Hours = 21_600_000;
     const now = Date.now();
-    expect(now - ms12Hours - 1000 + ms12Hours < now).toBe(true);
+    expect(now - ms6Hours - 1000 + ms6Hours < now).toBe(true);
+    expect(readFileSync(resolve(__dirname, '..', 'app/components/AuthProvider.tsx'), 'utf8')).toContain('const SESSION_TIMEOUT_MS = 6 * 60 * 60 * 1000');
   });
 });

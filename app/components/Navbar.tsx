@@ -17,6 +17,7 @@ import {
 import AuthModal from './AuthModal';
 import ReferralSystem from './ReferralSystem';
 import LanguageSwitcher, { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useAuth } from './AuthProvider';
@@ -27,6 +28,7 @@ export interface NavbarRef {
 }
 
 const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
+  useLanguage();
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [userMenuOpen, setUserMenuOpen] = useState(false);

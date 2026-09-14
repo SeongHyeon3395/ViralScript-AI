@@ -11,14 +11,14 @@ export async function GET(): Promise<NextResponse> {
     const supabase = createServerClient();
     const { data, error } = await supabase
       .from('trend_feed')
-      .select('id, platform, region, title, subtitle, views, likes, tags, thumb_url, video_url, url, created_at')
+      .select('id, platform, region, title, subtitle, views, likes, tags, thumb_url, video_url, url, created_at, updated_at')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(500);
 
     if (error) {
       console.error('[trends] query failed:', error.message);
-      return NextResponse.json({ trends: [], updatedAt: null }, { status: 200 });
+      return NextResponse.json({ trends: [], updatedAt: null, degraded: true, errorCode: 'TREND_DB_UNAVAILABLE' }, { status: 503 });
     }
 
     const trends = (data ?? []).map((item) => {
@@ -38,11 +38,11 @@ export async function GET(): Promise<NextResponse> {
     }).filter((item): item is NonNullable<typeof item> => item !== null);
 
     return NextResponse.json(
-      { trends, updatedAt: trends[0]?.created_at ?? null },
+      { trends, updatedAt: trends[0]?.updated_at ?? trends[0]?.created_at ?? null, degraded: false },
       { headers: { 'Cache-Control': 'no-store, max-age=0' } },
     );
   } catch (error) {
     console.error('[trends] unexpected error:', error);
-    return NextResponse.json({ trends: [], updatedAt: null }, { status: 200 });
+    return NextResponse.json({ trends: [], updatedAt: null, degraded: true, errorCode: 'TREND_DB_UNAVAILABLE' }, { status: 503 });
   }
 }

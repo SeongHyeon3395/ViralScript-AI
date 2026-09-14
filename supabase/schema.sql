@@ -114,3 +114,45 @@ $$;
 
 -- anon 및 authenticated 역할에 RPC 실행 권한 부여
 GRANT EXECUTE ON FUNCTION public.find_email_by_phone(TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
+
+-- ============================================================
+-- Current schema additions (migration 20260914000026)
+-- The migration is the executable source of truth for RPC bodies.
+-- ============================================================
+
+-- Generation history keeps existing source URLs and permits topic-only generations.
+ALTER TABLE public.user_generation_history
+  ALTER COLUMN source_url DROP NOT NULL;
+
+-- Server-owned orders are the source of truth for provider, price and credit quantity.
+CREATE TABLE IF NOT EXISTS public.payment_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id TEXT NOT NULL UNIQUE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  plan_id TEXT NOT NULL,
+  provider TEXT NOT NULL CHECK (provider IN ('stripe', 'toss')),
+  expected_amount_krw NUMERIC(12, 2) NOT NULL CHECK (expected_amount_krw > 0),
+  expected_credits INTEGER NOT NULL CHECK (expected_credits > 0),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed', 'cancelled')),
+  payment_key TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  paid_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS payment_orders_payment_key_unique
+  ON public.payment_orders(payment_key) WHERE payment_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS payment_orders_user_created_at_idx
+  ON public.payment_orders(user_id, created_at DESC);
+ALTER TABLE public.payment_orders ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.payment_orders FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.payment_orders TO service_role;
+
+-- Trends retain original creation time and separately track the latest collector refresh.
+ALTER TABLE public.trend_feed
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE UNIQUE INDEX IF NOT EXISTS trend_feed_platform_video_url_unique
+  ON public.trend_feed(platform, video_url) WHERE video_url IS NOT NULL;
+
+-- Added SECURITY DEFINER RPCs (definitions and grants are in the migration above):
+-- public.complete_verified_payment_order(TEXT, TEXT, TEXT, NUMERIC, NUMERIC)
+-- public.master_update_user_with_audit(UUID, UUID, JSONB, TEXT)

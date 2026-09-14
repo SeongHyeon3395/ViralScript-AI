@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Globe } from 'lucide-react';
+import { useLanguage } from './LanguageProvider';
 
 type Lang = 'ko' | 'en' | 'zh' | 'ja';
 
@@ -15,6 +16,13 @@ const LANGS: { code: Lang; label: string; flag: string }[] = [
 // 간단한 번역 테이블
 export const T: Record<Lang, Record<string, string>> = {
   ko: {
+    history_title: '생성 기록', history_subtitle: '내가 만든 영상 제작 플랜 기록', history_total: '총 {count}개',
+    history_login_required: '로그인이 필요합니다', history_login_desc: '히스토리를 보려면 로그인해 주세요', history_login: '로그인하기',
+    history_empty: '아직 생성한 제작 플랜이 없습니다.', history_create: '제작 플랜 만들기', history_topic: '주제 기반 생성', history_topic_short: '주제',
+    history_video_goal: '영상 목표', history_previous_result: '기존 생성 결과', history_unspecified: '미지정', history_credits: '크레딧 사용',
+    history_collapse: '결과 접기', history_view_result: '전체 결과 보기', history_copy_prompt: '영상 프롬프트 복사', history_download_json: '원본 JSON 다운로드',
+    history_regenerate: '다시 생성', history_delete: '삭제', history_load_more: '더 보기 ({count}개 남음)', history_old_format: '이전 형식의 결과는 화면에 표시할 수 없습니다. 원본 JSON은 다운로드할 수 있습니다.',
+    gen_copy_prompt: '프롬프트 복사', gen_prompt_copied: '프롬프트 복사됨', gen_checking_video: '영상 정보를 확인하는 중...', gen_request_failed: '분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
     // ─── Navbar ───
     nav_generator: '제작 플랜 만들기',
     nav_credits: '크레딧',
@@ -303,6 +311,13 @@ export const T: Record<Lang, Record<string, string>> = {
     cancel: '취소',
   },
   en: {
+    history_title: 'Generation History', history_subtitle: 'Your video production plan history', history_total: 'Total: {count}',
+    history_login_required: 'Login required', history_login_desc: 'Please log in to view your history', history_login: 'Log in',
+    history_empty: 'You have not created a production plan yet.', history_create: 'Create a production plan', history_topic: 'Topic-based generation', history_topic_short: 'Topic',
+    history_video_goal: 'Video goal', history_previous_result: 'Previous generation result', history_unspecified: 'Unspecified', history_credits: 'credits used',
+    history_collapse: 'Collapse result', history_view_result: 'View full result', history_copy_prompt: 'Copy video prompts', history_download_json: 'Download original JSON',
+    history_regenerate: 'Generate again', history_delete: 'Delete', history_load_more: 'Load more ({count} remaining)', history_old_format: 'This result uses an older format and cannot be displayed. You can still download the original JSON.',
+    gen_copy_prompt: 'Copy prompt', gen_prompt_copied: 'Prompt copied', gen_checking_video: 'Checking video information...', gen_request_failed: 'The analysis request failed. Please try again shortly.',
     // ─── Navbar ───
     nav_generator: 'Script Generator',
     nav_credits: 'Credits',
@@ -595,6 +610,13 @@ export const T: Record<Lang, Record<string, string>> = {
     cancel: 'Cancel',
   },
   zh: {
+    history_title: '生成历史', history_subtitle: '我创建的视频制作方案记录', history_total: '共 {count} 条',
+    history_login_required: '需要登录', history_login_desc: '请登录以查看历史记录', history_login: '登录',
+    history_empty: '你还没有创建制作方案。', history_create: '创建制作方案', history_topic: '基于主题生成', history_topic_short: '主题',
+    history_video_goal: '视频目标', history_previous_result: '之前的生成结果', history_unspecified: '未指定', history_credits: '消耗积分',
+    history_collapse: '收起结果', history_view_result: '查看完整结果', history_copy_prompt: '复制视频提示词', history_download_json: '下载原始 JSON',
+    history_regenerate: '重新生成', history_delete: '删除', history_load_more: '加载更多（剩余 {count} 条）', history_old_format: '此结果使用旧格式，无法显示。仍可下载原始 JSON。',
+    gen_copy_prompt: '复制提示词', gen_prompt_copied: '提示词已复制', gen_checking_video: '正在检查视频信息…', gen_request_failed: '分析请求失败，请稍后重试。',
     // ─── Navbar ───
     nav_generator: '脚本生成器',
     nav_credits: '积分',
@@ -887,6 +909,13 @@ export const T: Record<Lang, Record<string, string>> = {
     cancel: '取消',
   },
   ja: {
+    history_title: '生成履歴', history_subtitle: '作成した動画制作プランの履歴', history_total: '合計 {count} 件',
+    history_login_required: 'ログインが必要です', history_login_desc: '履歴を見るにはログインしてください', history_login: 'ログイン',
+    history_empty: 'まだ制作プランはありません。', history_create: '制作プランを作成', history_topic: 'テーマから生成', history_topic_short: 'テーマ',
+    history_video_goal: '動画の目的', history_previous_result: '以前の生成結果', history_unspecified: '未指定', history_credits: 'クレジット使用',
+    history_collapse: '結果を閉じる', history_view_result: '結果をすべて表示', history_copy_prompt: '動画プロンプトをコピー', history_download_json: '元の JSON をダウンロード',
+    history_regenerate: '再生成', history_delete: '削除', history_load_more: 'さらに表示（残り {count} 件）', history_old_format: '古い形式のため結果を表示できません。元の JSON はダウンロードできます。',
+    gen_copy_prompt: 'プロンプトをコピー', gen_prompt_copied: 'プロンプトをコピーしました', gen_checking_video: '動画情報を確認しています…', gen_request_failed: '分析に失敗しました。しばらくしてから再試行してください。',
     // ─── Navbar ───
     nav_generator: '脚本ジェネレーター',
     nav_credits: 'クレジット',
@@ -1193,35 +1222,16 @@ export function t(key: string): string {
 }
 
 export default function LanguageSwitcher() {
-  const [lang, setLang] = useState<Lang>(getLang);
+  const { language: lang, setLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    const handleLanguageChanged = (event: Event) => {
-      const next = (event as CustomEvent<Lang>).detail;
-      if (next && next in T) setLang(next);
-    };
-    window.addEventListener('language:changed', handleLanguageChanged);
-    return () => window.removeEventListener('language:changed', handleLanguageChanged);
-  }, []);
-
   async function switchLang(code: Lang) {
-    localStorage.setItem(LANG_KEY, code);
-    setLang(code);
     setIsOpen(false);
     try {
-      const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
-      const supabase = getSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<unknown>)('update_user_settings', {
-          p_default_language: code,
-        });
-      }
+      await setLanguage(code);
     } catch {
       // 브라우저 언어는 저장하고, 프로필 저장 실패는 다음 설정 저장에서 재시도합니다.
     }
-    window.location.reload();
   }
 
   const current = LANGS.find(l => l.code === lang) ?? LANGS[0];

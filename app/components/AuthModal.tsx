@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'find_email';
 
@@ -79,6 +80,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
+  useLanguage();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

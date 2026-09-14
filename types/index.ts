@@ -39,7 +39,7 @@ export interface ScriptCache {
 export interface UserGenerationHistory {
   id: string;
   user_id: string;
-  source_url: string;
+  source_url: string | null;
   project_title: string;
   target_product_name: string;
   generated_json: GenerationOutput;

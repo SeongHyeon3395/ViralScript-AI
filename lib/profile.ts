@@ -3,58 +3,54 @@
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const PROFILE_CACHE_TTL_MS = 30_000;
-const creditsCache = new Map<string, { value: number; expiresAt: number }>();
-const creditsRequests = new Map<string, Promise<number>>();
+type ProfileSnapshot = { credits: number; language: 'ko' | 'en' | 'ja' | 'zh' };
+const profileCache = new Map<string, { value: ProfileSnapshot; expiresAt: number }>();
+const profileRequests = new Map<string, Promise<ProfileSnapshot>>();
 
-export async function fetchUserCredits(): Promise<number> {
+async function fetchProfileSnapshot(): Promise<ProfileSnapshot> {
   const supabase = getSupabaseBrowserClient();
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token || !session.user.id) {
     throw new Error('No authenticated session');
   }
 
-  const cached = creditsCache.get(session.user.id);
+  const cached = profileCache.get(session.user.id);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-  const existingRequest = creditsRequests.get(session.user.id);
+  const existingRequest = profileRequests.get(session.user.id);
   if (existingRequest) return existingRequest;
 
-  const request = fetch('/api/v1/profile', {
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  })
-    .then(async (res) => {
-      if (!res.ok) throw new Error(`Profile API failed: ${res.status}`);
-
-      const payload = await res.json() as { data?: { credits_remaining?: number } };
-      const credits = payload.data?.credits_remaining;
-      if (typeof credits !== 'number') {
-        throw new Error('Profile API returned an invalid credit balance');
+  // The user's own profile is readable under RLS; selecting both values avoids
+  // separate profile API round trips during login and language restoration.
+  const request = Promise.resolve(supabase.from('profiles')
+    .select('credits_remaining, default_language')
+    .eq('id', session.user.id)
+    .single())
+    .then(({ data, error }) => {
+      const profile = data as unknown as { credits_remaining: number; default_language: string | null } | null;
+      if (error || !profile || typeof profile.credits_remaining !== 'number') {
+        throw error ?? new Error('Profile returned an invalid credit balance');
       }
-
-      creditsCache.set(session.user.id, { value: credits, expiresAt: Date.now() + PROFILE_CACHE_TTL_MS });
-      return credits;
+      const language: ProfileSnapshot['language'] = profile.default_language === 'ko' || profile.default_language === 'ja' || profile.default_language === 'zh'
+        ? profile.default_language : 'en';
+      const snapshot = { credits: profile.credits_remaining, language };
+      profileCache.set(session.user.id, { value: snapshot, expiresAt: Date.now() + PROFILE_CACHE_TTL_MS });
+      return snapshot;
     })
-    .finally(() => creditsRequests.delete(session.user.id));
+    .finally(() => profileRequests.delete(session.user.id));
 
-  creditsRequests.set(session.user.id, request);
+  profileRequests.set(session.user.id, request);
   return request;
 }
 
+export async function fetchUserCredits(): Promise<number> {
+  return (await fetchProfileSnapshot()).credits;
+}
+
 export function clearUserCreditsCache() {
-  creditsCache.clear();
+  profileCache.clear();
 }
 
 export async function fetchUserLanguage(): Promise<'ko' | 'en' | 'ja' | 'zh'> {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token || !session.user.id) throw new Error('No authenticated session');
-
-  const response = await fetch('/api/v1/profile', {
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  });
-  if (!response.ok) throw new Error(`Profile API failed: ${response.status}`);
-  const payload = await response.json() as { data?: { default_language?: string } };
-  return payload.data?.default_language === 'ko' || payload.data?.default_language === 'ja' || payload.data?.default_language === 'zh'
-    ? payload.data.default_language
-    : 'en';
+  return (await fetchProfileSnapshot()).language;
 }

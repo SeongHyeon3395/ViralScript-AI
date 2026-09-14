@@ -144,12 +144,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   });
 
   // 4. 캐시 조회 (script_cache 테이블)
-  const { data: cached } = await supabase
-    .from('script_cache')
-    .select('analysis_result, hit_count')
-    .eq('url_hash', resultCacheKey)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle();
+  const { data: cached } = normalizedUrl
+    ? await supabase
+      .from('script_cache')
+      .select('analysis_result, hit_count')
+      .eq('url_hash', resultCacheKey)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle()
+    : { data: null };
 
   const isCacheHit = !!cached;
 
@@ -186,7 +188,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     // 원자적 크레딧 차감 + 히스토리 저장
     const { error: rpcError } = await supabase.rpc('execute_script_generation', {
       p_user_id: user.id,
-      p_source_url: normalizedUrl,
+      p_source_url: normalizedUrl || null,
       p_project_title: cachedResult.project_title,
       p_target_product: targetProduct,
       p_generated_json: cachedResult,
@@ -291,7 +293,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   // RPC 내부의 INSERT 실패도 같은 트랜잭션을 롤백하여 부분 차감을 방지한다.
   const { error: rpcError } = await supabase.rpc('execute_script_generation', {
     p_user_id: user.id,
-    p_source_url: normalizedUrl,
+    p_source_url: normalizedUrl || null,
     p_project_title: enrichedResult.project_title,
     p_target_product: targetProduct,
     p_generated_json: enrichedResult,
@@ -314,17 +316,19 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   // 캐시 실패는 이미 과금/히스토리가 성공한 요청을 실패로 바꾸지 않는다.
   // 다음 요청에서 재생성될 뿐이며, 사용자 잔액은 일관되게 유지된다.
-  const { error: cacheError } = await supabase.from('script_cache').upsert({
-    url_hash: resultCacheKey,
-    original_url: normalizedUrl,
-    platform,
-    video_duration_sec: metadata.durationSeconds,
-    analysis_result: enrichedResult,
-    hit_count: 1,
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  });
-  if (cacheError) {
-    console.error('[analyze] script_cache upsert failed after committed generation:', cacheError.message);
+  if (normalizedUrl) {
+    const { error: cacheError } = await supabase.from('script_cache').upsert({
+      url_hash: resultCacheKey,
+      original_url: normalizedUrl,
+      platform,
+      video_duration_sec: metadata.durationSeconds,
+      analysis_result: enrichedResult,
+      hit_count: 1,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+    if (cacheError) {
+      console.error('[analyze] script_cache upsert failed after committed generation:', cacheError.message);
+    }
   }
 
   const { data: updatedProfile } = await supabase

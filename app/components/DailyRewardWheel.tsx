@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Gift, Sparkles, X, ChevronRight, Zap, Star, Frown, RefreshCw, Trophy } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const ROULETTE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -51,6 +52,7 @@ function alignedRotation(currentRotation: number, winnerIndex: number): number {
 }
 
 export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: number) => void }) {
+  useLanguage();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [rotation, setRotation] = useState(0);

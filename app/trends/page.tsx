@@ -5,10 +5,12 @@ import Navbar, { type NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import TrendFeed from '@/app/components/TrendFeed';
 import { t } from '@/app/components/LanguageSwitcher';
+import { useLanguage } from '@/app/components/LanguageProvider';
 
 
 
 export default function TrendsPage() {
+  useLanguage();
   const navbarRef = useRef<NavbarRef>(null);
 
   function handleTrendGenerate(params: URLSearchParams) {

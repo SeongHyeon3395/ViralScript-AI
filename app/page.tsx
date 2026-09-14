@@ -11,6 +11,7 @@ import DailyRewardWheel from './components/DailyRewardWheel';
 import TrendFeed from './components/TrendFeed';
 import type { NavbarRef } from './components/Navbar';
 import { t } from './components/LanguageSwitcher';
+import { useLanguage } from './components/LanguageProvider';
 
 const FEATURES = [
   { icon: BarChart3, titleKey: 'feature_viral_title', descKey: 'feature_viral_desc', color: 'text-blue-600', bg: 'rgba(37,99,235,0.07)', border: 'rgba(37,99,235,0.18)' },
@@ -28,6 +29,7 @@ const STATS = [
 ];
 
 export default function Home() {
+  useLanguage();
   const navbarRef = useRef<NavbarRef>(null);
   function handleTrendGenerate(params: URLSearchParams) {
     if (!navbarRef.current?.getUser()) {

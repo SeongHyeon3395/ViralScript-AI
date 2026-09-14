@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { Music, Play, Eye, Heart, RefreshCw, Loader2, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 
 interface TrendItem {
   id: string; platform: string; region: string;
   title: string; subtitle: string; views: string; likes: string; tags: string; thumb_url?: string | null; video_url?: string | null;
   created_at?: string;
+  updated_at?: string;
 }
 
 const PLATFORM_ICONS: Record<string, typeof Music> = { tiktok: Music, TikTok: Music, youtube: Play, 'YouTube Shorts': Play };
@@ -47,6 +49,7 @@ function SkeletonCard() {
 }
 
 export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps) {
+  useLanguage();
   const isFullPage = mode === 'fullPage';
   const router = useRouter();
   const [trends, setTrends] = useState<TrendItem[]>([]);
@@ -59,21 +62,23 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
   const [selectedTrendId, setSelectedTrendId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function fetchTrends() {
       try {
         const response = await fetch('/api/v1/trends', { cache: 'no-store' });
-        const payload = await response.json() as { trends?: TrendItem[]; updatedAt?: string | null };
+        const payload = await response.json() as { trends?: TrendItem[]; updatedAt?: string | null; degraded?: boolean; errorCode?: string };
         if (cancelled) return;
-
+        if (!response.ok || payload.degraded) { setLoadError(payload.errorCode ?? 'TREND_DB_UNAVAILABLE'); return; }
         const loadedTrends = payload.trends ?? [];
         setTrends(loadedTrends);
-        setLastUpdated(payload.updatedAt ?? loadedTrends[0]?.created_at ?? null);
+        setLastUpdated(payload.updatedAt ?? loadedTrends[0]?.updated_at ?? loadedTrends[0]?.created_at ?? null);
+        setLoadError(null);
       } catch (err) {
         console.error('[TrendFeed] Fetch error:', err);
-        setTrends([]);
+        setLoadError('TREND_DB_UNAVAILABLE');
       }
       setLoading(false);
     }
@@ -179,8 +184,10 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
           </div>
         </div>
         <button
+          type="button"
           onClick={() => { setLoading(true); resetPagination(); setRefreshKey(k => k + 1); }}
           className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition-colors"
+          aria-label="Refresh trends"
           title="새로고침"
         >
           <RefreshCw size={13} />
@@ -190,7 +197,7 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
       {/* Platform filters */}
       <div className="flex gap-1.5">
         {(['all', 'tiktok', 'youtube'] as const).map((f) => (
-          <button key={f} onClick={() => { setActiveFilter(f); resetPagination(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeFilter === f ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
+          <button type="button" key={f} aria-pressed={activeFilter === f} onClick={() => { setActiveFilter(f); resetPagination(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeFilter === f ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
             {f === 'all' ? t('trend_filter_all') : f === 'tiktok' ? 'TikTok' : 'YouTube'}
           </button>
         ))}
@@ -200,6 +207,8 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
         {(['latest', 'popular'] as const).map((order) => (
           <button
             key={order}
+            type="button"
+            aria-pressed={sortOrder === order}
             onClick={() => { setSortOrder(order); resetPagination(); }}
             className={`trend-sort-button px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortOrder === order ? 'is-active' : ''}`}
           >
@@ -211,7 +220,7 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
       {/* Region filters */}
       <div className="flex gap-1.5">
         {(['all', 'KR', 'US', 'JP'] as const).map((r) => (
-          <button key={r} onClick={() => { setActiveRegion(r); resetPagination(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRegion === r ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
+          <button type="button" key={r} aria-pressed={activeRegion === r} onClick={() => { setActiveRegion(r); resetPagination(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRegion === r ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>
             {r === 'all' ? t('trend_region_all') : `${REGION_FLAGS[r] ?? ''} ${t(REGION_LABELS[r])}`}
           </button>
         ))}
@@ -219,6 +228,8 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}</div>
+      ) : loadError ? (
+        <div className="rounded-xl border border-red-400/25 bg-red-400/10 p-4 text-sm text-red-200" role="alert">Failed to load trends. Please refresh and try again.</div>
       ) : displayed.length > 0 ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

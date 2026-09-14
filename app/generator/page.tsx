@@ -12,6 +12,7 @@ import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
+import { useLanguage } from '@/app/components/LanguageProvider';
 import { clearUserCreditsCache } from '@/lib/profile';
 import {
   Link2, SlidersHorizontal, Rocket, Loader2, Zap,
@@ -107,7 +108,7 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowRemix(!showRemix)} className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white transition-all"><Shuffle size={12} />Remix</button>
-            <button onClick={() => { navigator.clipboard.writeText(fullText); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white transition-all">{copied ? <CheckCircle2 size={12} /> : <Link2 size={12} />}{copied ? 'Copied' : 'Copy'}</button>
+            <button onClick={() => { navigator.clipboard.writeText(fullText); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white transition-all">{copied ? <CheckCircle2 size={12} /> : <Link2 size={12} />}{copied ? t('gen_copied') : t('gen_copy')}</button>
           </div>
         </div>
         <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
@@ -131,7 +132,7 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
                 className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-100 hover:bg-cyan-400/20 transition-all"
               >
                 {promptCopied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
-                {promptCopied ? 'Prompt copied' : 'Copy prompt'}
+                {promptCopied ? t('gen_prompt_copied') : t('gen_copy_prompt')}
               </button>
             </div>
           </div>
@@ -148,6 +149,7 @@ function ResultPanel({ result, cached }: { result: GenerationOutput; cached: boo
 }
 
 export default function GeneratorPage() {
+  useLanguage();
   const navbarRef = useRef<NavbarRef>(null);
   const { user, isLoading: authLoading, credits, refreshCredits, applyCreditsFromServer } = useAuth();
   const [url, setUrl] = useState('');
@@ -187,8 +189,10 @@ export default function GeneratorPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sourceUrl = params.get('url');
+    const topic = params.get('topic');
     const platform = params.get('platform');
     if (sourceUrl) startTransition(() => setUrl(sourceUrl));
+    if (topic) startTransition(() => setTargetProduct(topic));
     if (platform) startTransition(() => setSourcePlatform(platform));
     if (sourceUrl || platform || params.get('trendId')) {
       startTransition(() => setTrendReference({
@@ -213,7 +217,7 @@ export default function GeneratorPage() {
     const validationErr = validateShortFormUrl(url);
     if (validationErr) { setUrlError(validationErr); return; }
     submittingRef.current = true;
-    setUrlError(null); setLoading(true); setProgress(8); setProgressLabel('Checking video information...'); setError(null); setResult(null);
+    setUrlError(null); setLoading(true); setProgress(8); setProgressLabel(t('gen_checking_video')); setError(null); setResult(null);
     try {
       const supabase = (await import('@/lib/supabase/client')).getSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -255,7 +259,7 @@ export default function GeneratorPage() {
       if (typeof data.creditsRemaining === 'number') applyCreditsFromServer(data.creditsRemaining);
       clearUserCreditsCache();
       void refreshCredits();
-    } catch { setError('The analysis request failed. Please try again shortly.'); } finally { submittingRef.current = false; setLoading(false); }
+    } catch { setError(t('gen_request_failed')); } finally { submittingRef.current = false; setLoading(false); }
   }
 
   function handleRewardClaimed() { void refreshCredits(); }

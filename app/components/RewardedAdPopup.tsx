@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 
 // ─── Google AdSense 전역 타입 선언 ────────────────────────────
 declare global {
@@ -44,6 +45,7 @@ export default function RewardedAdPopup({
   onRewardClaimed,
   rewardAmount = REWARD_AMOUNT,
 }: RewardedAdPopupProps) {
+  useLanguage();
   const [phase, setPhase] = useState<'idle' | 'loading' | 'watching' | 'complete' | 'claimed' | 'error' | 'limit'>('idle');
   const [progress, setProgress] = useState(0);
   const [countdown, setCountdown] = useState(30);

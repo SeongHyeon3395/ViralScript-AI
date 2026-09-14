@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 
 export default function Footer() {
+  useLanguage();
   return (
     <footer className="border-t border-white/5 py-10 px-4 sm:px-6">
       <div className="mx-auto max-w-5xl">

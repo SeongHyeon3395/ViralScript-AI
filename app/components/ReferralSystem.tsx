@@ -6,6 +6,7 @@ import {
   ChevronRight, X, Zap,
 } from 'lucide-react';
 import { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 import { useAuth } from './AuthProvider';
 
 function TwitterIcon({ size = 16 }: { size?: number }) {
@@ -33,6 +34,7 @@ function generateReferralCode(seed: string): string {
 }
 
 export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps) {
+  useLanguage();
   const { user, isLoading: authLoading } = useAuth();
   const [copied, setCopied] = useState(false);
   const referralCode = user ? generateReferralCode(user.id) : '';

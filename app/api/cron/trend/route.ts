@@ -158,17 +158,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const collected = settled.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
     const uniqueUrls = new Set<string>();
     const rows = collected.filter((row) => validPermalink(row.platform, row.video_url) && !uniqueUrls.has(row.video_url) && uniqueUrls.add(row.video_url));
-    if (!rows.length) return NextResponse.json({ ok: true, inserted: 0, collected: 0, preserved: true, updatedAt: new Date().toISOString() });
+    if (!rows.length) return NextResponse.json({ ok: true, inserted: 0, updated: 0, collected: 0, preserved: true, updatedAt: new Date().toISOString() });
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-    const { data: existingRows, error: existingErr } = await supabase.from('trend_feed').select('video_url');
+    const { data: existingRows, error: existingErr } = await supabase.from('trend_feed').select('platform, video_url');
     if (existingErr) throw new Error(`Existing trend lookup failed: ${existingErr.message}`);
-    const existingUrls = new Set((existingRows ?? []).map((row) => row.video_url).filter(Boolean));
-    const newRows = rows.filter((row) => !existingUrls.has(row.video_url));
-    if (!newRows.length) return NextResponse.json({ ok: true, inserted: 0, collected: rows.length, updatedAt: new Date().toISOString() });
-    const { error: insertErr } = await supabase.from('trend_feed').insert(newRows);
-    if (insertErr) throw new Error(`DB insert failed: ${insertErr.message}`);
-    return NextResponse.json({ ok: true, inserted: newRows.length, collected: rows.length, updatedAt: new Date().toISOString() });
+    const existingKeys = new Set((existingRows ?? []).map((row) => `${row.platform}|${row.video_url}`));
+    const collectedAt = new Date().toISOString();
+    const inserted = rows.filter((row) => !existingKeys.has(`${row.platform}|${row.video_url}`)).length;
+    const updated = rows.length - inserted;
+    const { error: upsertError } = await supabase.from('trend_feed').upsert(
+      rows.map((row) => ({ ...row, updated_at: collectedAt })),
+      { onConflict: 'platform,video_url' },
+    );
+    if (upsertError) throw new Error(`DB upsert failed: ${upsertError.message}`);
+    return NextResponse.json({ ok: true, inserted, updated, collected: rows.length, updatedAt: collectedAt });
   } catch (error) {
     console.error('[cron/trend]', error instanceof Error ? error.message : error);
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unknown' }, { status: 500 });

@@ -14,10 +14,12 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { normalizeGenerationOutput } from '@/lib/generationOutput';
 import { useAuth } from '@/app/components/AuthProvider';
 import type { GenerationOutput } from '@/types';
+import { getLang, t } from '@/app/components/LanguageSwitcher';
+import { useLanguage } from '@/app/components/LanguageProvider';
 
 interface HistoryItem {
   id: string;
-  source_url: string;
+  source_url: string | null;
   project_title: string;
   target_product_name: string;
   credits_used: number;
@@ -27,16 +29,23 @@ interface HistoryItem {
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const locale = { en: 'en-US', ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN' }[getLang()];
+  return d.toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-function platformLabel(url: string): string {
+function topicLabel(): string {
+  return { en: 'Topic-based generation', ko: '주제 기반 생성', ja: 'テーマから生成', zh: '基于主题生成' }[getLang()];
+}
+
+function platformLabel(url: string | null): string {
+  if (!url?.trim()) return t('history_topic_short');
   if (url.includes('tiktok')) return 'TikTok';
   if (url.includes('youtube') || url.includes('youtu.be')) return 'YouTube Shorts';
   return '숏폼';
 }
 
-function platformColor(url: string): string {
+function platformColor(url: string | null): string {
+  if (!url?.trim()) return 'text-cyan-300 bg-cyan-400/10 border-cyan-400/20';
   if (url.includes('tiktok')) return 'text-pink-400 bg-pink-400/10 border-pink-400/20';
   if (url.includes('youtube') || url.includes('youtu.be')) return 'text-red-400 bg-red-400/10 border-red-400/20';
   return 'text-white/40 bg-white/5 border-white/10';
@@ -44,7 +53,7 @@ function platformColor(url: string): string {
 
 function normalizedHistoryResult(item: HistoryItem): GenerationOutput | null {
   try {
-    return normalizeGenerationOutput(item.generated_json, item.source_url);
+    return normalizeGenerationOutput(item.generated_json, item.source_url ?? '');
   } catch {
     return null;
   }
@@ -71,6 +80,7 @@ function downloadJson(item: HistoryItem) {
 }
 
 export default function HistoryPage() {
+  useLanguage();
   const navbarRef = useRef<NavbarRef>(null);
   const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -151,12 +161,12 @@ export default function HistoryPage() {
               <History size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">생성 히스토리</h1>
-              <p className="text-xs text-white/40 mt-0.5">내가 생성한 대본 기록</p>
+              <h1 className="text-xl font-bold text-white">{t('history_title')}</h1>
+              <p className="text-xs text-white/40 mt-0.5">{t('history_subtitle')}</p>
             </div>
             {!loading && user && (
               <span className="ml-auto text-xs text-white/30 border border-white/10 rounded-full px-3 py-1">
-                총 {total}개
+                 {t('history_total').replace('{count}', String(total))}
               </span>
             )}
           </div>
@@ -176,21 +186,21 @@ export default function HistoryPage() {
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg">
                 <LogIn size={28} className="text-white" />
               </div>
-              <h2 className="text-xl font-bold text-white">로그인이 필요합니다</h2>
-              <p className="text-sm text-white/40">히스토리를 보려면 로그인해 주세요.</p>
+               <h2 className="text-xl font-bold text-white">{t('history_login_required')}</h2>
+               <p className="text-sm text-white/40">{t('history_login_desc')}</p>
               <button
                 onClick={() => navbarRef.current?.openLoginModal()}
                 className="btn-primary inline-flex items-center gap-2 px-6 py-3"
               >
-                <LogIn size={16} />로그인 하기<ArrowRight size={15} />
+                 <LogIn size={16} />{t('history_login')}<ArrowRight size={15} />
               </button>
             </section>
           ) : items.length === 0 ? (
             <div className="text-center py-20 space-y-3">
               <Film size={36} className="text-white/10 mx-auto" />
-              <p className="text-white/30 text-sm">아직 생성된 대본이 없습니다.</p>
+               <p className="text-white/30 text-sm">{t('history_empty')}</p>
               <a href="/generator" className="inline-flex items-center gap-1.5 text-violet-400 text-sm hover:text-violet-300 transition-colors">
-                대본 생성하러 가기 <ArrowRight size={14} />
+                 {t('history_create')} <ArrowRight size={14} />
               </a>
             </div>
           ) : (
@@ -220,18 +230,14 @@ export default function HistoryPage() {
                           <span className="truncate">{item.target_product_name}</span>
                         </div>
                       )}
-                      <p className="mb-2 text-xs text-white/40">영상 목적: {typeof item.generated_json === 'object' && item.generated_json && 'video_goal' in item.generated_json ? String(item.generated_json.video_goal || '미지정') : '기존 제작 결과'}</p>
+                       <p className="mb-2 text-xs text-white/40">{t('history_video_goal')}: {typeof item.generated_json === 'object' && item.generated_json && 'video_goal' in item.generated_json ? String(item.generated_json.video_goal || t('history_unspecified')) : t('history_previous_result')}</p>
 
                       {/* URL */}
-                      <a
-                        href={item.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] text-cyan-400/70 hover:text-cyan-300 transition-colors truncate max-w-full"
-                      >
-                        <ExternalLink size={10} />
-                        <span className="truncate">{item.source_url}</span>
-                      </a>
+                      {item.source_url?.trim() ? (
+                        <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-cyan-400/70 hover:text-cyan-300 transition-colors truncate max-w-full">
+                          <ExternalLink size={10} /><span className="truncate">{item.source_url}</span>
+                        </a>
+                      ) : <p className="text-[11px] text-cyan-300/70">{topicLabel()}</p>}
 
                       {/* 메타 */}
                       <div className="flex items-center gap-4 mt-3 text-xs text-white/30">
@@ -240,21 +246,21 @@ export default function HistoryPage() {
                         </span>
                         <span className="flex items-center gap-1">
                           <Zap size={11} className="text-violet-400" />
-                          <span className="text-violet-300">{item.credits_used}</span> 크레딧 소모
+                           <span className="text-violet-300">{item.credits_used}</span> {t('history_credits')}
                         </span>
                       </div>
                     </div>
 
                     {/* 액션 */}
                     <div className="flex flex-col gap-2 shrink-0">
-                      <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} disabled={!normalizedResult} className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/20 bg-cyan-400/8 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-40"><Eye size={12} />{expandedId === item.id ? '결과 닫기' : '전체 결과 보기'}</button>
-                      <button onClick={() => normalizedResult && void navigator.clipboard.writeText(promptsFor(normalizedResult))} disabled={!normalizedResult} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"><Copy size={12} />전체 프롬프트 복사</button>
-                      <button onClick={() => downloadJson(item)} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white"><Download size={12} />원본 JSON 다운로드</button>
+                       <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} disabled={!normalizedResult} className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/20 bg-cyan-400/8 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-40"><Eye size={12} />{expandedId === item.id ? t('history_collapse') : t('history_view_result')}</button>
+                       <button onClick={() => normalizedResult && void navigator.clipboard.writeText(promptsFor(normalizedResult))} disabled={!normalizedResult} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"><Copy size={12} />{t('history_copy_prompt')}</button>
+                       <button onClick={() => downloadJson(item)} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white"><Download size={12} />{t('history_download_json')}</button>
                       <a
-                        href={`/generator?url=${encodeURIComponent(item.source_url)}`}
+                        href={item.source_url?.trim() ? `/generator?url=${encodeURIComponent(item.source_url)}` : `/generator?topic=${encodeURIComponent(item.target_product_name)}`}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-400/8 px-3 py-2 text-xs font-semibold text-violet-300 hover:bg-violet-400/15 transition-colors"
                       >
-                        <Film size={12} />다시 생성
+                         <Film size={12} />{t('history_regenerate')}
                       </a>
                       <button
                         onClick={() => deleteItem(item.id)}
@@ -264,11 +270,11 @@ export default function HistoryPage() {
                         {deletingId === item.id
                           ? <Loader2 size={12} className="animate-spin" />
                           : <Trash2 size={12} />}
-                        삭제
+                         {t('history_delete')}
                       </button>
                     </div>
                   </div>
-                  {!normalizedResult && <p className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">이전 형식의 결과라 화면으로 표시할 수 없습니다. 원본 JSON은 다운로드할 수 있습니다.</p>}
+                   {!normalizedResult && <p className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">{t('history_old_format')}</p>}
                   {expandedId === item.id && normalizedResult && <div className="mt-5 border-t border-white/8 pt-5"><GenerationResult result={normalizedResult} showCreditSummary={false} /></div>}
                 </div>
                 );
@@ -282,7 +288,7 @@ export default function HistoryPage() {
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all disabled:opacity-40"
                   >
                     {loadingMore ? <Loader2 size={14} className="animate-spin" /> : <ChevronDown size={14} />}
-                    더 보기 ({total - items.length}개 남음)
+                     {t('history_load_more').replace('{count}', String(total - items.length))}
                   </button>
                 </div>
               )}

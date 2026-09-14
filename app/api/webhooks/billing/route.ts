@@ -1,174 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/server';
-import { USD_TO_KRW_RATE } from '@/lib/credits';
+import { constructStripeEvent, hasStripeConfiguration } from '@/services/billing/stripe';
+import { confirmTossPayment, hasTossConfiguration } from '@/services/billing/toss';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-// ─── [SEALED] Feature Gate: 결제 비활성화 시 즉시 반환 ──────────────────────
-// Phase 1 (현재): NEXT_PUBLIC_ENABLE_PAYMENT=false → Webhook 진입 차단
-// Phase 3 (사업자 등록 후): NEXT_PUBLIC_ENABLE_PAYMENT=true → 즉시 활성화
-
-// ─── Stripe 인스턴스 (서버 전용) ─────────────────────────────
-
-function getStripeClient(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error('STRIPE_SECRET_KEY is not configured');
-  // apiVersion은 Stripe SDK 기본값 사용
-  return new Stripe(key);
+function disabled(): NextResponse | null {
+  if (process.env.NEXT_PUBLIC_ENABLE_PAYMENT !== 'true') {
+    return NextResponse.json({ error: 'Payments are disabled.', code: 'PAYMENT_FEATURE_DISABLED' }, { status: 403 });
+  }
+  return null;
 }
 
-// ─── 공통: 크레딧 충전 RPC 호출 ─────────────────────────────
-
-async function addCredits({
-  userId,
-  credits,
-  provider,
-  txId,
-  amountUsd,
-  amountKrw,
-}: {
-  userId: string;
-  credits: number;
-  provider: 'stripe' | 'toss';
-  txId: string;
-  amountUsd: number;
-  amountKrw: number;
-}) {
-  const supabase = createAdminClient();
-  const { error } = await supabase.rpc('add_user_credits', {
-    p_user_id: userId,
-    p_credits: credits,
+async function complete(orderId: string, provider: 'stripe' | 'toss', paymentKey: string, amountKrw: number) {
+  const { data, error } = await createAdminClient().rpc('complete_verified_payment_order', {
+    p_order_id: orderId,
     p_provider: provider,
-    p_tx_id: txId,
-    p_amount_usd: amountUsd,
+    p_payment_key: paymentKey,
     p_amount_krw: amountKrw,
+    p_amount_usd: amountKrw / 1380,
   });
+  if (error) throw new Error(error.message);
+  return data as Array<{ already_paid: boolean; credits_remaining: number }> | null;
+}
 
-  if (error) {
-    console.error(`[billing webhook] add_user_credits RPC failed (${provider}):`, error.message);
-    throw new Error('RPC_FAILED');
+async function stripeWebhook(req: NextRequest): Promise<NextResponse> {
+  if (!hasStripeConfiguration()) return NextResponse.json({ error: 'Stripe is not configured.' }, { status: 503 });
+  const signature = req.headers.get('stripe-signature');
+  if (!signature) return NextResponse.json({ error: 'Missing Stripe signature' }, { status: 400 });
+
+  let event: Stripe.Event;
+  try { event = constructStripeEvent(await req.text(), signature); }
+  catch { return NextResponse.json({ error: 'Invalid Stripe signature' }, { status: 400 }); }
+  if (event.type !== 'checkout.session.completed') return NextResponse.json({ received: true });
+
+  const session = event.data.object as Stripe.Checkout.Session;
+  const orderId = session.metadata?.orderId;
+  if (!orderId || session.payment_status !== 'paid' || !Number.isInteger(session.amount_total) || session.amount_total! <= 0) {
+    return NextResponse.json({ error: 'Unverifiable Stripe checkout session' }, { status: 400 });
+  }
+  const admin = createAdminClient();
+  const { data: order, error } = await admin.from('payment_orders')
+    .select('order_id, plan_id, provider, expected_amount_krw, payment_key, status').eq('order_id', orderId).maybeSingle();
+  if (error) return NextResponse.json({ error: 'Payment order lookup failed' }, { status: 500 });
+  if (!order || order.provider !== 'stripe' || order.plan_id !== session.metadata?.planId || Number(order.expected_amount_krw) !== session.amount_total) {
+    return NextResponse.json({ error: 'Payment order does not match checkout session' }, { status: 400 });
+  }
+  if (order.status === 'paid') return NextResponse.json({ received: true, duplicate: true });
+  try {
+    await complete(orderId, 'stripe', session.id, session.amount_total);
+    return NextResponse.json({ received: true });
+  } catch (completionError) {
+    console.error('[billing] Stripe completion failed', completionError instanceof Error ? completionError.message : 'unknown');
+    return NextResponse.json({ error: 'Credit update failed' }, { status: 500 });
   }
 }
 
-// ─── POST /api/webhooks/billing ───────────────────────────────
+async function tossWebhook(req: NextRequest): Promise<NextResponse> {
+  if (!hasTossConfiguration()) return NextResponse.json({ error: 'Toss is not configured.' }, { status: 503 });
+  let body: { orderId?: unknown; paymentKey?: unknown; data?: { orderId?: unknown; paymentKey?: unknown } };
+  try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }
+  const orderId = typeof body.orderId === 'string' ? body.orderId : typeof body.data?.orderId === 'string' ? body.data.orderId : null;
+  const paymentKey = typeof body.paymentKey === 'string' ? body.paymentKey : typeof body.data?.paymentKey === 'string' ? body.data.paymentKey : null;
+  if (!orderId || !paymentKey) return NextResponse.json({ error: 'Missing payment identifiers' }, { status: 400 });
+
+  const admin = createAdminClient();
+  const { data: order, error } = await admin.from('payment_orders')
+    .select('order_id, provider, expected_amount_krw, payment_key, status').eq('order_id', orderId).maybeSingle();
+  if (error) return NextResponse.json({ error: 'Payment order lookup failed' }, { status: 500 });
+  if (!order || order.provider !== 'toss') return NextResponse.json({ error: 'Unknown payment order' }, { status: 404 });
+  if (order.payment_key && order.payment_key !== paymentKey) return NextResponse.json({ error: 'Payment key mismatch' }, { status: 400 });
+  if (order.status === 'paid') return NextResponse.json({ received: true, duplicate: true });
+
+  let payment;
+  try { payment = await confirmTossPayment({ paymentKey, orderId, expectedAmountKrw: Number(order.expected_amount_krw) }); }
+  catch { return NextResponse.json({ error: 'Toss payment verification failed' }, { status: 502 }); }
+  if (payment.status !== 'DONE' || payment.orderId !== orderId || payment.paymentKey !== paymentKey || payment.totalAmount !== Number(order.expected_amount_krw)) {
+    return NextResponse.json({ error: 'Toss payment verification mismatch' }, { status: 400 });
+  }
+  try {
+    await complete(orderId, 'toss', paymentKey, payment.totalAmount);
+    return NextResponse.json({ received: true });
+  } catch (completionError) {
+    console.error('[billing] Toss completion failed', completionError instanceof Error ? completionError.message : 'unknown');
+    return NextResponse.json({ error: 'Credit update failed' }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // [SEALED] Feature Gate — 결제 비활성화 시 Webhook 진입 차단
-  if (process.env.NEXT_PUBLIC_ENABLE_PAYMENT !== 'true') {
-    return NextResponse.json(
-      { error: '결제 기능이 비활성화 상태입니다.', code: 'PAYMENT_FEATURE_DISABLED' },
-      { status: 403 },
-    );
-  }
-
-  const provider = req.headers.get('x-payment-provider') ?? 'stripe';
-
-  // ── Stripe 처리 ───────────────────────────────────────────
-
-  if (provider === 'stripe') {
-    const stripe = getStripeClient();
-    const sig = req.headers.get('stripe-signature');
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!sig || !webhookSecret) {
-      return NextResponse.json({ error: 'Missing stripe signature or secret' }, { status: 400 });
-    }
-
-    const rawBody = await req.text();
-    let event: Stripe.Event;
-
-    try {
-      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[billing webhook] Stripe signature verification failed:', msg);
-      return NextResponse.json({ error: `Stripe Webhook Error: ${msg}` }, { status: 400 });
-    }
-
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.userId;
-      const creditsToAdd = parseInt(session.metadata?.credits ?? '0', 10);
-      const amountPaidUsd = session.amount_total ? session.amount_total / 100 : 0;
-
-      if (!userId || creditsToAdd <= 0) {
-        console.warn('[billing webhook] Stripe: missing userId or credits in metadata');
-        return NextResponse.json({ received: true }, { status: 200 });
-      }
-
-      try {
-        await addCredits({
-          userId,
-          credits: creditsToAdd,
-          provider: 'stripe',
-          txId: session.id,
-          amountUsd: amountPaidUsd,
-          amountKrw: Math.round(amountPaidUsd * USD_TO_KRW_RATE),
-        });
-      } catch {
-        return NextResponse.json({ error: 'Credit update failed' }, { status: 500 });
-      }
-    }
-
-    return NextResponse.json({ received: true }, { status: 200 });
-  }
-
-  // ── 토스페이먼츠 처리 ─────────────────────────────────────
-
-  if (provider === 'toss') {
-    let payload: {
-      status?: string;
-      orderId?: string;
-      secret?: string;
-      totalAmount?: number;
-      metadata?: { userId?: string; credits?: string };
-    };
-
-    try {
-      payload = await req.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    const { status, orderId, totalAmount, metadata } = payload;
-
-    // 토스 웹훅 시크릿 검증
-    const tossSecret = process.env.TOSS_PAYMENTS_SECRET_KEY;
-    if (!tossSecret) {
-      return NextResponse.json({ error: 'Toss secret not configured' }, { status: 500 });
-    }
-
-    if (status !== 'DONE') {
-      // DONE이 아닌 이벤트는 무시 (취소, 실패 등)
-      return NextResponse.json({ received: true }, { status: 200 });
-    }
-
-    const userId = metadata?.userId;
-    const creditsToAdd = parseInt(metadata?.credits ?? '0', 10);
-    const amountKrw = totalAmount ?? 0;
-
-    if (!userId || creditsToAdd <= 0 || !orderId) {
-      console.warn('[billing webhook] Toss: missing required fields in payload');
-      return NextResponse.json({ received: true }, { status: 200 });
-    }
-
-    try {
-      await addCredits({
-        userId,
-        credits: creditsToAdd,
-        provider: 'toss',
-        txId: orderId,
-        amountUsd: amountKrw / USD_TO_KRW_RATE,
-        amountKrw,
-      });
-    } catch {
-      return NextResponse.json({ error: 'Credit update failed' }, { status: 500 });
-    }
-
-    return NextResponse.json({ received: true }, { status: 200 });
-  }
-
-  return NextResponse.json({ error: 'Unknown payment provider' }, { status: 400 });
+  const gate = disabled();
+  if (gate) return gate;
+  return req.headers.has('stripe-signature') ? stripeWebhook(req) : tossWebhook(req);
 }

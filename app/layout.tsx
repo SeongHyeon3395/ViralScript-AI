@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ToastHost from "./components/ToastHost";
 import { AuthProvider } from "./components/AuthProvider";
+import { LanguageProvider } from "./components/LanguageProvider";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://viralscript-ai-inky.vercel.app";
 
@@ -47,13 +48,13 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="ko"
+      lang="en"
       className="h-full antialiased"
     >
       <body className="min-h-screen flex flex-col mesh-bg">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </LanguageProvider>
         <ToastHost />
       </body>
     </html>
