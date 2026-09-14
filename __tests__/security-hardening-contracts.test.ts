@@ -30,6 +30,28 @@ describe('topic-only generation contracts', () => {
   });
 });
 
+describe('generator localization', () => {
+  it('renders the generation form and selected options from all four language dictionaries', () => {
+    const page = read('app/generator/page.tsx');
+    const translations = read('app/components/LanguageSwitcher.tsx');
+    for (const key of ['gen_analysis_heading', 'gen_content_goal_heading', 'gen_concept_heading', 'gen_mood', 'gen_cast', 'gen_video_length', 'gen_language', 'gen_production_method', 'gen_summary_cost']) {
+      expect(page).toContain(`t('${key}')`);
+    }
+    expect(page).toContain('localizedOption(option)');
+    for (const language of ['ko', 'en', 'zh', 'ja']) {
+      const start = translations.indexOf(`  ${language}: {`);
+      const next = Math.min(...['ko', 'en', 'zh', 'ja'].map(code => {
+        const index = translations.indexOf(`\n  ${code}: {`, start + 1);
+        return index < 0 ? Number.POSITIVE_INFINITY : index;
+      }));
+      const dictionary = translations.slice(start, next);
+      for (const key of ['gen_analysis_heading', 'gen_goal_inform', 'gen_concept_problem', 'gen_method_ai', 'gen_summary_cost']) {
+        expect(dictionary, `${language} translation missing ${key}`).toContain(`${key}:`);
+      }
+    }
+  });
+});
+
 describe('payment and ad verification contracts', () => {
   it('accepts only planId at billing start and derives the order server-side', () => {
     const route = read('app/api/v1/billing/route.ts');

@@ -43,13 +43,25 @@ const DURATIONS = ['10s', '15s', '30s', '45s', '60s'];
 const LANGUAGES = ['Korean', 'English', 'Japanese'];
 const PRODUCTION_METHODS = ['Live action', 'AI video generation', 'Existing video editing', 'Faceless content', 'Screen recording', 'Photo or image based'];
 const AI_VIDEO_TOOLS = ['Google Veo', 'Runway', 'Kling', 'Adobe Firefly', 'Generic prompt'];
+const ANALYSIS_POINT_KEYS = ['gen_analysis_hook', 'gen_analysis_pacing', 'gen_analysis_narration', 'gen_analysis_caption', 'gen_analysis_emotion', 'gen_analysis_product', 'gen_analysis_cta'];
+const OPTION_TRANSLATION_KEYS: Record<string, string> = {
+  Inform: 'gen_goal_inform', 'Entertain and relate': 'gen_goal_entertain', 'Share an experience': 'gen_goal_experience', 'Tell a story': 'gen_goal_story', 'Join a challenge': 'gen_goal_challenge', 'Grow followers': 'gen_goal_followers', 'Build community': 'gen_goal_community',
+  'Problem-solving': 'gen_concept_problem', Review: 'gen_concept_review', 'Before and after': 'gen_concept_before_after', 'How-to': 'gen_concept_howto', 'Emotional story': 'gen_concept_emotional', 'Comedy or meme': 'gen_concept_comedy', Vlog: 'gen_concept_vlog', 'Information summary': 'gen_concept_summary', 'Faceless content': 'gen_concept_faceless',
+  Korean: 'gen_language_ko', English: 'gen_language_en', Japanese: 'gen_language_ja', 'On-camera talent': 'gen_cast_on_camera', Faceless: 'gen_cast_faceless',
+  'Live action': 'gen_method_live', 'AI video generation': 'gen_method_ai', 'Existing video editing': 'gen_method_existing', 'Screen recording': 'gen_method_screen', 'Photo or image based': 'gen_method_photo', 'Google Veo': 'gen_tool_veo', Runway: 'gen_tool_runway', Kling: 'gen_tool_kling', 'Adobe Firefly': 'gen_tool_firefly', 'Generic prompt': 'gen_tool_generic',
+};
+
+function localizedOption(option: string): string {
+  const key = OPTION_TRANSLATION_KEYS[option];
+  return key ? t(key) : option;
+}
 
 function ChoiceChips({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((option) => (
         <button key={option} type="button" onClick={() => onChange(option)} className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all ${value === option ? 'border-violet-400/70 bg-violet-500/20 text-violet-100' : 'border-white/10 bg-white/5 text-white/45 hover:border-white/25 hover:text-white/75'}`}>
-          {option}
+          {localizedOption(option)}
         </button>
       ))}
     </div>
@@ -167,7 +179,7 @@ export default function GeneratorPage() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [progressLabel, setProgressLabel] = useState('Preparing...');
+  const [progressLabel, setProgressLabel] = useState(t('gen_preparing'));
   const [result, setResult] = useState<GenerationOutput | null>(null);
   const [, setCached] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -222,7 +234,7 @@ export default function GeneratorPage() {
       const supabase = (await import('@/lib/supabase/client')).getSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { setError(t('gen_login_required')); setLoading(false); return; }
-      setProgress(22); setProgressLabel('Analyzing video structure...');
+      setProgress(22); setProgressLabel(t('gen_analyzing_structure'));
       const res = await fetch('/api/v1/analyze', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
@@ -254,7 +266,7 @@ export default function GeneratorPage() {
         setError(friendlyMsg);
         return;
       }
-      setProgress(100); setProgressLabel('Video plan complete');
+      setProgress(100); setProgressLabel(t('gen_analyzing_done'));
       setResult(data.data!); setCached(data.cached ?? false);
       if (typeof data.creditsRemaining === 'number') applyCreditsFromServer(data.creditsRemaining);
       clearUserCreditsCache();
@@ -309,19 +321,19 @@ export default function GeneratorPage() {
                 <div className="flex gap-3 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-3 fade-in-up">
                   {trendReference.thumbnail && <NextImage src={trendReference.thumbnail} alt="Reference video thumbnail" width={80} height={56} unoptimized className="h-14 w-20 shrink-0 rounded-lg object-cover" />}
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">Reference video</p>
-                    <p className="mt-1 truncate text-xs font-semibold text-white/80">{trendReference.title || 'Trend reference video'}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">{t('gen_reference_video')}</p>
+                    <p className="mt-1 truncate text-xs font-semibold text-white/80">{trendReference.title || t('gen_reference_trend')}</p>
                     <p className="mt-1 text-[11px] text-white/40">{[sourcePlatform, trendReference.region, trendReference.trendId ? `Trend #${trendReference.trendId}` : null].filter(Boolean).join(' · ')}</p>
-                    {url && <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-300 hover:text-cyan-100"><Link2 size={11} />View source video</a>}
+                    {url && <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-300 hover:text-cyan-100"><Link2 size={11} />{t('gen_view_source')}</a>}
                   </div>
                 </div>
               )}
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')} <span className="text-[10px] font-normal text-white/35">(Optional)</span>{sourcePlatform && <span className="text-[10px] font-normal text-cyan-300/70">{sourcePlatform}</span>}</label>
-                <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder="Optional: YouTube Shorts or TikTok link" className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')} <span className="text-[10px] font-normal text-white/35">({t('gen_optional_label')})</span>{sourcePlatform && <span className="text-[10px] font-normal text-cyan-300/70">{sourcePlatform}</span>}</label>
+                <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder={t('gen_url_placeholder_localized')} className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
                 {urlError && <p className="flex items-center gap-1.5 text-xs text-red-400 fade-in-up"><span>⚠️</span> {urlError}</p>}
               </div>
-              <div className="rounded-xl border border-white/8 bg-white/[0.025] p-4"><p className="mb-3 text-xs font-bold text-white/65">Viral structure to analyze</p><div className="flex flex-wrap gap-2">{ANALYSIS_POINTS.map((point) => <span key={point} className="rounded-full border border-cyan-400/15 bg-cyan-400/5 px-2.5 py-1 text-[11px] text-cyan-100/75">{point}</span>)}</div></div>
+              <div className="rounded-xl border border-white/8 bg-white/[0.025] p-4"><p className="mb-3 text-xs font-bold text-white/65">{t('gen_analysis_heading')}</p><div className="flex flex-wrap gap-2">{ANALYSIS_POINTS.map((point, index) => <span key={point} className="rounded-full border border-cyan-400/15 bg-cyan-400/5 px-2.5 py-1 text-[11px] text-cyan-100/75">{t(ANALYSIS_POINT_KEYS[index])}</span>)}</div></div>
             </div>
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
@@ -331,10 +343,10 @@ export default function GeneratorPage() {
                 <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder={t('gen_topic_required')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
                 <p className="text-[11px] leading-relaxed text-white/40">{t('gen_topic_hint')}</p>
               </div>
-              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">Content goal</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
-              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">Concept</label><ChoiceChips options={CONCEPTS} value={concept} onChange={setConcept} /></div>
-              <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">Desired mood</label><input value={mood} onChange={e => setMood(e.target.value)} placeholder="e.g. bright, trustworthy, energetic" className="w-full rounded-xl px-3 py-2.5 text-xs input-dark" /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Clapperboard size={13} className="text-pink-400" />On-camera talent</label><ChoiceChips options={['On-camera talent', 'Faceless']} value={cast} onChange={setCast} /></div></div>
-              <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">Video length</label><ChoiceChips options={DURATIONS} value={duration} onChange={setDuration} /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Languages size={13} className="text-emerald-400" />Language</label><ChoiceChips options={LANGUAGES} value={language} onChange={setLanguage} /></div></div>
+              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_content_goal_heading')}</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
+              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_concept_heading')}</label><ChoiceChips options={CONCEPTS} value={concept} onChange={setConcept} /></div>
+              <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_mood')}</label><input value={mood} onChange={e => setMood(e.target.value)} placeholder={t('gen_mood_placeholder')} className="w-full rounded-xl px-3 py-2.5 text-xs input-dark" /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Clapperboard size={13} className="text-pink-400" />{t('gen_cast')}</label><ChoiceChips options={['On-camera talent', 'Faceless']} value={cast} onChange={setCast} /></div></div>
+              <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_video_length')}</label><ChoiceChips options={DURATIONS} value={duration} onChange={setDuration} /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Languages size={13} className="text-emerald-400" />{t('gen_language')}</label><ChoiceChips options={LANGUAGES} value={language} onChange={setLanguage} /></div></div>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><SlidersHorizontal size={14} className="text-amber-400" />{t('gen_custom_prompt_label')} <span className="text-xs text-white/25 font-normal">({t('gen_optional')})</span></label>
                 <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder={t('gen_custom_prompt_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
@@ -343,10 +355,10 @@ export default function GeneratorPage() {
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black">3</span><div><h3 className="text-sm font-bold text-white">{t('gen_method_heading')}</h3><p className="text-xs text-white/40">{t('gen_method_desc')}</p></div></div>
-              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">Production method</label><ChoiceChips options={PRODUCTION_METHODS} value={productionMethod} onChange={setProductionMethod} /></div>
+              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_production_method')}</label><ChoiceChips options={PRODUCTION_METHODS} value={productionMethod} onChange={setProductionMethod} /></div>
               {productionMethod === 'AI video generation' && (
                 <div className="space-y-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.07] p-4 fade-in-up">
-                  <div><p className="text-xs font-bold text-violet-100">AI video tool</p><p className="mt-1 text-[11px] leading-relaxed text-white/45">We do not call a video generation API. We provide copy-ready prompts for your selected tool.</p></div>
+                  <div><p className="text-xs font-bold text-violet-100">{t('gen_ai_tool')}</p><p className="mt-1 text-[11px] leading-relaxed text-white/45">{t('gen_ai_tool_notice')}</p></div>
                   <ChoiceChips options={AI_VIDEO_TOOLS} value={aiVideoTool} onChange={setAiVideoTool} />
                 </div>
               )}
@@ -357,8 +369,8 @@ export default function GeneratorPage() {
               <div className="grid gap-2 rounded-xl border border-white/8 bg-white/[0.025] p-4 sm:grid-cols-2">
                 {[
                   [t('gen_reference_heading'), trendReference?.title || url || t('gen_reference_none')], [t('gen_topic_label'), targetProduct || t('gen_input_required')],
-                  ['Content goal', purpose], ['Video length', duration], ['Production method', productionMethod], ['AI tool', productionMethod === 'AI video generation' ? aiVideoTool : 'Not applicable'],
-                  ['Estimated scenes', `${expectedScenes}`], ['Generation cost', '5 credits per generation'],
+                  [t('gen_summary_goal'), localizedOption(purpose)], [t('gen_summary_duration'), duration], [t('gen_summary_method'), localizedOption(productionMethod)], [t('gen_summary_ai_tool'), productionMethod === 'AI video generation' ? localizedOption(aiVideoTool) : t('gen_not_applicable')],
+                  [t('gen_summary_scenes'), `${expectedScenes}`], [t('gen_summary_cost'), t('gen_cost_value')],
                 ].map(([label, value]) => <div key={label} className="rounded-lg bg-black/15 p-3"><p className="text-[10px] font-bold text-white/35">{label}</p><p className="mt-1 truncate text-xs text-white/75">{value}</p></div>)}
               </div>
               {credits !== undefined && credits < 5 && (
@@ -369,10 +381,10 @@ export default function GeneratorPage() {
               )}
               <button onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (credits !== undefined && credits < 5)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
                 {loading ? (
-                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />Creating video plan... {progress}%</span>
+                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />{t('gen_creating_plan')} {progress}%</span>
                 ) : (
                   <>
-                    <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />Create video plan — 5 credits<ArrowRight size={15} /></span>
+                    <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />{t('gen_create_plan')} — {t('gen_create_plan_cost')}<ArrowRight size={15} /></span>
                     <span className="inline-flex min-w-[180px] items-center justify-center gap-1 text-xs text-white/60 font-normal tabular-nums"><Zap size={11} className="text-violet-300" />{t('gen_credits_balance').replace('{credits}', credits === undefined ? '—' : String(credits))} <span className="text-violet-200 font-semibold">{t('gen_credits_cost_range')}</span></span>
                   </>
                 )}
@@ -385,10 +397,10 @@ export default function GeneratorPage() {
                     <span className="text-cyan-200">{progressLabel}</span>
                     <span className="font-mono tabular-nums text-white/60">{progress}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10" aria-label={`Script generation progress ${progress}%`}>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10" aria-label={t('gen_progress_accessible').replace('{progress}', String(progress))}>
                     <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500 transition-[width] duration-500" style={{ width: `${progress}%` }} />
                   </div>
-                  <p className="text-[11px] text-white/35">We check the video, analyze its structure, then generate your script.</p>
+                  <p className="text-[11px] text-white/35">{t('gen_progress_message')}</p>
                 </div>
               )}
 
