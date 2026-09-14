@@ -21,6 +21,7 @@ import {
   Send,
   RefreshCw,
   Clock,
+  ChevronDown,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
@@ -39,6 +40,35 @@ function flagEmoji(countryCode: string): string {
   return countryCode.toUpperCase().replace(/[A-Z]/g, (letter) => String.fromCodePoint(letter.charCodeAt(0) + 127397));
 }
 
+function CountrySelect({ value, countryIso, onChange }: { value: string; countryIso: string; onChange: (dial: string, iso: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = PHONE_COUNTRIES.find(([code, dial]) => code === countryIso && dial === value) ?? PHONE_COUNTRIES[0];
+
+  return (
+    <div className="relative min-w-[190px]">
+      <button type="button" onClick={() => setOpen((current) => !current)} className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-3 text-left text-sm text-white hover:border-white/25">
+        <span className="text-lg leading-none" aria-hidden="true">{flagEmoji(selected[0])}</span>
+        <span className="truncate">{selected[0]} {selected[1]} {selected[2]}</span>
+        <ChevronDown size={14} className={`ml-auto shrink-0 text-white/50 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <button type="button" aria-label="Close country list" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
+          <div role="listbox" className="absolute left-0 top-full z-50 mt-2 max-h-64 w-[min(360px,calc(100vw-4rem))] overflow-y-auto rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-2xl">
+            {PHONE_COUNTRIES.map(([code, dial, name]) => (
+              <button key={`${code}-${dial}`} type="button" role="option" aria-selected={value === dial && countryIso === code} onClick={() => { onChange(dial, code); setOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-white/80 hover:bg-white/10">
+                <span className="text-lg leading-none" aria-hidden="true">{flagEmoji(code)}</span>
+                <span className="whitespace-nowrap">{code} {dial}</span>
+                <span className="truncate text-white/55">{name}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const VERIFY_TIMEOUT = 180; // 3분
 const RESEND_AFTER = 60; // 1분 후 재전송 활성화
 
@@ -55,6 +85,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [passwordError, setPasswordError] = useState('');
   const [name, setName] = useState('');
   const [phoneCountryCode, setPhoneCountryCode] = useState('+82');
+  const [phoneCountryIso, setPhoneCountryIso] = useState('KR');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -76,6 +107,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setPasswordError('');
     setName('');
     setPhoneCountryCode('+82');
+    setPhoneCountryIso('KR');
     setPhoneNumber('');
     setShowPassword(false);
     setMessage(null);
@@ -397,13 +429,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   </div>
 
                   <div className="flex gap-2">
-                    <select
-                      value={phoneCountryCode}
-                      onChange={(e) => setPhoneCountryCode(e.target.value)}
-                      className="px-3 py-3 rounded-xl input-dark text-base bg-zinc-900 border border-white/10 text-white min-w-[120px]"
-                      >
-                      {PHONE_COUNTRIES.map(([code, dial, name]) => <option key={`${code}-${dial}`} value={dial}>{flagEmoji(code)} {code} {dial} {name}</option>)}
-                    </select>
+                    <CountrySelect value={phoneCountryCode} countryIso={phoneCountryIso} onChange={(dial, iso) => { setPhoneCountryCode(dial); setPhoneCountryIso(iso); }} />
 
                     <div className="relative flex-1">
                       <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
@@ -457,13 +483,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       </div>
 
                       <div className="flex gap-2">
-                        <select
-                          value={phoneCountryCode}
-                          onChange={(e) => setPhoneCountryCode(e.target.value)}
-                          className="px-3 py-3 rounded-xl input-dark text-base bg-zinc-900 border border-white/10 text-white min-w-[120px]"
-                        >
-                          {PHONE_COUNTRIES.map(([code, dial, name]) => <option key={`${code}-${dial}`} value={dial}>{flagEmoji(code)} {code} {dial} {name}</option>)}
-                        </select>
+                        <CountrySelect value={phoneCountryCode} countryIso={phoneCountryIso} onChange={(dial, iso) => { setPhoneCountryCode(dial); setPhoneCountryIso(iso); }} />
 
                         <div className="relative flex-1">
                           <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
