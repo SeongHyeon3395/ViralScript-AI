@@ -28,11 +28,11 @@ import { t } from './LanguageSwitcher';
 type AuthMode = 'login' | 'signup' | 'forgot' | 'find_email';
 
 const PHONE_COUNTRIES = [
-  ['KR', '+82', '대한민국'], ['US', '+1', '미국'], ['CA', '+1', '캐나다'], ['JP', '+81', '일본'], ['CN', '+86', '중국'], ['TW', '+886', '대만'], ['HK', '+852', '홍콩'],
-  ['GB', '+44', '영국'], ['DE', '+49', '독일'], ['FR', '+33', '프랑스'], ['IT', '+39', '이탈리아'], ['ES', '+34', '스페인'], ['PT', '+351', '포르투갈'], ['NL', '+31', '네덜란드'], ['BE', '+32', '벨기에'], ['CH', '+41', '스위스'], ['AT', '+43', '오스트리아'], ['SE', '+46', '스웨덴'], ['NO', '+47', '노르웨이'], ['DK', '+45', '덴마크'], ['FI', '+358', '핀란드'], ['IE', '+353', '아일랜드'], ['PL', '+48', '폴란드'], ['CZ', '+420', '체코'], ['HU', '+36', '헝가리'], ['RO', '+40', '루마니아'], ['GR', '+30', '그리스'], ['UA', '+380', '우크라이나'], ['RU', '+7', '러시아'],
-  ['AU', '+61', '호주'], ['NZ', '+64', '뉴질랜드'], ['IN', '+91', '인도'], ['SG', '+65', '싱가포르'], ['MY', '+60', '말레이시아'], ['TH', '+66', '태국'], ['VN', '+84', '베트남'], ['PH', '+63', '필리핀'], ['ID', '+62', '인도네시아'], ['KH', '+855', '캄보디아'], ['LA', '+856', '라오스'], ['MM', '+95', '미얀마'], ['BD', '+880', '방글라데시'], ['PK', '+92', '파키스탄'], ['LK', '+94', '스리랑카'], ['NP', '+977', '네팔'], ['MN', '+976', '몽골'],
-  ['AE', '+971', '아랍에미리트'], ['SA', '+966', '사우디아라비아'], ['IL', '+972', '이스라엘'], ['TR', '+90', '튀르키예'], ['IR', '+98', '이란'], ['IQ', '+964', '이라크'], ['QA', '+974', '카타르'], ['KW', '+965', '쿠웨이트'], ['BH', '+973', '바레인'], ['JO', '+962', '요르단'], ['EG', '+20', '이집트'], ['ZA', '+27', '남아프리카공화국'], ['NG', '+234', '나이지리아'], ['KE', '+254', '케냐'], ['MA', '+212', '모로코'],
-  ['BR', '+55', '브라질'], ['MX', '+52', '멕시코'], ['AR', '+54', '아르헨티나'], ['CL', '+56', '칠레'], ['CO', '+57', '콜롬비아'], ['PE', '+51', '페루'], ['VE', '+58', '베네수엘라'], ['CR', '+506', '코스타리카'], ['PA', '+507', '파나마'], ['DO', '+1', '도미니카공화국'], ['JM', '+1', '자메이카'],
+  ['KR', '+82', 'South Korea'], ['US', '+1', 'United States'], ['CA', '+1', 'Canada'], ['JP', '+81', 'Japan'], ['CN', '+86', 'China'], ['TW', '+886', 'Taiwan'], ['HK', '+852', 'Hong Kong'],
+  ['GB', '+44', 'United Kingdom'], ['DE', '+49', 'Germany'], ['FR', '+33', 'France'], ['IT', '+39', 'Italy'], ['ES', '+34', 'Spain'], ['PT', '+351', 'Portugal'], ['NL', '+31', 'Netherlands'], ['BE', '+32', 'Belgium'], ['CH', '+41', 'Switzerland'], ['AT', '+43', 'Austria'], ['SE', '+46', 'Sweden'], ['NO', '+47', 'Norway'], ['DK', '+45', 'Denmark'], ['FI', '+358', 'Finland'], ['IE', '+353', 'Ireland'], ['PL', '+48', 'Poland'], ['CZ', '+420', 'Czech Republic'], ['HU', '+36', 'Hungary'], ['RO', '+40', 'Romania'], ['GR', '+30', 'Greece'], ['UA', '+380', 'Ukraine'], ['RU', '+7', 'Russia'],
+  ['AU', '+61', 'Australia'], ['NZ', '+64', 'New Zealand'], ['IN', '+91', 'India'], ['SG', '+65', 'Singapore'], ['MY', '+60', 'Malaysia'], ['TH', '+66', 'Thailand'], ['VN', '+84', 'Vietnam'], ['PH', '+63', 'Philippines'], ['ID', '+62', 'Indonesia'], ['KH', '+855', 'Cambodia'], ['LA', '+856', 'Laos'], ['MM', '+95', 'Myanmar'], ['BD', '+880', 'Bangladesh'], ['PK', '+92', 'Pakistan'], ['LK', '+94', 'Sri Lanka'], ['NP', '+977', 'Nepal'], ['MN', '+976', 'Mongolia'],
+  ['AE', '+971', 'United Arab Emirates'], ['SA', '+966', 'Saudi Arabia'], ['IL', '+972', 'Israel'], ['TR', '+90', 'Turkey'], ['IR', '+98', 'Iran'], ['IQ', '+964', 'Iraq'], ['QA', '+974', 'Qatar'], ['KW', '+965', 'Kuwait'], ['BH', '+973', 'Bahrain'], ['JO', '+962', 'Jordan'], ['EG', '+20', 'Egypt'], ['ZA', '+27', 'South Africa'], ['NG', '+234', 'Nigeria'], ['KE', '+254', 'Kenya'], ['MA', '+212', 'Morocco'],
+  ['BR', '+55', 'Brazil'], ['MX', '+52', 'Mexico'], ['AR', '+54', 'Argentina'], ['CL', '+56', 'Chile'], ['CO', '+57', 'Colombia'], ['PE', '+51', 'Peru'], ['VE', '+58', 'Venezuela'], ['CR', '+506', 'Costa Rica'], ['PA', '+507', 'Panama'], ['DO', '+1', 'Dominican Republic'], ['JM', '+1', 'Jamaica'],
 ] as const;
 
 function flagEmoji(countryCode: string): string {
@@ -402,7 +402,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       onChange={(e) => setPhoneCountryCode(e.target.value)}
                       className="px-3 py-3 rounded-xl input-dark text-base bg-zinc-900 border border-white/10 text-white min-w-[120px]"
                       >
-                      {PHONE_COUNTRIES.map(([code, dial, name]) => <option key={`${code}-${dial}`} value={dial}>{flagEmoji(code)} {dial} ({code}) {name}</option>)}
+                      {PHONE_COUNTRIES.map(([code, dial, name]) => <option key={`${code}-${dial}`} value={dial}>{flagEmoji(code)} {code} {dial} {name}</option>)}
                     </select>
 
                     <div className="relative flex-1">
@@ -462,7 +462,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                           onChange={(e) => setPhoneCountryCode(e.target.value)}
                           className="px-3 py-3 rounded-xl input-dark text-base bg-zinc-900 border border-white/10 text-white min-w-[120px]"
                         >
-                          {PHONE_COUNTRIES.map(([code, dial, name]) => <option key={`${code}-${dial}`} value={dial}>{flagEmoji(code)} {dial} ({code}) {name}</option>)}
+                          {PHONE_COUNTRIES.map(([code, dial, name]) => <option key={`${code}-${dial}`} value={dial}>{flagEmoji(code)} {code} {dial} {name}</option>)}
                         </select>
 
                         <div className="relative flex-1">
