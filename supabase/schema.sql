@@ -182,3 +182,19 @@ CREATE INDEX IF NOT EXISTS referral_events_referrer_created_idx
 ALTER TABLE public.referral_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.referral_events FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.referral_events TO service_role;
+
+-- Authenticated support inquiries, added by migration 20260915000028.
+CREATE TABLE IF NOT EXISTS public.support_inquiries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  sender_email TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('account', 'billing', 'generation', 'bug', 'feature', 'other')),
+  message TEXT NOT NULL CHECK (char_length(message) BETWEEN 10 AND 5000),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS support_inquiries_created_at_idx ON public.support_inquiries (created_at DESC);
+CREATE INDEX IF NOT EXISTS support_inquiries_category_created_at_idx ON public.support_inquiries (category, created_at DESC);
+CREATE INDEX IF NOT EXISTS support_inquiries_user_created_at_idx ON public.support_inquiries (user_id, created_at DESC);
+ALTER TABLE public.support_inquiries ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.support_inquiries FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.support_inquiries TO service_role;

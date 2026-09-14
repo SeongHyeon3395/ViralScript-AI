@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { t } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
+import ContactSupport from './ContactSupport';
 
 export default function Footer() {
   useLanguage();
@@ -15,6 +16,7 @@ export default function Footer() {
           <div className="flex items-center gap-4 text-xs text-white/30">
             <Link href="/terms" className="hover:text-white/60 transition-colors">{t('footer_terms')}</Link>
             <Link href="/privacy" className="hover:text-white/60 transition-colors">{t('footer_privacy')}</Link>
+            <ContactSupport />
           </div>
         </div>
       </div>

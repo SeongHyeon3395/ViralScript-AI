@@ -160,3 +160,28 @@ describe('admin, language, and trend contracts', () => {
     expect(migration()).toContain('ADD COLUMN IF NOT EXISTS updated_at');
   });
 });
+
+describe('support inquiry contracts', () => {
+  it('derives inquiry sender identity from the authenticated server session', () => {
+    const route = read('app/api/v1/contact/route.ts');
+    expect(route).toContain('supabase.auth.getUser(authorization.slice(7))');
+    expect(route).toContain('user_id: authData.user.id');
+    expect(route).toContain('sender_email: authData.user.email');
+    expect(route).toContain("from('support_inquiries').insert");
+    expect(route).not.toContain('body.userId');
+    expect(route).not.toContain('body.email');
+  });
+
+  it('stores support inquiries privately and presents them in the protected Master Console', () => {
+    const sql = read('supabase/migrations/20260915000028_support_inquiries.sql');
+    const masterRoute = read('app/api/master/route.ts');
+    const consoleSource = read('app/Master/MasterConsole.tsx');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.support_inquiries');
+    expect(sql).toContain('ENABLE ROW LEVEL SECURITY');
+    expect(sql).toContain('REVOKE ALL ON TABLE public.support_inquiries FROM PUBLIC, anon, authenticated');
+    expect(masterRoute).toContain("resource === 'inquiries'");
+    expect(masterRoute).toContain("from('support_inquiries')");
+    expect(consoleSource).toContain('InquiriesPanel');
+    expect(consoleSource).toContain('inquiryCategory');
+  });
+});

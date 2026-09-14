@@ -4,11 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Activity, ArchiveRestore, BarChart3, ChevronLeft, ChevronRight, CircleDollarSign,
   Edit3, Eye, EyeOff, FileClock, Film, Loader2, LockKeyhole, LogOut, RefreshCw,
-  Search, ShieldCheck, Trash2, UserRoundCog, Users, X,
+  MessageSquare, Search, ShieldCheck, Trash2, UserRoundCog, Users, X,
 } from 'lucide-react';
 import { createMasterBrowserClient } from '@/lib/supabase/client';
 
-type Tab = 'dashboard' | 'users' | 'trends' | 'audits';
+type Tab = 'dashboard' | 'users' | 'trends' | 'inquiries' | 'audits';
 
 interface DashboardData {
   stats: {
@@ -37,7 +37,7 @@ interface AuditRow {
   before_data?: Record<string, unknown>; after_data?: Record<string, unknown>; reason: string | null; created_at: string;
 }
 
-interface PageData<T> { page: number; pageSize: number; total: number; users?: T[]; trends?: T[]; audits?: T[] }
+interface PageData<T> { page: number; pageSize: number; total: number; users?: T[]; trends?: T[]; inquiries?: T[]; audits?: T[] }
 
 function formatDate(value: string | null): string {
   if (!value) return '-';
@@ -66,8 +66,10 @@ export default function MasterConsole() {
   const [users, setUsers] = useState<PageData<UserRow>>({ page: 1, pageSize: 25, total: 0, users: [] });
   const [trends, setTrends] = useState<PageData<TrendRow>>({ page: 1, pageSize: 25, total: 0, trends: [] });
   const [audits, setAudits] = useState<PageData<AuditRow>>({ page: 1, pageSize: 25, total: 0, audits: [] });
+  const [inquiries, setInquiries] = useState<PageData<InquiryRow>>({ page: 1, pageSize: 25, total: 0, inquiries: [] });
   const [search, setSearch] = useState('');
   const [trendStatus, setTrendStatus] = useState<'active' | 'deleted'>('active');
+  const [inquiryCategory, setInquiryCategory] = useState('all');
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [editingTrend, setEditingTrend] = useState<TrendRow | null>(null);
 
@@ -96,6 +98,7 @@ export default function MasterConsole() {
       if (nextTab === 'users') setUsers(await api(`?resource=users&page=${page}&search=${encodeURIComponent(query)}`) as PageData<UserRow>);
       if (nextTab === 'trends') setTrends(await api(`?resource=trends&page=${page}&status=${trendStatus}&search=${encodeURIComponent(query)}`) as PageData<TrendRow>);
       if (nextTab === 'audits') setAudits(await api(`?resource=audits&page=${page}`) as PageData<AuditRow>);
+      if (nextTab === 'inquiries') setInquiries(await api(`?resource=inquiries&page=${page}&category=${encodeURIComponent(inquiryCategory)}&search=${encodeURIComponent(query)}`) as PageData<InquiryRow>);
       setStatus('ready');
     } catch (caught) {
       const err = caught as Error & { status?: number };
@@ -103,7 +106,7 @@ export default function MasterConsole() {
       if (err.status === 401) setStatus('login');
       if (err.status === 403) setStatus('denied');
     } finally { setLoading(false); }
-  }, [api, search, trendStatus]);
+  }, [api, search, trendStatus, inquiryCategory]);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,7 +136,7 @@ export default function MasterConsole() {
     if (status !== 'ready' || tab === 'dashboard') return;
     const timer = window.setTimeout(() => void load(tab, 1, search), 300);
     return () => window.clearTimeout(timer);
-  }, [search, trendStatus, tab, status, load]);
+  }, [search, trendStatus, inquiryCategory, tab, status, load]);
 
   async function login(event: React.FormEvent) {
     event.preventDefault(); setLoading(true); setError('');
@@ -190,6 +193,7 @@ export default function MasterConsole() {
     { id: 'dashboard' as const, label: '대시보드', icon: BarChart3 },
     { id: 'users' as const, label: '사용자 관리', icon: Users },
     { id: 'trends' as const, label: '트렌드 피드', icon: Film },
+    { id: 'inquiries' as const, label: '문의 내용', icon: MessageSquare },
     { id: 'audits' as const, label: '감사 로그', icon: FileClock },
   ];
 
@@ -213,7 +217,7 @@ export default function MasterConsole() {
         <section className="min-w-0 flex-1 p-4 sm:p-7 lg:p-10">
           <header className="mb-7 flex flex-wrap items-center justify-between gap-3">
             <div><p className="text-xs text-white/35">운영 및 보안 관리</p><h2 className="mt-1 text-2xl font-black">{nav.find((item) => item.id === tab)?.label}</h2></div>
-            <button onClick={() => void load(tab, tab === 'users' ? users.page : tab === 'trends' ? trends.page : tab === 'audits' ? audits.page : 1)} className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/5 hover:text-white"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />새로고침</button>
+            <button type="button" aria-label="새로고침" onClick={() => void load(tab, tab === 'users' ? users.page : tab === 'trends' ? trends.page : tab === 'inquiries' ? inquiries.page : tab === 'audits' ? audits.page : 1)} className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/5 hover:text-white"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />새로고침</button>
           </header>
           {error && <Message color="red" text={error} onClose={() => setError('')} />}
           {notice && <Message color="emerald" text={notice} onClose={() => setNotice('')} />}
@@ -221,6 +225,7 @@ export default function MasterConsole() {
           {tab === 'users' && <UsersPanel data={users} search={search} setSearch={setSearch} edit={setEditingUser} page={(page) => void load('users', page)} />}
           {tab === 'trends' && <TrendsPanel data={trends} search={search} setSearch={setSearch} status={trendStatus} setStatus={setTrendStatus} edit={setEditingTrend} moderate={(row, restore) => { if (window.confirm(restore ? '이 피드를 복원하시겠습니까?' : '이 피드를 피드에서 숨기시겠습니까? 언제든 복원할 수 있습니다.')) void mutate({ action: restore ? 'restore_trend' : 'delete_trend', trendId: row.id }, restore ? '피드를 복원했습니다.' : '피드를 삭제 보관함으로 이동했습니다.'); }} page={(page) => void load('trends', page)} />}
           {tab === 'audits' && <AuditsPanel data={audits} page={(page) => void load('audits', page)} />}
+          {tab === 'inquiries' && <InquiriesPanel data={inquiries} search={search} setSearch={setSearch} category={inquiryCategory} setCategory={setInquiryCategory} page={(page) => void load('inquiries', page)} />}
           {loading && <div className="pointer-events-none fixed inset-0 z-40 grid place-items-center bg-black/15"><Loader2 className="animate-spin text-violet-300" size={30} /></div>}
         </section>
       </div>
@@ -255,6 +260,23 @@ function TrendsPanel({ data, search, setSearch, status, setStatus, edit, moderat
 
 function AuditsPanel({ data, page }: { data: PageData<AuditRow>; page: (v: number) => void }) { return <div><div className="overflow-x-auto rounded-2xl border border-white/8"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-white/[.035] text-xs text-white/40"><tr><th className="p-4">작업</th><th>대상</th><th>사유</th><th>관리자 ID</th><th className="pr-4">일시</th></tr></thead><tbody className="divide-y divide-white/6">{data.audits?.map((row) => <tr key={row.id}><td className="p-4 font-bold">{actionLabel(row.action)}</td><td className="text-white/50">{row.target_type} · {row.target_id?.slice(0, 8) ?? '-'}</td><td className="max-w-xs truncate text-white/50">{row.reason ?? '-'}</td><td className="font-mono text-xs text-white/35">{row.admin_user_id?.slice(0, 8) ?? '-'}</td><td className="pr-4 text-xs text-white/40">{formatDate(row.created_at)}</td></tr>)}</tbody></table>{!data.audits?.length && <Empty />}</div><Pagination page={data.page} total={data.total} size={data.pageSize} go={page} /></div>; }
 
+const inquiryCategoryLabels: Record<InquiryRow['category'], string> = {
+  account: '계정 및 로그인', billing: '결제 및 크레딧', generation: '영상 제작', bug: '오류 신고', feature: '기능 제안', other: '기타',
+};
+
+function InquiriesPanel({ data, search, setSearch, category, setCategory, page }: { data: PageData<InquiryRow>; search: string; setSearch: (v: string) => void; category: string; setCategory: (v: string) => void; page: (v: number) => void }) {
+  return <div>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-2"><label className="text-xs text-white/45" htmlFor="inquiry-category">카테고리</label><select id="inquiry-category" value={category} onChange={(event) => setCategory(event.target.value)} className="input-dark rounded-xl px-3 py-2 text-xs"><option value="all">전체</option>{Object.entries(inquiryCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+      <SearchBar value={search} setValue={setSearch} />
+    </div>
+    <p className="mb-3 text-xs text-white/35">총 {data.total.toLocaleString()}건</p>
+    <div className="space-y-3">{data.inquiries?.map((inquiry) => <article key={inquiry.id} className="rounded-2xl border border-white/8 bg-white/[.025] p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><span className="rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-bold text-violet-200">{inquiryCategoryLabels[inquiry.category]}</span><h3 className="mt-3 font-bold">{inquiry.sender_name || '이름 없음'}</h3><a href={`mailto:${inquiry.sender_email}`} className="mt-1 inline-block text-sm text-violet-300 hover:text-violet-200">{inquiry.sender_email}</a></div><time className="text-xs text-white/40">{formatDate(inquiry.created_at)}</time></div><p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-white/75">{inquiry.message}</p></article>)}</div>
+    {!data.inquiries?.length && <div className="rounded-2xl border border-white/8"><Empty /></div>}
+    <Pagination page={data.page} total={data.total} size={data.pageSize} go={page} />
+  </div>;
+}
+
 function Pagination({ page, total, size, go }: { page: number; total: number; size: number; go: (v: number) => void }) { const pages = Math.max(1, Math.ceil(total / size)); return <div className="mt-5 flex items-center justify-center gap-3 text-xs text-white/45"><button disabled={page <= 1} onClick={() => go(page - 1)} className="rounded-lg border border-white/10 p-2 disabled:opacity-25"><ChevronLeft size={14} /></button><span>{page} / {pages}</span><button disabled={page >= pages} onClick={() => go(page + 1)} className="rounded-lg border border-white/10 p-2 disabled:opacity-25"><ChevronRight size={14} /></button></div>; }
 function Empty() { return <div className="p-10 text-center text-sm text-white/30">표시할 데이터가 없습니다.</div>; }
 
@@ -270,4 +292,9 @@ function UserEditor({ user, close, save }: { user: UserRow; close: () => void; s
 function TrendEditor({ trend, close, save }: { trend: TrendRow; close: () => void; save: (v: Record<string, unknown>) => void }) {
   const [title, setTitle] = useState(trend.title); const [subtitle, setSubtitle] = useState(trend.subtitle ?? ''); const [views, setViews] = useState(trend.views); const [likes, setLikes] = useState(trend.likes); const [tags, setTags] = useState(trend.tags ?? ''); const [reason, setReason] = useState('');
   return <Modal title="트렌드 피드 수정" close={close}><div className="space-y-4"><Field label="제목"><textarea className={`${inputClass} min-h-20`} value={title} onChange={(e) => setTitle(e.target.value)} /></Field><Field label="설명"><textarea className={`${inputClass} min-h-20`} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="조회수"><input className={inputClass} value={views} onChange={(e) => setViews(e.target.value)} /></Field><Field label="좋아요"><input className={inputClass} value={likes} onChange={(e) => setLikes(e.target.value)} /></Field></div><Field label="태그"><input className={inputClass} value={tags} onChange={(e) => setTags(e.target.value)} /></Field><Field label="수정 사유"><input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} /></Field></div><div className="mt-6 flex justify-end gap-2"><button onClick={close} className="rounded-xl px-4 py-2 text-sm text-white/50">취소</button><button onClick={() => save({ title, subtitle, views, likes, tags, reason })} className="btn-primary-compact px-5 py-2.5 text-sm">저장</button></div></Modal>;
+}
+
+interface InquiryRow {
+  id: string; user_id: string; sender_email: string; sender_name: string | null;
+  category: 'account' | 'billing' | 'generation' | 'bug' | 'feature' | 'other'; message: string; created_at: string;
 }

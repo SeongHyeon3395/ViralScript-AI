@@ -104,6 +104,7 @@ export const T: Record<Lang, Record<string, string>> = {
     footer_disclaimer: '본 플랫폼은 사용자가 제출한 URL의 원본을 저장·전송·재배포하지 않으며, AI 결과물은 마케팅 분석을 위한 2차 창작 가이드입니다.',
     footer_terms: '이용약관',
     footer_privacy: '개인정보처리방침',
+    footer_contact: '문의하기', contact_title: '문의하기', contact_description: '문의 유형과 내용을 남겨 주세요.', contact_category: '문의 유형', contact_category_account: '계정 및 로그인', contact_category_billing: '결제 및 크레딧', contact_category_generation: '영상 제작', contact_category_bug: '오류 신고', contact_category_feature: '기능 제안', contact_category_other: '기타', contact_message: '문의 내용', contact_message_placeholder: '문의 내용을 자세히 작성해 주세요.', contact_message_help: '최소 10자 이상 입력해 주세요.', contact_send: '문의 보내기', contact_sending: '전송 중...', contact_send_error: '문의를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.', contact_login_required: '문의하려면 먼저 로그인해 주세요.', contact_success_title: '문의가 정상적으로 전달되었습니다.', contact_success_description: '확인 후 24시간 이내에 계정 이메일로 답변드리겠습니다.', contact_close: '닫기',
 
     // ─── Auth Modal ───
     auth_welcome_back: '다시 오신 걸 환영해요',
@@ -414,6 +415,7 @@ export const T: Record<Lang, Record<string, string>> = {
     footer_disclaimer: 'This platform does not store, transmit, or redistribute original content from submitted URLs. AI-generated results are secondary creative guides for marketing analysis.',
     footer_terms: 'Terms of Service',
     footer_privacy: 'Privacy Policy',
+    footer_contact: 'Contact us', contact_title: 'Contact us', contact_description: 'Choose a category and tell us how we can help.', contact_category: 'Category', contact_category_account: 'Account and sign-in', contact_category_billing: 'Billing and credits', contact_category_generation: 'Video creation', contact_category_bug: 'Report a bug', contact_category_feature: 'Feature request', contact_category_other: 'Other', contact_message: 'Your message', contact_message_placeholder: 'Please describe your inquiry in detail.', contact_message_help: 'Please enter at least 10 characters.', contact_send: 'Send inquiry', contact_sending: 'Sending...', contact_send_error: 'We could not send your inquiry. Please try again later.', contact_login_required: 'Please sign in before sending an inquiry.', contact_success_title: 'Your inquiry has been sent.', contact_success_description: 'We will review it and reply to your account email within 24 hours.', contact_close: 'Close',
 
     // ─── Auth Modal ───
     auth_welcome_back: 'Welcome Back',
@@ -724,6 +726,7 @@ export const T: Record<Lang, Record<string, string>> = {
     footer_disclaimer: '本平台不存储、传输或重新分发用户提交的URL原始内容。AI生成结果为营销分析的二次创作指南。',
     footer_terms: '服务条款',
     footer_privacy: '隐私政策',
+    footer_contact: '联系我们', contact_title: '联系我们', contact_description: '请选择类别并告诉我们如何帮助您。', contact_category: '咨询类别', contact_category_account: '账户和登录', contact_category_billing: '付款和积分', contact_category_generation: '视频制作', contact_category_bug: '问题反馈', contact_category_feature: '功能建议', contact_category_other: '其他', contact_message: '咨询内容', contact_message_placeholder: '请详细描述您的问题。', contact_message_help: '请至少输入 10 个字符。', contact_send: '发送咨询', contact_sending: '发送中...', contact_send_error: '无法发送咨询，请稍后重试。', contact_login_required: '发送咨询前请先登录。', contact_success_title: '您的咨询已成功发送。', contact_success_description: '我们将在 24 小时内回复至您的账户邮箱。', contact_close: '关闭',
 
     // ─── Auth Modal ───
     auth_welcome_back: '欢迎回来',
@@ -1034,6 +1037,7 @@ export const T: Record<Lang, Record<string, string>> = {
     footer_disclaimer: '本プラットフォームは、ユーザーが提出したURLのオリジナルコンテンツを保存・送信・再配布しません。AI生成結果はマーケティング分析のための二次創作ガイドです。',
     footer_terms: '利用規約',
     footer_privacy: 'プライバシーポリシー',
+    footer_contact: 'お問い合わせ', contact_title: 'お問い合わせ', contact_description: 'カテゴリーを選び、お問い合わせ内容をお知らせください。', contact_category: 'お問い合わせの種類', contact_category_account: 'アカウント・ログイン', contact_category_billing: '支払い・クレジット', contact_category_generation: '動画作成', contact_category_bug: '不具合報告', contact_category_feature: '機能リクエスト', contact_category_other: 'その他', contact_message: 'お問い合わせ内容', contact_message_placeholder: 'お問い合わせ内容を詳しく入力してください。', contact_message_help: '10文字以上入力してください。', contact_send: 'お問い合わせを送信', contact_sending: '送信中...', contact_send_error: 'お問い合わせを送信できませんでした。後でもう一度お試しください。', contact_login_required: 'お問い合わせの前にログインしてください。', contact_success_title: 'お問い合わせを受け付けました。', contact_success_description: '内容を確認後、24時間以内にアカウントのメールアドレスへ返信します。', contact_close: '閉じる',
 
     // ─── Auth Modal ───
     auth_welcome_back: 'おかえりなさい',

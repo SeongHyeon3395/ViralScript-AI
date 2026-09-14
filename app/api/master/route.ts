@@ -122,6 +122,29 @@ async function getAudits(req: NextRequest, session: Awaited<ReturnType<typeof re
   return { audits: data ?? [], page, pageSize: PAGE_SIZE, total: count ?? 0 };
 }
 
+async function getInquiries(req: NextRequest, session: Awaited<ReturnType<typeof requireMaster>>) {
+  const page = pageFrom(req);
+  const search = cleanSearch(req.nextUrl.searchParams.get('search'));
+  const category = req.nextUrl.searchParams.get('category') ?? 'all';
+  const validCategories = ['account', 'billing', 'generation', 'bug', 'feature', 'other'];
+  let query = session.supabase
+    .from('support_inquiries')
+    .select('id, user_id, sender_email, category, message, created_at', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  if (validCategories.includes(category)) query = query.eq('category', category);
+  if (search) query = query.or(`sender_email.ilike.%${search}%,message.ilike.%${search}%`);
+  const { data, error, count } = await query;
+  if (error) throw new Error(error.message);
+  const ids = [...new Set((data ?? []).map((item) => item.user_id))];
+  const { data: profiles, error: profileError } = ids.length
+    ? await session.supabase.from('profiles').select('id, full_name').in('id', ids)
+    : { data: [], error: null };
+  if (profileError) throw new Error(profileError.message);
+  const nameById = new Map((profiles ?? []).map((profile) => [profile.id, profile.full_name]));
+  return { inquiries: (data ?? []).map((item) => ({ ...item, sender_name: nameById.get(item.user_id) ?? null })), page, pageSize: PAGE_SIZE, total: count ?? 0 };
+}
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await requireMaster(req);
@@ -132,7 +155,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         ? await getTrends(req, session)
         : resource === 'audits'
           ? await getAudits(req, session)
-          : await getDashboard(session);
+          : resource === 'inquiries'
+            ? await getInquiries(req, session)
+            : await getDashboard(session);
     return NextResponse.json({ data, admin: { email: session.user.email, role: session.role } });
   } catch (error) {
     return apiError(error);
