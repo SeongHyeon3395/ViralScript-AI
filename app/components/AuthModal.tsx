@@ -89,6 +89,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [phoneCountryCode, setPhoneCountryCode] = useState('+82');
   const [phoneCountryIso, setPhoneCountryIso] = useState('KR');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -135,6 +136,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     queueMicrotask(() => {
       if (cancelled) return;
       resetForm();
+      setReferralCode(new URLSearchParams(window.location.search).get('ref')?.trim().toUpperCase() ?? '');
       setMode(initialMode);
     });
 
@@ -192,6 +194,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       const supabase = getSupabaseBrowserClient();
 
       if (mode === 'signup') {
+        const normalizedReferralCode = referralCode.trim().toUpperCase();
+        if (normalizedReferralCode) {
+          const validationResponse = await fetch(`/api/v1/referrals?code=${encodeURIComponent(normalizedReferralCode)}`);
+          const validation = await validationResponse.json() as { valid?: boolean };
+          if (!validationResponse.ok || !validation.valid) {
+            setMessage({ type: 'error', text: t('referral_code_invalid') });
+            setLoading(false);
+            return;
+          }
+        }
         // 이메일 중복 체크: Supabase signUp은 기존 이메일에 대해 identities가 빈 배열을 반환
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -202,6 +214,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               full_name: name || undefined,
               phone_country_code: phoneCountryCode,
               phone_number: phoneNumber,
+              referral_code: normalizedReferralCode || undefined,
             },
           },
         });
@@ -569,6 +582,22 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                           : <CheckCircle2 size={15} className="shrink-0" />
                         : <AlertCircle size={15} className="shrink-0" />}
                       {message.text}
+                    </div>
+                  )}
+
+                  {mode === 'signup' && (
+                    <div>
+                      <label htmlFor="signup-referral-code" className="mb-1.5 block text-xs font-medium text-white/50">{t('referral_signup_label')}</label>
+                      <input
+                        id="signup-referral-code"
+                        type="text"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 12))}
+                        placeholder={t('referral_signup_placeholder')}
+                        autoComplete="off"
+                        maxLength={12}
+                        className="w-full rounded-xl input-dark px-4 py-3 text-sm uppercase tracking-widest"
+                      />
                     </div>
                   )}
 

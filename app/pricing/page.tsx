@@ -108,7 +108,7 @@ export default function PricingPage() {
                     <div className="flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2">
                       <Zap size={14} className="text-violet-400" />
                       <span className="inline-flex min-w-[100px] items-center justify-center text-sm font-bold tabular-nums text-violet-300">
-                        {credits ?? '—'} 크레딧 보유
+                        {t('pricing_credits_balance').replace('{credits}', String(credits ?? '—'))}
                       </span>
                     </div>
                   </div>

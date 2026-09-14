@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Copy, Check, Users, Share2, Sparkles, Send, Link2,
   ChevronRight, X, Zap,
@@ -8,6 +8,7 @@ import {
 import { t } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
 import { useAuth } from './AuthProvider';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 function TwitterIcon({ size = 16 }: { size?: number }) {
   return (
@@ -23,23 +24,36 @@ interface ReferralSystemProps {
 }
 
 // ─── 10자리 고유 코드 생성 (숫자+대문자 혼합) ─────────────────
-function generateReferralCode(seed: string): string {
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let code = '';
-  const hash = seed.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  for (let i = 0; i < 10; i++) {
-    code += chars[(hash * (i + 1) * 7 + i * 13) % chars.length];
-  }
-  return code;
-}
+interface ReferralStats { referralCode: string; referralUrl: string; invitedCount: number; creditsEarned: number }
 
 export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps) {
   useLanguage();
   const { user, isLoading: authLoading } = useAuth();
   const [copied, setCopied] = useState(false);
-  const referralCode = user ? generateReferralCode(user.id) : '';
+  const [stats, setStats] = useState<ReferralStats | null>(null);
+  const [statsError, setStatsError] = useState(false);
+  const referralCode = stats?.referralCode ?? '';
 
-  const referralLink = user ? `https://viralscript.ai/ref/${referralCode}` : '';
+  useEffect(() => {
+    if (!isOpen || !user) return;
+    let active = true;
+    void (async () => {
+      setStatsError(false);
+      try {
+        const { data: { session } } = await getSupabaseBrowserClient().auth.getSession();
+        if (!session?.access_token) throw new Error('Unauthorized');
+        const response = await fetch('/api/v1/referrals', { headers: { Authorization: `Bearer ${session.access_token}` } });
+        const data = await response.json() as ReferralStats;
+        if (!response.ok || !data.referralCode || !data.referralUrl) throw new Error('Referral data unavailable');
+        if (active) setStats(data);
+      } catch {
+        if (active) setStatsError(true);
+      }
+    })();
+    return () => { active = false; };
+  }, [isOpen, user]);
+
+  const referralLink = stats?.referralUrl ?? '';
 
   async function copyLink() {
     if (!referralLink) return;
@@ -85,8 +99,8 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: t('referral_invited_friends'), value: '0명', icon: Users, color: 'text-violet-400' },
-              { label: t('referral_credits_earned'), value: '0개', icon: Zap, color: 'text-amber-400' },
+              { label: t('referral_invited_friends'), value: String(stats?.invitedCount ?? 0), icon: Users, color: 'text-violet-400' },
+              { label: t('referral_credits_earned'), value: String(stats?.creditsEarned ?? 0), icon: Zap, color: 'text-amber-400' },
               { label: t('referral_max_earn'), value: '∞', icon: Sparkles, color: 'text-emerald-400' },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -97,6 +111,8 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
             ))}
           </div>
 
+          {statsError && <p className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300" role="alert">{t('referral_load_error')}</p>}
+
           {/* Referral code */}
           <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <p className="text-xs text-white/40 mb-2 font-medium">{t('referral_my_code')}</p>
@@ -104,7 +120,7 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
               <div className="flex-1 rounded-xl px-4 py-3 text-center" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
                 <span className="text-lg font-bold tracking-widest gradient-text">{referralCode || '----------'}</span>
               </div>
-              <button onClick={copyLink} className="w-11 h-11 rounded-xl flex items-center justify-center transition-all" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)' }}>
+              <button type="button" onClick={() => void copyLink()} disabled={!referralLink} aria-label={t('referral_copy_link')} className="w-11 h-11 rounded-xl flex items-center justify-center transition-all disabled:opacity-40" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)' }}>
                 {copied ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} className="text-violet-400" />}
               </button>
             </div>

@@ -212,7 +212,7 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
             onClick={() => { setSortOrder(order); resetPagination(); }}
             className={`trend-sort-button px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortOrder === order ? 'is-active' : ''}`}
           >
-            {order === 'latest' ? '최신순' : '인기순'}
+            {order === 'latest' ? t('trend_sort_latest') : t('trend_sort_popular')}
           </button>
         ))}
       </div>

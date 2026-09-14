@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 const root = resolve(__dirname, '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 const migration = () => read('supabase/migrations/20260914000026_security_and_topic_generation.sql');
+const referralMigration = () => read('supabase/migrations/20260915000027_referrals_and_rewards.sql');
 
 describe('topic-only generation contracts', () => {
   it('stores a missing source URL as NULL and leaves debit/history atomic', () => {
@@ -48,6 +49,51 @@ describe('generator localization', () => {
       for (const key of ['gen_analysis_heading', 'gen_goal_inform', 'gen_concept_problem', 'gen_method_ai', 'gen_summary_cost']) {
         expect(dictionary, `${language} translation missing ${key}`).toContain(`${key}:`);
       }
+    }
+  });
+});
+
+describe('referral signup and reward flow', () => {
+  it('assigns each profile a unique persisted code and awards both accounts once in the auth transaction', () => {
+    const sql = referralMigration();
+    expect(sql).toContain('profiles_referral_code_uidx');
+    expect(sql).toContain('referred_user_id UUID NOT NULL UNIQUE');
+    expect(sql).toContain("NEW.raw_user_meta_data->>'referral_code'");
+    expect(sql).toContain('ON CONFLICT (referred_user_id) DO NOTHING');
+    expect(sql).toContain('credits_remaining = credits_remaining + 3');
+    expect(sql).toContain('referral_not_self');
+  });
+
+  it('validates codes server-side and returns referral stats only to the signed-in owner', () => {
+    const route = read('app/api/v1/referrals/route.ts');
+    expect(route).toContain("/^[A-F0-9]{12}$/");
+    expect(route).toContain("authorization.slice(7)");
+    expect(route).toContain("eq('referrer_user_id' as never");
+    expect(route).toContain('referralUrl');
+  });
+
+  it('puts the optional code at signup, validates it, and passes it to the auth trigger metadata', () => {
+    const modal = read('app/components/AuthModal.tsx');
+    expect(modal).toContain('id="signup-referral-code"');
+    expect(modal).toContain("fetch(`/api/v1/referrals?code=${encodeURIComponent(normalizedReferralCode)}`)");
+    expect(modal).toContain('referral_code: normalizedReferralCode || undefined');
+    expect(read('app/components/ReferralSystem.tsx')).not.toContain('generateReferralCode');
+  });
+
+  it('localizes the settings screen and requested credit/trend labels across four languages', () => {
+    const settings = read('app/settings/page.tsx');
+    const pricing = read('app/pricing/page.tsx');
+    const trends = read('app/components/TrendFeed.tsx');
+    const dictionaries = read('app/components/LanguageSwitcher.tsx');
+    expect(settings).toContain("labelKey: 'settings_tab_profile'");
+    expect(settings).toContain('t(labelKey)');
+    expect(settings).toContain("t('settings_delete_warning')");
+    expect(settings).toContain('void setLanguage(v)');
+    expect(pricing).toContain("t('pricing_credits_balance')");
+    expect(trends).toContain("t('trend_sort_latest')");
+    expect(trends).toContain("t('trend_sort_popular')");
+    for (const key of ['settings_title', 'settings_delete_warning', 'pricing_credits_balance', 'trend_sort_latest', 'trend_sort_popular']) {
+      expect(dictionaries.match(new RegExp(`${key}:`, 'g'))).toHaveLength(4);
     }
   });
 });

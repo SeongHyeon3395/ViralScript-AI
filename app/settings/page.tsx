@@ -12,6 +12,8 @@ import Navbar from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import { useAuth } from '@/app/components/AuthProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { t } from '@/app/components/LanguageSwitcher';
+import { useLanguage } from '@/app/components/LanguageProvider';
 
 // ─── 타입 ─────────────────────────────────────────────────────────
 
@@ -29,11 +31,11 @@ function showToast(message: string, variant: 'success' | 'error' | 'info' = 'inf
   window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, variant } }));
 }
 
-const TABS: { id: TabId; icon: React.ElementType; label: string }[] = [
-  { id: 'profile',   icon: User,          label: '내 프로필' },
-  { id: 'platform',  icon: Globe,         label: '플랫폼 설정' },
-  { id: 'billing',   icon: CreditCard,    label: '결제 및 구독' },
-  { id: 'danger',    icon: AlertTriangle, label: '위험 구역' },
+const TABS: { id: TabId; icon: React.ElementType; labelKey: string }[] = [
+  { id: 'profile',   icon: User,          labelKey: 'settings_tab_profile' },
+  { id: 'platform',  icon: Globe,         labelKey: 'settings_tab_platform' },
+  { id: 'billing',   icon: CreditCard,    labelKey: 'settings_tab_billing' },
+  { id: 'danger',    icon: AlertTriangle, labelKey: 'settings_tab_danger' },
 ];
 
 // ─── 서브 컴포넌트 ─────────────────────────────────────────────────
@@ -87,14 +89,14 @@ function PasswordField({ label, value, onChange, placeholder }: {
           value={value}
           onChange={event => onChange(event.target.value)}
           placeholder={placeholder}
-          autoComplete={label === '현재 비밀번호' ? 'current-password' : 'new-password'}
+          autoComplete={label === t('settings_current_password') ? 'current-password' : 'new-password'}
           className="w-full rounded-xl px-4 py-2.5 pr-11 text-sm input-dark"
         />
         <button
           type="button"
           onClick={() => setVisible(current => !current)}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-white/30 transition-colors hover:bg-white/5 hover:text-white/70"
-          aria-label={visible ? '비밀번호 숨기기' : '비밀번호 표시'}
+          aria-label={visible ? t('settings_hide_password') : t('settings_show_password')}
         >
           {visible ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
@@ -146,41 +148,41 @@ function ProfileTab({ settings, onUpdate, onOpenPasswordModal }: {
 }) {
   return (
     <div className="space-y-4">
-      <SectionCard title="기본 정보" icon={User}>
+      <SectionCard title={t('settings_profile_section')} icon={User}>
         <div className="space-y-4">
           <div>
-            <FieldLabel>이름</FieldLabel>
-            <TextInput value={settings.full_name ?? ''} onChange={v => onUpdate({ full_name: v })} placeholder="홍길동" />
+            <FieldLabel>{t('settings_name')}</FieldLabel>
+            <TextInput value={settings.full_name ?? ''} onChange={v => onUpdate({ full_name: v })} placeholder={t('settings_name_placeholder')} />
           </div>
           <div>
-            <FieldLabel>이메일 (변경 불가)</FieldLabel>
+            <FieldLabel>{t('settings_email_locked')}</FieldLabel>
             <TextInput value={settings.email} disabled />
           </div>
         </div>
       </SectionCard>
 
-      <SectionCard title="보안" icon={KeyRound}>
+      <SectionCard title={t('settings_security')} icon={KeyRound}>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-white/80">비밀번호</p>
-            <p className="mt-0.5 text-xs text-white/30">현재 비밀번호 확인 후 새 비밀번호로 변경합니다</p>
+            <p className="text-sm text-white/80">{t('settings_password')}</p>
+            <p className="mt-0.5 text-xs text-white/30">{t('settings_password_desc')}</p>
           </div>
           <button
             type="button"
             onClick={onOpenPasswordModal}
             className="shrink-0 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/70 transition-colors hover:border-violet-400/40 hover:text-violet-300"
           >
-            변경
+            {t('settings_change')}
           </button>
         </div>
       </SectionCard>
 
-      <SectionCard title="알림 설정" icon={Bell}>
+      <SectionCard title={t('settings_notifications')} icon={Bell}>
         <Toggle
           checked={settings.email_notifications}
           onChange={v => onUpdate({ email_notifications: v })}
-          label="이메일 알림"
-          hint="크레딧 충전, 분석 완료 등 중요 이벤트를 이메일로 수신합니다"
+          label={t('settings_email_notifications')}
+          hint={t('settings_notifications_hint')}
         />
       </SectionCard>
     </div>
@@ -207,11 +209,11 @@ function PasswordChangeModal({ email, onClose }: { email: string; onClose: () =>
     setError(null);
 
     if (newPassword.length < 8) {
-      setError('새 비밀번호는 8자 이상이어야 합니다.');
+      setError(t('settings_password_too_short'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('새 비밀번호가 일치하지 않습니다.');
+      setError(t('settings_password_mismatch'));
       return;
     }
 
@@ -223,19 +225,19 @@ function PasswordChangeModal({ email, onClose }: { email: string; onClose: () =>
     });
 
     if (signInError) {
-      setError('현재 비밀번호가 일치하지 않습니다.');
+      setError(t('settings_current_password_wrong'));
       setSubmitting(false);
       return;
     }
 
     const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
     if (updateError) {
-      setError(updateError.message || '비밀번호를 변경하지 못했습니다.');
+      setError(updateError.message || t('settings_password_error'));
       setSubmitting(false);
       return;
     }
 
-    showToast('비밀번호가 변경되었습니다.', 'success');
+    showToast(t('settings_password_changed'), 'success');
     onClose();
   }
 
@@ -244,24 +246,24 @@ function PasswordChangeModal({ email, onClose }: { email: string; onClose: () =>
       <div role="dialog" aria-modal="true" aria-labelledby="password-modal-title" className="w-full max-w-md rounded-2xl border border-white/10 bg-[#101018] p-6 shadow-2xl shadow-black/50">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 id="password-modal-title" className="text-lg font-bold text-white">비밀번호 변경</h2>
-            <p className="mt-1 text-xs text-white/40">본인 확인을 위해 현재 비밀번호를 입력하세요.</p>
+            <h2 id="password-modal-title" className="text-lg font-bold text-white">{t('settings_password_modal_title')}</h2>
+            <p className="mt-1 text-xs text-white/40">{t('settings_password_modal_desc')}</p>
           </div>
-          <button type="button" onClick={onClose} disabled={submitting} className="rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40" aria-label="닫기">
+          <button type="button" onClick={onClose} disabled={submitting} className="rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40" aria-label={t('settings_close')}>
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <PasswordField label="현재 비밀번호" value={currentPassword} onChange={setCurrentPassword} placeholder="현재 비밀번호" />
-          <PasswordField label="새 비밀번호" value={newPassword} onChange={setNewPassword} placeholder="8자 이상" />
-          <PasswordField label="새 비밀번호 확인" value={confirmPassword} onChange={setConfirmPassword} placeholder="새 비밀번호 다시 입력" />
+          <PasswordField label={t('settings_current_password')} value={currentPassword} onChange={setCurrentPassword} placeholder={t('settings_current_password')} />
+          <PasswordField label={t('settings_new_password')} value={newPassword} onChange={setNewPassword} placeholder={t('settings_password_min')} />
+          <PasswordField label={t('settings_confirm_password')} value={confirmPassword} onChange={setConfirmPassword} placeholder={t('settings_password_again')} />
           {error && <p className="text-xs text-red-400">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} disabled={submitting} className="rounded-xl px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40">취소</button>
+            <button type="button" onClick={onClose} disabled={submitting} className="rounded-xl px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40">{t('settings_cancel')}</button>
             <button type="submit" disabled={submitting || !currentPassword || !newPassword || !confirmPassword} className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40">
               {submitting && <Loader2 size={15} className="animate-spin" />}
-              {submitting ? '변경 중...' : '비밀번호 변경'}
+              {submitting ? t('settings_password_saving') : t('settings_password_modal_title')}
             </button>
           </div>
         </form>
@@ -271,11 +273,12 @@ function PasswordChangeModal({ email, onClose }: { email: string; onClose: () =>
 }
 
 function PlatformTab({ settings, onUpdate }: { settings: UserSettings; onUpdate: (p: Partial<UserSettings>) => void }) {
+  const { setLanguage } = useLanguage();
   return (
     <div className="space-y-4">
-      <SectionCard title="기본 분석 플랫폼" icon={Smartphone}>
+      <SectionCard title={t('settings_platform_section')} icon={Smartphone}>
         <div>
-          <FieldLabel>기본 타겟 플랫폼</FieldLabel>
+          <FieldLabel>{t('settings_default_platform')}</FieldLabel>
           <SelectInput
             value={settings.default_target_platform}
             onChange={v => onUpdate({ default_target_platform: v })}
@@ -284,17 +287,17 @@ function PlatformTab({ settings, onUpdate }: { settings: UserSettings; onUpdate:
               { value: 'youtube',   label: '▶️ YouTube Shorts' },
             ]}
           />
-          <p className="text-xs text-white/30 mt-2">분석 결과 생성 시 기본으로 선택될 플랫폼입니다</p>
+          <p className="text-xs text-white/30 mt-2">{t('settings_platform_hint')}</p>
         </div>
       </SectionCard>
 
-      <SectionCard title="표시 설정" icon={Monitor}>
+      <SectionCard title={t('settings_display')} icon={Monitor}>
         <div className="space-y-4">
           <div>
-            <FieldLabel>기본 언어</FieldLabel>
+            <FieldLabel>{t('settings_default_language')}</FieldLabel>
             <SelectInput
               value={settings.default_language}
-              onChange={v => onUpdate({ default_language: v })}
+              onChange={v => { onUpdate({ default_language: v }); void setLanguage(v); }}
               options={[
                 { value: 'ko', label: '🇰🇷 한국어' },
                 { value: 'en', label: '🇺🇸 English' },
@@ -311,17 +314,17 @@ function PlatformTab({ settings, onUpdate }: { settings: UserSettings; onUpdate:
 
 function BillingTab() {
   return (
-    <SectionCard title="결제 및 구독 관리" icon={CreditCard}>
+    <SectionCard title={t('settings_billing_section')} icon={CreditCard}>
       <div className="flex flex-col items-center gap-4 py-8 text-center">
         <div className="w-14 h-14 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
           <Lock size={22} className="text-white/30" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white/50">Phase 3에서 오픈 예정</p>
-          <p className="text-xs text-white/25 mt-1 max-w-xs">구독 플랜 변경, 결제 내역, 인보이스 발행 기능이 곧 추가됩니다</p>
+          <p className="text-sm font-semibold text-white/50">{t('settings_billing_soon')}</p>
+          <p className="text-xs text-white/25 mt-1 max-w-xs">{t('settings_billing_desc')}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs text-amber-300">
-          🔒 준비 중
+          🔒 {t('settings_preparing')}
         </span>
       </div>
     </SectionCard>
@@ -337,17 +340,16 @@ function DangerTab({ email, deleting, onDeleteAccount }: {
   const canDelete = confirmed.trim().toLowerCase() === email.trim().toLowerCase();
 
   return (
-    <SectionCard title="위험 구역" icon={AlertTriangle}>
+    <SectionCard title={t('settings_danger_section')} icon={AlertTriangle}>
       <div className="space-y-5">
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-          <p className="text-sm font-semibold text-red-400 mb-1">회원 탈퇴</p>
+          <p className="text-sm font-semibold text-red-400 mb-1">{t('settings_delete_account')}</p>
           <p className="text-xs text-white/40 leading-relaxed">
-            탈퇴 시 잔여 크레딧과 생성 기록, 설정이 즉시 삭제되며 복구할 수 없습니다.
-            같은 이메일로는 탈퇴 후 30일 동안 재가입할 수 없습니다.
+            {t('settings_delete_warning')}
           </p>
         </div>
         <div>
-          <FieldLabel>확인을 위해 현재 이메일 입력</FieldLabel>
+          <FieldLabel>{t('settings_confirm_email')}</FieldLabel>
           <TextInput
             value={confirmed}
             onChange={setConfirmed}
@@ -360,7 +362,7 @@ function DangerTab({ email, deleting, onDeleteAccount }: {
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
         >
           {deleting && <Loader2 size={15} className="animate-spin" />}
-          {deleting ? '탈퇴 처리 중...' : '영구 삭제 및 탈퇴'}
+          {deleting ? t('settings_delete_working') : t('settings_delete_permanent')}
         </button>
       </div>
     </SectionCard>
@@ -370,6 +372,7 @@ function DangerTab({ email, deleting, onDeleteAccount }: {
 // ─── 메인 페이지 ───────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  useLanguage();
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
@@ -433,7 +436,7 @@ export default function SettingsPage() {
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : '저장 실패');
+      setSaveError(e instanceof Error ? e.message : t('settings_save_failed'));
     } finally {
       setSaving(false);
     }
@@ -441,7 +444,7 @@ export default function SettingsPage() {
 
   async function handleDeleteAccount() {
     if (!user?.email || deleting) return;
-    const confirmed = window.confirm('정말로 탈퇴하시겠습니까? 30일간 재가입이 제한됩니다.');
+    const confirmed = window.confirm(t('settings_delete_confirm'));
     if (!confirmed) return;
 
     setDeleting(true);
@@ -450,7 +453,7 @@ export default function SettingsPage() {
     const { error } = await (supabase as any).rpc('delete_user_account');
 
     if (error) {
-      showToast(error.message || '회원 탈퇴를 처리하지 못했습니다.', 'error');
+      showToast(error.message || t('settings_delete_error'), 'error');
       setDeleting(false);
       return;
     }
@@ -486,10 +489,10 @@ export default function SettingsPage() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto">
               <LogIn size={28} className="text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-white">로그인이 필요합니다</h2>
-            <p className="text-sm text-white/40">계정 설정을 변경하려면 먼저 로그인하세요</p>
+            <h2 className="text-2xl font-bold text-white">{t('settings_login_title')}</h2>
+            <p className="text-sm text-white/40">{t('settings_login_desc')}</p>
             <Link href="/" className="btn-primary inline-flex items-center gap-2 px-6 py-3">
-              <LogIn size={16} /> 로그인하기 <ArrowRight size={15} />
+              <LogIn size={16} /> {t('settings_login')} <ArrowRight size={15} />
             </Link>
           </div>
         </main>
@@ -506,14 +509,14 @@ export default function SettingsPage() {
 
           {/* 헤더 */}
           <div className="space-y-1 px-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-white">설정</h1>
-            <p className="text-xs sm:text-sm text-white/40">프로필, 플랫폼 기본값, 알림 등을 관리합니다</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">{t('settings_title')}</h1>
+            <p className="text-xs sm:text-sm text-white/40">{t('settings_subtitle')}</p>
           </div>
 
           <div className="flex gap-5 flex-col sm:flex-row">
             {/* 탭 사이드바 */}
             <nav className="flex sm:flex-col gap-1 sm:w-44 shrink-0 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
-              {TABS.map(({ id, icon: Icon, label }) => (
+              {TABS.map(({ id, icon: Icon, labelKey }) => (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
@@ -524,7 +527,7 @@ export default function SettingsPage() {
                     } ${id === 'danger' ? (activeTab === id ? '' : 'hover:text-red-400 hover:bg-red-500/5') : ''}`}
                 >
                   <Icon size={15} className={id === 'danger' ? (activeTab === id ? 'text-red-400' : '') : ''} />
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </nav>
@@ -546,7 +549,7 @@ export default function SettingsPage() {
                   )}
                   {saveOk && (
                     <p className="text-xs text-emerald-400 flex items-center gap-1.5 fade-in-up">
-                      <CheckCircle2 size={13} /> 저장됐습니다
+                      <CheckCircle2 size={13} /> {t('settings_saved')}
                     </p>
                   )}
                   {!saveError && !saveOk && <span />}
@@ -556,7 +559,7 @@ export default function SettingsPage() {
                     className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-60"
                   >
                     {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                    {saving ? '저장 중...' : '변경사항 저장'}
+                    {saving ? t('settings_saving') : t('settings_save')}
                   </button>
                 </div>
               )}

@@ -156,3 +156,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS trend_feed_platform_video_url_unique
 -- Added SECURITY DEFINER RPCs (definitions and grants are in the migration above):
 -- public.complete_verified_payment_order(TEXT, TEXT, TEXT, NUMERIC, NUMERIC)
 -- public.master_update_user_with_audit(UUID, UUID, JSONB, TEXT)
+
+-- Persistent referral codes are assigned to every profile; signup rewards are
+-- inserted and credited atomically by public.handle_new_user() in migration
+-- 20260915000027_referrals_and_rewards.sql.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
+UPDATE public.profiles
+SET referral_code = UPPER(SUBSTRING(REPLACE(gen_random_uuid()::text, '-', '') FROM 1 FOR 12))
+WHERE referral_code IS NULL OR BTRIM(referral_code) = '';
+ALTER TABLE public.profiles ALTER COLUMN referral_code SET NOT NULL;
+ALTER TABLE public.profiles ALTER COLUMN referral_code SET DEFAULT UPPER(SUBSTRING(REPLACE(gen_random_uuid()::text, '-', '') FROM 1 FOR 12));
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_referral_code_uidx ON public.profiles(referral_code);
+CREATE TABLE IF NOT EXISTS public.referral_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referrer_user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  referred_user_id UUID NOT NULL UNIQUE REFERENCES public.profiles(id) ON DELETE CASCADE,
+  referral_code TEXT NOT NULL,
+  referrer_reward_credits INTEGER NOT NULL DEFAULT 3 CHECK (referrer_reward_credits = 3),
+  referred_reward_credits INTEGER NOT NULL DEFAULT 3 CHECK (referred_reward_credits = 3),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT referral_not_self CHECK (referrer_user_id <> referred_user_id)
+);
+CREATE INDEX IF NOT EXISTS referral_events_referrer_created_idx
+  ON public.referral_events(referrer_user_id, created_at DESC);
+ALTER TABLE public.referral_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.referral_events FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.referral_events TO service_role;
