@@ -108,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Supabase auth callbacks must not call another auth method synchronously.
         window.setTimeout(() => {
           void refreshCredits();
+          void checkAccountSuspension();
           void fetchUserLanguage().then((language) => {
             window.localStorage.setItem('viralLang', language);
             window.dispatchEvent(new CustomEvent('language:changed', { detail: language }));
@@ -127,6 +128,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const checkAccountSuspension = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token || !session.user) return;
+      try {
+        const response = await fetch('/api/v1/profile', { headers: { Authorization: `Bearer ${session.access_token}` }, cache: 'no-store' });
+        if (response.status !== 403) return;
+        const payload = await response.json() as { error?: string; suspensionReason?: string | null };
+        if (payload.error !== 'ACCOUNT_SUSPENDED') return;
+        window.dispatchEvent(new CustomEvent('account:suspended', { detail: { email: session.user.email ?? '', reason: payload.suspensionReason ?? null } }));
+        clearSessionTimestamp();
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // A temporary profile read error must not sign out an otherwise valid user.
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const nextUser = session?.user ?? null;
       applySession(nextUser);
@@ -143,9 +160,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
     void checkSessionTimeout();
+    void checkAccountSuspension();
     const timer = window.setInterval(() => {
       void checkSessionTimeout();
-    }, 60_000);
+      void checkAccountSuspension();
+    }, 30_000);
 
     const handleCreditsUpdated = () => {
       void refreshCredits();

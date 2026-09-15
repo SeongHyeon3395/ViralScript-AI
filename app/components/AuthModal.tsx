@@ -27,7 +27,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
 
-type AuthMode = 'login' | 'signup' | 'forgot' | 'find_email';
+type AuthMode = 'login' | 'signup' | 'forgot' | 'find_email' | 'suspended';
 
 const PHONE_COUNTRIES = [
   ['KR', '+82', 'South Korea'], ['US', '+1', 'United States'], ['CA', '+1', 'Canada'], ['JP', '+81', 'Japan'], ['CN', '+86', 'China'], ['TW', '+886', 'Taiwan'], ['HK', '+852', 'Hong Kong'],
@@ -94,6 +94,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState<string | null>(null);
+  const [appealMessage, setAppealMessage] = useState('');
+  const [appealStatus, setAppealStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
   // ─── 이메일 찾기 상태 ───
   const [foundEmailResult, setFoundEmailResult] = useState<{ email?: string; masked_email?: string } | null>(null);
@@ -115,6 +118,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setShowPassword(false);
     setMessage(null);
     setEmailSent(false);
+    setSuspensionReason(null);
+    setAppealMessage('');
+    setAppealStatus('idle');
     setFoundEmailResult(null);
     setVerifyCountdown(VERIFY_TIMEOUT);
     setVerifyExpired(false);
@@ -175,6 +181,21 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   function switchMode(newMode: AuthMode) {
     resetForm();
     setMode(newMode);
+  }
+
+  async function submitSuspensionAppeal(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAppealStatus('sending');
+    try {
+      const response = await fetch('/api/v1/contact', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: 'suspension_appeal', appealEmail: email.trim(), message: appealMessage }),
+      });
+      if (!response.ok) throw new Error();
+      setAppealMessage(''); setAppealStatus('success');
+    } catch {
+      setAppealStatus('error');
+    }
   }
 
   // ─── 메인 폼 제출 ───
@@ -240,18 +261,29 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         setLoading(false);
         return;
       } else if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
           const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
-          if (msg.toLowerCase().includes('email not confirmed')) {
+          if (msg.toLowerCase().includes('banned')) {
+            setMode('suspended');
+          } else if (msg.toLowerCase().includes('email not confirmed')) {
             setMessage({ type: 'error', text: t('auth_email_not_confirmed') });
           } else {
             setMessage({ type: 'error', text: msg || t('auth_network_error') });
           }
         } else {
-          setMessage({ type: 'success', text: t('auth_login_success') });
-          setTimeout(onClose, 1200);
+          const token = data.session?.access_token;
+          const statusResponse = token ? await fetch('/api/v1/profile', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }) : null;
+          if (statusResponse?.status === 403) {
+            const status = await statusResponse.json() as { suspensionReason?: string | null };
+            setSuspensionReason(status.suspensionReason ?? null);
+            await supabase.auth.signOut({ scope: 'local' });
+            setMode('suspended');
+          } else {
+            setMessage({ type: 'success', text: t('auth_login_success') });
+            setTimeout(onClose, 1200);
+          }
         }
       } else if (mode === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -411,12 +443,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   {mode === 'signup' && t('auth_nice_to_meet')}
                   {mode === 'forgot' && t('auth_reset_password')}
                   {mode === 'find_email' && t('find_email_title')}
+                  {mode === 'suspended' && t('auth_suspended_title')}
                 </h2>
                 <p className="text-sm text-white/40 mt-1">
                   {mode === 'login' && t('auth_login_desc')}
                   {mode === 'signup' && t('auth_signup_desc')}
                   {mode === 'forgot' && t('auth_forgot_desc')}
                   {mode === 'find_email' && t('find_email_desc')}
+                  {mode === 'suspended' && t('auth_suspended_desc')}
                 </p>
               </div>
               <button
@@ -429,7 +463,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             </div>
 
             <div className="px-8 py-6 space-y-4">
-              {mode === 'find_email' ? (
+              {mode === 'suspended' ? (
+                <form onSubmit={(event) => void submitSuspensionAppeal(event)} className="space-y-3">
+                  {suspensionReason && <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-100"><p className="text-xs font-semibold text-amber-300">{t('auth_suspended_reason')}</p><p className="mt-1">{suspensionReason}</p></div>}
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required aria-label={t('auth_email_placeholder')} placeholder={t('auth_email_placeholder')} className="w-full rounded-xl input-dark px-4 py-3 text-sm" />
+                  <textarea value={appealMessage} onChange={(event) => setAppealMessage(event.target.value)} required minLength={10} maxLength={5000} placeholder={t('auth_suspended_appeal_placeholder')} className="min-h-28 w-full rounded-xl input-dark px-4 py-3 text-sm" />
+                  {appealStatus === 'success' && <p role="status" className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3 text-sm text-emerald-200">{t('auth_suspended_appeal_success')}</p>}
+                  {appealStatus === 'error' && <p role="alert" className="rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-200">{t('auth_suspended_appeal_error')}</p>}
+                  <button type="submit" disabled={appealStatus === 'sending' || appealMessage.trim().length < 10} className="btn-primary flex w-full items-center justify-center gap-2 text-sm disabled:opacity-50">{appealStatus === 'sending' && <Loader2 size={16} className="animate-spin" />}{t('auth_suspended_appeal')}</button>
+                </form>
+              ) : mode === 'find_email' ? (
                 <form onSubmit={handleFindEmail} className="space-y-3">
                   <div className="relative">
                     <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
@@ -637,7 +680,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     </button>
                   </>
                 )}
-                {(mode === 'forgot' || mode === 'find_email') && (
+                {(mode === 'forgot' || mode === 'find_email' || mode === 'suspended') && (
                   <>
                     <button onClick={() => switchMode('login')} className="btn-primary-compact inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 text-sm">
                       <ArrowLeft size={14} />

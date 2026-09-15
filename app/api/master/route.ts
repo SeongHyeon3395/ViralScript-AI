@@ -126,7 +126,7 @@ async function getInquiries(req: NextRequest, session: Awaited<ReturnType<typeof
   const page = pageFrom(req);
   const search = cleanSearch(req.nextUrl.searchParams.get('search'));
   const category = req.nextUrl.searchParams.get('category') ?? 'all';
-  const validCategories = ['account', 'billing', 'generation', 'bug', 'feature', 'other'];
+  const validCategories = ['account', 'billing', 'generation', 'bug', 'feature', 'other', 'suspension_appeal'];
   let query = session.supabase
     .from('support_inquiries')
     .select('id, user_id, sender_email, category, message, created_at', { count: 'exact' })
@@ -214,6 +214,16 @@ async function updateUser(session: Awaited<ReturnType<typeof requireMaster>>, bo
   const { data: before, error: beforeError } = await session.supabase.from('profiles').select(PROFILE_FIELDS).eq('id', body.userId).single();
   if (beforeError || !before) throw new Error('사용자를 찾을 수 없습니다.');
 
+  const suspensionRequested = typeof body.suspended === 'boolean';
+  if (suspensionRequested) {
+    const { error: authUpdateError } = await session.supabase.auth.admin.updateUserById(body.userId, {
+      // Auth bans stop new sign-ins and revoke refresh-token continuation. The app also
+      // checks profiles.is_suspended to remove any already-open browser session.
+      ban_duration: body.suspended ? '876000h' : 'none',
+    });
+    if (authUpdateError) throw new Error(`Unable to update the authentication suspension: ${authUpdateError.message}`);
+  }
+
   const updates: Record<string, unknown> = {};
   if ('fullName' in body) updates.full_name = body.fullName?.trim().slice(0, 100) || null;
   if (body.subscriptionPlan && ['free', 'pro', 'agency'].includes(body.subscriptionPlan)) updates.subscription_plan = body.subscriptionPlan;
@@ -233,7 +243,12 @@ async function updateUser(session: Awaited<ReturnType<typeof requireMaster>>, bo
     p_patch: updates,
     p_reason: body.reason?.trim().slice(0, 500) || null,
   });
-  if (atomicError || !atomicResult) throw new Error(atomicError?.message ?? 'User update and audit transaction failed.');
+  if (atomicError || !atomicResult) {
+    if (suspensionRequested) {
+      await session.supabase.auth.admin.updateUserById(body.userId, { ban_duration: before.is_suspended ? '876000h' : 'none' });
+    }
+    throw new Error(atomicError?.message ?? 'User update and audit transaction failed.');
+  }
   return atomicResult;
 
 }

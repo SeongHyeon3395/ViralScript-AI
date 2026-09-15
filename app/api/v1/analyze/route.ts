@@ -91,6 +91,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   const { user, profile } = auth;
 
+  if ((profile as Profile & { is_suspended?: boolean }).is_suspended) {
+    return NextResponse.json(
+      { success: false, error: 'Account suspended', errorCode: ERROR_CODES.UNAUTHORIZED },
+      { status: 403 },
+    );
+  }
+
   // 2. 요청 바디 파싱
   let body: AnalyzeRequest;
   try {

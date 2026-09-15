@@ -165,11 +165,36 @@ describe('support inquiry contracts', () => {
   it('derives inquiry sender identity from the authenticated server session', () => {
     const route = read('app/api/v1/contact/route.ts');
     expect(route).toContain('supabase.auth.getUser(authorization.slice(7))');
-    expect(route).toContain('user_id: authData.user.id');
-    expect(route).toContain('sender_email: authData.user.email');
+    expect(route).toContain('userId = authData.user.id');
+    expect(route).toContain('senderEmail = authData.user.email');
+    expect(route).toContain('user_id: userId');
+    expect(route).toContain('sender_email: senderEmail');
     expect(route).toContain("from('support_inquiries').insert");
     expect(route).not.toContain('body.userId');
     expect(route).not.toContain('body.email');
+  });
+
+  it('allows a suspension appeal only for an already-suspended account', () => {
+    const contact = read('app/api/v1/contact/route.ts');
+    const migration = read('supabase/migrations/20260915000029_suspension_appeals.sql');
+    expect(contact).toContain("body.category === 'suspension_appeal'");
+    expect(contact).toContain(".eq('is_suspended', true)");
+    expect(contact).toContain("body.category === 'suspension_appeal'");
+    expect(migration).toContain("'suspension_appeal'");
+  });
+
+  it('enforces suspension in Auth, profile reads, and generation requests', () => {
+    const master = read('app/api/master/route.ts');
+    const profile = read('app/api/v1/profile/route.ts');
+    const analyze = read('app/api/v1/analyze/route.ts');
+    const authProvider = read('app/components/AuthProvider.tsx');
+    const authModal = read('app/components/AuthModal.tsx');
+    expect(master).toContain('auth.admin.updateUserById');
+    expect(master).toContain("ban_duration: body.suspended ? '876000h' : 'none'");
+    expect(profile).toContain('ACCOUNT_SUSPENDED');
+    expect(analyze).toContain('Account suspended');
+    expect(authProvider).toContain('checkAccountSuspension');
+    expect(authModal).toContain('auth_suspended_appeal');
   });
 
   it('stores support inquiries privately and presents them in the protected Master Console', () => {

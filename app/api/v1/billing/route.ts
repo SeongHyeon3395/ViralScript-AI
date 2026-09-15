@@ -20,8 +20,13 @@ function paymentDisabledResponse(): NextResponse | null {
 async function authenticatedUser(req: NextRequest) {
   const authorization = req.headers.get('authorization');
   if (!authorization?.startsWith('Bearer ')) return null;
-  const { data, error } = await createAdminClient().auth.getUser(authorization.slice(7));
-  return error ? null : data.user;
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.getUser(authorization.slice(7));
+  if (error || !data.user) return null;
+  const { data: profile, error: profileError } = await admin.from('profiles').select('is_suspended').eq('id', data.user.id).maybeSingle();
+  if (profileError) throw new Error('Failed to verify account status');
+  if (profile?.is_suspended) return 'suspended' as const;
+  return data.user;
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -29,6 +34,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   if (gate) return gate;
   const user = await authenticatedUser(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (user === 'suspended') return NextResponse.json({ error: 'ACCOUNT_SUSPENDED' }, { status: 403 });
   const { data, error } = await createAdminClient().from('profiles')
     .select('subscription_plan, credits_remaining').eq('id', user.id).maybeSingle();
   if (error || !data) return NextResponse.json({ error: 'Failed to load billing profile' }, { status: 500 });
@@ -40,6 +46,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (gate) return gate;
   const user = await authenticatedUser(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (user === 'suspended') return NextResponse.json({ error: 'ACCOUNT_SUSPENDED' }, { status: 403 });
 
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }

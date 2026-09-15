@@ -32,12 +32,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, email, credits_remaining, default_language, last_roulette_spin_at')
+    .select('id, email, credits_remaining, default_language, last_roulette_spin_at, is_suspended, suspension_reason')
     .eq('id', user.id)
     .maybeSingle();
 
   if (error || !profile) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+  }
+
+  if ((profile as { is_suspended?: boolean }).is_suspended) {
+    return NextResponse.json({ error: 'ACCOUNT_SUSPENDED', suspensionReason: (profile as { suspension_reason?: string | null }).suspension_reason ?? null }, { status: 403 });
   }
 
   return NextResponse.json({ data: profile });

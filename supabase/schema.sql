@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS public.support_inquiries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
   sender_email TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('account', 'billing', 'generation', 'bug', 'feature', 'other')),
+  category TEXT NOT NULL CHECK (category IN ('account', 'billing', 'generation', 'bug', 'feature', 'other', 'suspension_appeal')),
   message TEXT NOT NULL CHECK (char_length(message) BETWEEN 10 AND 5000),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

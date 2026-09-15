@@ -30,6 +30,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: false, error: '프로필을 준비하지 못했습니다.' }, { status: 500 });
   }
 
+  const { data: account, error: accountError } = await supabase.from('profiles').select('is_suspended').eq('id', user.id).maybeSingle();
+  if (accountError) return NextResponse.json({ success: false, error: '계정 상태를 확인하지 못했습니다.' }, { status: 500 });
+  if (account?.is_suspended) return NextResponse.json({ success: false, error: 'ACCOUNT_SUSPENDED' }, { status: 403 });
+
   const { data: awardedCredits, error } = await supabase.rpc('claim_daily_bonus', {
     target_user_id: user.id,
     bonus_credits: null,

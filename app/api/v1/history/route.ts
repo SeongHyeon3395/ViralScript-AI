@@ -18,6 +18,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   if (userError || !userData.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const { data: account, error: accountError } = await supabase.from('profiles').select('is_suspended').eq('id', userData.user.id).maybeSingle();
+  if (accountError) return NextResponse.json({ error: 'Failed to verify account status' }, { status: 500 });
+  if (account?.is_suspended) return NextResponse.json({ error: 'ACCOUNT_SUSPENDED' }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const parsedLimit = Number.parseInt(searchParams.get('limit') ?? '20', 10);
@@ -55,6 +58,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   if (userError || !userData.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const { data: account, error: accountError } = await supabase.from('profiles').select('is_suspended').eq('id', userData.user.id).maybeSingle();
+  if (accountError) return NextResponse.json({ error: 'Failed to verify account status' }, { status: 500 });
+  if (account?.is_suspended) return NextResponse.json({ error: 'ACCOUNT_SUSPENDED' }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const historyId = searchParams.get('id');

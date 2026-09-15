@@ -177,6 +177,7 @@ export default function GeneratorPage() {
   const [productionMethod, setProductionMethod] = useState('Live action');
   const [aiVideoTool, setAiVideoTool] = useState('Google Veo');
   const [customPrompt, setCustomPrompt] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState(t('gen_preparing'));
@@ -328,7 +329,7 @@ export default function GeneratorPage() {
                   </div>
                 </div>
               )}
-              <div className="space-y-2">
+               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Link2 size={14} className="text-violet-400" />{t('gen_url_label')} <span className="text-[10px] font-normal text-white/35">({t('gen_optional_label')})</span>{sourcePlatform && <span className="text-[10px] font-normal text-cyan-300/70">{sourcePlatform}</span>}</label>
                 <input type="url" value={url} onChange={e => { setUrl(e.target.value); if (urlError) setUrlError(null); }} placeholder={t('gen_url_placeholder_localized')} className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark ${urlError ? 'border-red-500/60 ring-1 ring-red-500/30' : ''}`} />
                 {urlError && <p className="flex items-center gap-1.5 text-xs text-red-400 fade-in-up"><span>⚠️</span> {urlError}</p>}
@@ -341,19 +342,26 @@ export default function GeneratorPage() {
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Sparkles size={14} className="text-emerald-400" />{t('gen_topic_label')} <span className="text-xs font-bold text-amber-300">({t('gen_input_required')})</span></label>
                 <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder={t('gen_topic_required')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
-                <p className="text-[11px] leading-relaxed text-white/40">{t('gen_topic_hint')}</p>
-              </div>
-              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_content_goal_heading')}</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
+                 <p className="text-[11px] leading-relaxed text-white/40">{t('gen_topic_hint')}</p>
+               </div>
+               <div className="rounded-xl border border-white/8 bg-white/[0.025] p-3">
+                 <p className="text-[11px] text-white/45">{t('gen_defaults_summary')}</p>
+                 <button type="button" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-100"><SlidersHorizontal size={13} />{t('gen_advanced_options')}</button>
+                 <p className="mt-1 text-[11px] text-white/35">{t('gen_advanced_options_desc')}</p>
+               </div>
+               {showAdvanced && <div className="space-y-4 rounded-xl border border-violet-400/15 bg-violet-500/[0.03] p-4 fade-in-up">
+               <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_content_goal_heading')}</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
               <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_concept_heading')}</label><ChoiceChips options={CONCEPTS} value={concept} onChange={setConcept} /></div>
               <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_mood')}</label><input value={mood} onChange={e => setMood(e.target.value)} placeholder={t('gen_mood_placeholder')} className="w-full rounded-xl px-3 py-2.5 text-xs input-dark" /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Clapperboard size={13} className="text-pink-400" />{t('gen_cast')}</label><ChoiceChips options={['On-camera talent', 'Faceless']} value={cast} onChange={setCast} /></div></div>
               <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_video_length')}</label><ChoiceChips options={DURATIONS} value={duration} onChange={setDuration} /></div><div className="space-y-2"><label className="flex items-center gap-1.5 text-xs font-semibold text-white/70"><Languages size={13} className="text-emerald-400" />{t('gen_language')}</label><ChoiceChips options={LANGUAGES} value={language} onChange={setLanguage} /></div></div>
-              <div className="space-y-2">
+               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><SlidersHorizontal size={14} className="text-amber-400" />{t('gen_custom_prompt_label')} <span className="text-xs text-white/25 font-normal">({t('gen_optional')})</span></label>
-                <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder={t('gen_custom_prompt_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
-              </div>
-            </div>
+                 <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder={t('gen_custom_prompt_placeholder')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark resize-none" />
+               </div>
+               </div>}
+             </div>
 
-            <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+            {showAdvanced && <div className="rounded-2xl p-5 sm:p-7 space-y-5 fade-in-up" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black">3</span><div><h3 className="text-sm font-bold text-white">{t('gen_method_heading')}</h3><p className="text-xs text-white/40">{t('gen_method_desc')}</p></div></div>
               <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_production_method')}</label><ChoiceChips options={PRODUCTION_METHODS} value={productionMethod} onChange={setProductionMethod} /></div>
               {productionMethod === 'AI video generation' && (
@@ -362,7 +370,7 @@ export default function GeneratorPage() {
                   <ChoiceChips options={AI_VIDEO_TOOLS} value={aiVideoTool} onChange={setAiVideoTool} />
                 </div>
               )}
-            </div>
+            </div>}
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-4" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">{t('gen_options_heading')}</h3><p className="text-xs text-white/40">{t('gen_options_desc')}</p></div></div>
