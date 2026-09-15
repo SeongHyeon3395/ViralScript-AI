@@ -129,7 +129,7 @@ async function getInquiries(req: NextRequest, session: Awaited<ReturnType<typeof
   const validCategories = ['account', 'billing', 'generation', 'bug', 'feature', 'other', 'suspension_appeal'];
   let query = session.supabase
     .from('support_inquiries')
-    .select('id, user_id, sender_email, category, message, created_at', { count: 'exact' })
+    .select('id, user_id, sender_email, category, message, status, admin_note, handled_by, handled_at, created_at, updated_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   if (validCategories.includes(category)) query = query.eq('category', category);
@@ -195,7 +195,14 @@ interface TrendModerationBody {
   reason?: string;
 }
 
-type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody;
+interface InquiryUpdateBody {
+  action: 'update_inquiry';
+  inquiryId: string;
+  status: 'new' | 'in_progress' | 'resolved';
+  adminNote?: string;
+}
+
+type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody | InquiryUpdateBody;
 
 async function updateUser(session: Awaited<ReturnType<typeof requireMaster>>, body: UserUpdateBody) {
   if (session.role !== 'master') throw new MasterAuthError(403, 'Only a master may change user accounts.');
@@ -282,6 +289,20 @@ async function moderateTrend(session: Awaited<ReturnType<typeof requireMaster>>,
   return after;
 }
 
+async function updateInquiry(session: Awaited<ReturnType<typeof requireMaster>>, body: InquiryUpdateBody) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.inquiryId ?? '')) throw new Error('문의 ID가 올바르지 않습니다.');
+  if (!['new', 'in_progress', 'resolved'].includes(body.status)) throw new Error('문의 상태가 올바르지 않습니다.');
+  if (body.adminNote !== undefined && (typeof body.adminNote !== 'string' || body.adminNote.length > 2000)) throw new Error('관리 메모가 너무 깁니다.');
+  const { data, error } = await session.supabase.rpc('master_update_inquiry_with_audit', {
+    p_actor_id: session.user.id,
+    p_inquiry_id: body.inquiryId,
+    p_status: body.status,
+    p_admin_note: body.adminNote?.trim() || null,
+  });
+  if (error || !data) throw new Error(error?.message ?? '문의 상태 변경에 실패했습니다.');
+  return data;
+}
+
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await requireMaster(req);
@@ -295,9 +316,11 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       ? await updateUser(session, body)
       : body.action === 'update_trend'
         ? await updateTrend(session, body)
-        : body.action === 'delete_trend' || body.action === 'restore_trend'
-          ? await moderateTrend(session, body)
-          : null;
+        : body.action === 'update_inquiry'
+          ? await updateInquiry(session, body)
+          : body.action === 'delete_trend' || body.action === 'restore_trend'
+            ? await moderateTrend(session, body)
+            : null;
     if (!data) return NextResponse.json({ error: '지원하지 않는 작업입니다.' }, { status: 400 });
     return NextResponse.json({ data });
   } catch (error) {

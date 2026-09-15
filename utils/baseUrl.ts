@@ -2,7 +2,7 @@
  * 공통 Base URL 헬퍼
  * 
  * - 클라이언트 사이드: 상대 경로 사용 (return '')
- * - 서버 사이드: NEXT_PUBLIC_APP_URL > VERCEL_URL > 프로덕션 fallback 순서
+ * - 서버 사이드: NEXT_PUBLIC_SITE_URL > legacy NEXT_PUBLIC_APP_URL > VERCEL_URL 순서
  */
 export function getBaseUrl(): string {
   if (typeof window !== 'undefined') {
@@ -10,7 +10,7 @@ export function getBaseUrl(): string {
   }
 
   // Vercel 서버사이드 우선순위
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
   if (appUrl) return appUrl;
 
   const vercelUrl = process.env.VERCEL_URL;

@@ -71,18 +71,16 @@ CREATE TRIGGER trg_on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- 4. [이메일 찾기] 이름 + 국가번호 + 전화번호 기반 이메일 조회 RPC 함수
-CREATE OR REPLACE FUNCTION public.find_email_by_phone(
+DROP FUNCTION IF EXISTS public.find_email_by_phone(TEXT, TEXT, TEXT);
+CREATE FUNCTION public.find_email_by_phone(
   p_full_name TEXT,
   p_phone_country_code TEXT,
   p_phone_number TEXT
 )
-RETURNS TABLE (
-  email TEXT,
-  masked_email TEXT
-)
+RETURNS TABLE (masked_email TEXT)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_clean_phone TEXT;
@@ -94,7 +92,6 @@ BEGIN
 
   RETURN QUERY
   SELECT
-    p.email,
     CASE 
       WHEN POSITION('@' IN p.email) > 0 THEN
         CONCAT(
@@ -102,17 +99,18 @@ BEGIN
           '***@',
           SPLIT_PART(p.email, '@', 2)
         )
-      ELSE p.email
+      ELSE '***'
     END AS masked_email
   FROM public.profiles p
   WHERE (p.full_name IS NOT NULL AND LOWER(TRIM(p.full_name)) = LOWER(TRIM(p_full_name)))
     AND REGEXP_REPLACE(COALESCE(p.phone_number, ''), '[^\d]', '', 'g') = v_clean_phone
-    AND (p_phone_country_code IS NULL OR p.phone_country_code IS NULL OR p.phone_country_code = v_clean_country)
+    AND (p_phone_country_code IS NULL OR p.phone_country_code = v_clean_country)
   LIMIT 1;
 END;
 $$;
 
 -- anon 및 authenticated 역할에 RPC 실행 권한 부여
+REVOKE ALL ON FUNCTION public.find_email_by_phone(TEXT, TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.find_email_by_phone(TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
 
 -- ============================================================
@@ -198,3 +196,11 @@ CREATE INDEX IF NOT EXISTS support_inquiries_user_created_at_idx ON public.suppo
 ALTER TABLE public.support_inquiries ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.support_inquiries FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.support_inquiries TO service_role;
+
+ALTER TABLE public.support_inquiries
+  ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'new'
+    CHECK (status IN ('new', 'in_progress', 'resolved')),
+  ADD COLUMN IF NOT EXISTS admin_note TEXT,
+  ADD COLUMN IF NOT EXISTS handled_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS handled_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();

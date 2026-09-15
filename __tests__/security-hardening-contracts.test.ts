@@ -6,6 +6,8 @@ const root = resolve(__dirname, '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 const migration = () => read('supabase/migrations/20260914000026_security_and_topic_generation.sql');
 const referralMigration = () => read('supabase/migrations/20260915000027_referrals_and_rewards.sql');
+const emailRecoveryMigration = () => read('supabase/migrations/20260915000030_email_recovery_privacy.sql');
+const inquiryWorkflowMigration = () => read('supabase/migrations/20260915000031_support_inquiry_workflow.sql');
 
 describe('topic-only generation contracts', () => {
   it('stores a missing source URL as NULL and leaves debit/history atomic', () => {
@@ -120,6 +122,41 @@ describe('signup form usability and password policy', () => {
   });
 });
 
+describe('privacy, credits, and disabled reward UX', () => {
+  it('returns only a masked email from the anonymous recovery RPC', () => {
+    const sql = emailRecoveryMigration();
+    expect(sql).toContain('RETURNS TABLE (masked_email TEXT)');
+    expect(sql).not.toContain('RETURNS TABLE (email TEXT');
+    expect(sql).not.toContain('SELECT p.email');
+    expect(read('app/components/AuthModal.tsx')).not.toContain('Array<{ email: string; masked_email: string }>');
+  });
+
+  it('uses one server-derived eight-credit generation price everywhere', () => {
+    expect(read('lib/credits.ts')).toContain('FULL_ANALYSIS: 8');
+    expect(read('app/api/v1/analyze/route.ts')).toContain('관계없이 8크레딧');
+    expect(read('app/components/GenerationResult.tsx')).toContain('CREDIT_COST.FULL_ANALYSIS');
+    const translations = read('app/components/LanguageSwitcher.tsx');
+    expect(translations).not.toMatch(/gen_(?:cost_value|create_plan_cost|credits_cost_range):[^\n]*5/);
+  });
+
+  it('keeps the unverified ad reward action disabled in the client', () => {
+    const pricing = read('app/pricing/page.tsx');
+    expect(pricing).toContain("NEXT_PUBLIC_ENABLE_ADS_REWARD === 'true'");
+    expect(pricing).toContain('disabled: !ADS_REWARD_ENABLED');
+    expect(pricing).toContain('{ADS_REWARD_ENABLED && <RewardedAdPopup');
+    expect(read('app/generator/page.tsx')).toContain('{ADS_REWARD_ENABLED && <RewardedAdPopup');
+  });
+
+  it('aligns the legal documents with stored data and the eight-credit policy', () => {
+    const privacy = read('app/privacy/page.tsx');
+    const terms = read('app/terms/page.tsx');
+    expect(privacy).toContain('국가번호, 전화번호');
+    expect(privacy).toContain('Ad rewards are currently disabled');
+    expect(terms).toContain('생성 1회당 8크레딧');
+    expect(terms).toContain('Each completed generation costs eight credits');
+  });
+});
+
 describe('payment and ad verification contracts', () => {
   it('accepts only planId at billing start and derives the order server-side', () => {
     const route = read('app/api/v1/billing/route.ts');
@@ -181,6 +218,19 @@ describe('admin, language, and trend contracts', () => {
     expect(cron).toContain('updated_at: collectedAt');
     expect(migration()).toContain('ADD COLUMN IF NOT EXISTS updated_at');
   });
+
+  it('adds browser security headers and recovers visibly from settings load failures', () => {
+    const config = read('next.config.ts');
+    const settings = read('app/settings/page.tsx');
+    expect(config).toContain("key: 'Content-Security-Policy'");
+    expect(config).toContain("frame-ancestors 'none'");
+    expect(config).toContain("key: 'X-Content-Type-Options'");
+    expect(config).toContain('poweredByHeader: false');
+    expect(settings).toContain("setLoadError(t('settings_load_failed'))");
+    expect(settings).toContain("t('settings_retry')");
+    expect(settings).toContain("t('auth_password_special_char')");
+    expect(settings).toContain('aria-pressed={checked}');
+  });
 });
 
 describe('support inquiry contracts', () => {
@@ -230,5 +280,15 @@ describe('support inquiry contracts', () => {
     expect(masterRoute).toContain("from('support_inquiries')");
     expect(consoleSource).toContain('InquiriesPanel');
     expect(consoleSource).toContain('inquiryCategory');
+  });
+
+  it('tracks inquiry handling and its audit record in one database transaction', () => {
+    const sql = inquiryWorkflowMigration();
+    const masterRoute = read('app/api/master/route.ts');
+    expect(sql).toContain("CHECK (status IN ('new', 'in_progress', 'resolved'))");
+    expect(sql).toContain('INSERT INTO public.admin_audit_logs');
+    expect(sql).toContain('ADMIN_ROLE_REQUIRED');
+    expect(masterRoute).toContain("action: 'update_inquiry'");
+    expect(masterRoute).toContain('master_update_inquiry_with_audit');
   });
 });

@@ -162,7 +162,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   const isCacheHit = !!cached;
 
-  // 모든 대본 생성은 캐시 여부와 영상 길이에 관계없이 5크레딧이다.
+  // 모든 대본 생성은 캐시 여부와 영상 길이에 관계없이 8크레딧이다.
   const minCreditCheck = CREDIT_COST.FULL_ANALYSIS;
 
   // 5. 최소 잔액 확인 (캐시 미스 시 스크래핑 원가 낭비 방지)

@@ -2,8 +2,45 @@
 
 import Navbar from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
+import { useLanguage } from '@/app/components/LanguageProvider';
 
 export default function TermsPage() {
+  const { language } = useLanguage();
+
+  if (language !== 'ko') {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 px-4 pb-20 pt-28 sm:px-6">
+          <div className="mx-auto max-w-3xl space-y-6">
+            {(language === 'ja' || language === 'zh') && <p className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-100">A reviewed translation is not yet available for your selected language. The English Terms are shown as the governing default.</p>}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-center">
+              <h1 className="text-3xl font-extrabold text-white">Terms of Service</h1>
+              <p className="mt-3 text-xs text-white/30">Effective: September 15, 2026</p>
+            </div>
+            <div className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-sm leading-7 text-white/60">
+              <h2 className="font-bold text-violet-300">1. Service</h2>
+              <p>ViralScript AI creates short-form video scripts, scene plans, prompts, and editing guidance from a topic or an optional supported public video URL. It does not promise virality, commercial results, or error-free output.</p>
+              <h2 className="font-bold text-violet-300">2. Your responsibilities</h2>
+              <p>You must have the right to submit any URL or material you provide. You are responsible for reviewing generated output and for complying with copyright, advertising, platform, and other applicable rules before publishing it.</p>
+              <h2 className="font-bold text-violet-300">3. Credits</h2>
+              <p>Each completed generation costs eight credits, regardless of video length, cache use, or whether a reference URL is supplied. Failed AI generation or a failed database transaction must not consume credits. Promotional credit terms may change with notice.</p>
+              <h2 className="font-bold text-violet-300">4. Payments and ad rewards</h2>
+              <p>Payments are available only when the payment feature and verified provider configuration are enabled. Ad rewards are currently unavailable because server-side reward verification is not configured; browser events alone never qualify for credit.</p>
+              <h2 className="font-bold text-violet-300">5. Account controls</h2>
+              <p>We may suspend accounts for fraud, abuse, security threats, or material violations. Suspended users may submit an appeal through the provided contact form. Account deletion is permanent and the same email may be restricted from re-registration for 30 days.</p>
+              <h2 className="font-bold text-violet-300">6. Availability and liability</h2>
+              <p>Third-party services such as Supabase, Vercel, Google Gemini, Apify, Stripe, and Toss may affect availability. To the extent permitted by law, the service is provided without guarantees of uninterrupted availability or a particular business result.</p>
+              <h2 className="font-bold text-violet-300">7. Contact and governing law</h2>
+              <p>Use Contact us in the footer for support. These Terms are governed by the laws of the Republic of Korea, subject to mandatory consumer protection law.</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -14,14 +51,14 @@ export default function TermsPage() {
             <h1 className="text-3xl font-extrabold text-white">이용약관</h1>
             <p className="text-sm text-white/50">Terms of Service</p>
             <div className="h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
-            <p className="text-xs text-white/30">제정 및 시행일: 2026년 7월 14일</p>
+            <p className="text-xs text-white/30">개정 및 시행일: 2026년 9월 15일</p>
           </div>
 
           {/* Sections */}
           <Section num="1" title="목적" content="본 약관은 ViralScript AI(이하 플랫폼)가 제공하는 소셜 미디어 숏폼 영상 구조 분석, 메타데이터 처리 및 다국어 AI 대본 생성 서비스의 이용과 관련하여, 플랫폼과 회원 간의 권리, 의무, 책임 사항 및 서비스 이용 절차를 규정함을 목적으로 합니다." />
 
           <Section num="2" title="용어의 정의">
-            <ListItem label="서비스" desc="이용자가 제출한 YouTube Shorts 또는 TikTok URL을 기반으로, 원본 영상을 저장하지 않고 대사 및 연출 구조만을 분석하여 AI로 2차 창작 마케팅 대본을 제공하는 웹 플랫폼입니다." />
+            <ListItem label="서비스" desc="이용자가 입력한 콘텐츠 주제 또는 선택적으로 제출한 YouTube Shorts·TikTok URL을 바탕으로 AI 영상 대본, 장면 설계, 프롬프트와 편집 가이드를 제공하는 웹 플랫폼입니다." />
             <ListItem label="크레딧" desc="플랫폼 내에서 AI 분석 및 대본 생성 기능을 이용하기 위해 소모되는 내부 재화입니다. 보상형 광고 시청 또는 프로모션을 통해 획득할 수 있습니다." />
             <ListItem label="미들웨어" desc="URL의 정상 여부를 확인하고 텍스트 메타데이터를 정제하기 위해 연동된 제3자 스크래핑 및 데이터 분석 API입니다." />
           </Section>
@@ -40,8 +77,8 @@ export default function TermsPage() {
           </Section>
 
           <Section num="5" title="크레딧 정책 및 보상형 광고">
-            <HighlightItem label="차등 소진" desc="서비스 이용 시 제출된 영상의 재생 길이에 따라 크레딧이 차등 차감됩니다. (예: 15초 이하 1크레딧, 30초 이하 3크레딧, 60초 이하 5크레딧, 61초 초과 8크레딧)" />
-            <HighlightItem label="광고 시청 보상" desc="이용자는 구글 애드센스(Google AdSense) 등 제3자 광고 플랫폼의 보상형 동영상 광고를 시청함으로써 무료 크레딧을 적립할 수 있습니다." />
+            <HighlightItem label="일괄 소진" desc="영상 길이, 캐시 사용 여부, 참고 URL 제공 여부와 관계없이 정상 완료된 생성 1회당 8크레딧이 차감됩니다. AI 생성 또는 데이터베이스 저장이 실패하면 크레딧을 차감하지 않습니다." />
+            <HighlightItem label="광고 보상 일시 중단" desc="현재 광고 제공업체의 서버 측 보상 검증 기능이 준비되지 않아 광고 시청에 따른 크레딧 지급은 비활성화되어 있습니다. 브라우저 이벤트만으로는 보상을 지급하지 않습니다." />
             <HighlightItem label="어뷰징 금지" desc="광고 차단 프로그램(AdBlock) 사용, 비정상적인 스크립트·매크로·결함 유도 등을 통해 광고 시청 없이 크레딧을 부당 취득한 경우, 플랫폼은 사전 통보 없이 해당 계정을 영구 정지하고 보유 크레딧을 소멸시킬 수 있습니다." />
           </Section>
 
@@ -59,7 +96,7 @@ export default function TermsPage() {
           <Section num="8" title="관할 법원" content="본 약관과 관련하여 플랫폼과 이용자 간에 발생한 분쟁에 대해서는 대한민국 법을 준거법으로 하며, 민사소송법상의 관할 법원을 제1심 전속 관할 법원으로 합니다." />
 
           <div className="rounded-2xl p-6 text-center" style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)' }}>
-            <p className="text-sm text-white/50">본 약관은 <strong className="text-violet-300">2026년 7월 14일</strong>부터 시행됩니다.</p>
+            <p className="text-sm text-white/50">본 약관은 <strong className="text-violet-300">2026년 9월 15일</strong>부터 시행됩니다.</p>
           </div>
         </div>
       </main>

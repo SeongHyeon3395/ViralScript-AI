@@ -47,7 +47,7 @@ function formatDate(value: string | null): string {
 function actionLabel(action: string): string {
   return ({
     'user.update': '사용자 수정', 'user.suspend': '계정 정지', 'user.restore': '계정 복원',
-    'trend.update': '피드 수정', 'trend.delete': '피드 삭제', 'trend.restore': '피드 복원',
+    'trend.update': '피드 수정', 'trend.delete': '피드 삭제', 'trend.restore': '피드 복원', 'inquiry.status_update': '문의 상태 변경',
   } as Record<string, string>)[action] ?? action;
 }
 
@@ -225,7 +225,7 @@ export default function MasterConsole() {
           {tab === 'users' && <UsersPanel data={users} search={search} setSearch={setSearch} edit={setEditingUser} page={(page) => void load('users', page)} />}
           {tab === 'trends' && <TrendsPanel data={trends} search={search} setSearch={setSearch} status={trendStatus} setStatus={setTrendStatus} edit={setEditingTrend} moderate={(row, restore) => { if (window.confirm(restore ? '이 피드를 복원하시겠습니까?' : '이 피드를 피드에서 숨기시겠습니까? 언제든 복원할 수 있습니다.')) void mutate({ action: restore ? 'restore_trend' : 'delete_trend', trendId: row.id }, restore ? '피드를 복원했습니다.' : '피드를 삭제 보관함으로 이동했습니다.'); }} page={(page) => void load('trends', page)} />}
           {tab === 'audits' && <AuditsPanel data={audits} page={(page) => void load('audits', page)} />}
-          {tab === 'inquiries' && <InquiriesPanel data={inquiries} search={search} setSearch={setSearch} category={inquiryCategory} setCategory={setInquiryCategory} page={(page) => void load('inquiries', page)} />}
+          {tab === 'inquiries' && <InquiriesPanel data={inquiries} search={search} setSearch={setSearch} category={inquiryCategory} setCategory={setInquiryCategory} update={(row, nextStatus) => { const adminNote = window.prompt('관리 메모를 입력하세요. 민감정보는 입력하지 마세요.', row.admin_note ?? ''); if (adminNote === null) return; void mutate({ action: 'update_inquiry', inquiryId: row.id, status: nextStatus, adminNote }, '문의 상태를 저장했습니다.'); }} page={(page) => void load('inquiries', page)} />}
           {loading && <div className="pointer-events-none fixed inset-0 z-40 grid place-items-center bg-black/15"><Loader2 className="animate-spin text-violet-300" size={30} /></div>}
         </section>
       </div>
@@ -264,14 +264,14 @@ const inquiryCategoryLabels: Record<InquiryRow['category'], string> = {
   account: '계정 및 로그인', billing: '결제 및 크레딧', generation: '영상 제작', bug: '오류 신고', feature: '기능 제안', other: '기타', suspension_appeal: '정지 이의 신청',
 };
 
-function InquiriesPanel({ data, search, setSearch, category, setCategory, page }: { data: PageData<InquiryRow>; search: string; setSearch: (v: string) => void; category: string; setCategory: (v: string) => void; page: (v: number) => void }) {
+function InquiriesPanel({ data, search, setSearch, category, setCategory, update, page }: { data: PageData<InquiryRow>; search: string; setSearch: (v: string) => void; category: string; setCategory: (v: string) => void; update: (row: InquiryRow, status: InquiryRow['status']) => void; page: (v: number) => void }) {
   return <div>
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2"><label className="text-xs text-white/45" htmlFor="inquiry-category">카테고리</label><select id="inquiry-category" value={category} onChange={(event) => setCategory(event.target.value)} className="input-dark rounded-xl px-3 py-2 text-xs"><option value="all">전체</option>{Object.entries(inquiryCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
       <SearchBar value={search} setValue={setSearch} />
     </div>
     <p className="mb-3 text-xs text-white/35">총 {data.total.toLocaleString()}건</p>
-    <div className="space-y-3">{data.inquiries?.map((inquiry) => <article key={inquiry.id} className="rounded-2xl border border-white/8 bg-white/[.025] p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><span className="rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-bold text-violet-200">{inquiryCategoryLabels[inquiry.category]}</span><h3 className="mt-3 font-bold">{inquiry.sender_name || '이름 없음'}</h3><a href={`mailto:${inquiry.sender_email}`} className="mt-1 inline-block text-sm text-violet-300 hover:text-violet-200">{inquiry.sender_email}</a></div><time className="text-xs text-white/40">{formatDate(inquiry.created_at)}</time></div><p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-white/75">{inquiry.message}</p></article>)}</div>
+    <div className="space-y-3">{data.inquiries?.map((inquiry) => <article key={inquiry.id} className="rounded-2xl border border-white/8 bg-white/[.025] p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><span className="rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-bold text-violet-200">{inquiryCategoryLabels[inquiry.category]}</span><h3 className="mt-3 font-bold">{inquiry.sender_name || '이름 없음'}</h3><a href={`mailto:${inquiry.sender_email}`} className="mt-1 inline-block text-sm text-violet-300 hover:text-violet-200">{inquiry.sender_email}</a></div><div className="flex items-center gap-2"><label className="text-xs text-white/40" htmlFor={`inquiry-status-${inquiry.id}`}>처리 상태</label><select id={`inquiry-status-${inquiry.id}`} value={inquiry.status} onChange={(event) => update(inquiry, event.target.value as InquiryRow['status'])} className="input-dark rounded-lg px-2 py-1.5 text-xs"><option value="new">새 문의</option><option value="in_progress">처리 중</option><option value="resolved">처리 완료</option></select><time className="text-xs text-white/40">{formatDate(inquiry.created_at)}</time></div></div><p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-white/75">{inquiry.message}</p>{inquiry.admin_note && <p className="mt-3 rounded-lg bg-white/5 p-3 text-xs text-white/45">관리 메모: {inquiry.admin_note}</p>}</article>)}</div>
     {!data.inquiries?.length && <div className="rounded-2xl border border-white/8"><Empty /></div>}
     <Pagination page={data.page} total={data.total} size={data.pageSize} go={page} />
   </div>;
@@ -297,4 +297,5 @@ function TrendEditor({ trend, close, save }: { trend: TrendRow; close: () => voi
 interface InquiryRow {
   id: string; user_id: string; sender_email: string; sender_name: string | null;
   category: 'account' | 'billing' | 'generation' | 'bug' | 'feature' | 'other' | 'suspension_appeal'; message: string; created_at: string;
+  status: 'new' | 'in_progress' | 'resolved'; admin_note: string | null; handled_by: string | null; handled_at: string | null; updated_at: string;
 }

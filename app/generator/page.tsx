@@ -13,6 +13,8 @@ import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
+
+const ADS_REWARD_ENABLED = process.env.NEXT_PUBLIC_ENABLE_ADS_REWARD === 'true';
 import { clearUserCreditsCache } from '@/lib/profile';
 import {
   Link2, SlidersHorizontal, Rocket, Loader2, Zap,
@@ -384,7 +386,7 @@ export default function GeneratorPage() {
               {credits !== undefined && credits < 5 && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
-                  <button onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>
+                  {ADS_REWARD_ENABLED && <button type="button" onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>}
                 </div>
               )}
               <button onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (credits !== undefined && credits < 5)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
@@ -413,7 +415,7 @@ export default function GeneratorPage() {
               )}
 
               <div className="flex items-center justify-center gap-1">
-                <button onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('gen_credits_low_cta')}<RefreshCw size={11} /></button>
+                {ADS_REWARD_ENABLED ? <button type="button" onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('gen_credits_low_cta')}<RefreshCw size={11} /></button> : <span className="text-xs text-white/30">{t('ads_temporarily_unavailable')}</span>}
               </div>
             </div>
             {result && <div className="flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-5"><span className="mt-0.5 text-emerald-300">✓</span><div><h3 className="text-sm font-bold text-white">{t('gen_complete_title')}</h3><p className="mt-1 text-xs leading-relaxed text-white/55">{t('gen_complete_desc')}</p></div></div>}
@@ -432,9 +434,9 @@ export default function GeneratorPage() {
       </main>
 
       <DailyRewardWheel onClaim={handleRewardClaimed} />
-      <RewardedAdPopup isOpen={rewardPopupOpen} onClose={() => setRewardPopupOpen(false)} onRewardClaimed={handleRewardClaimed} rewardAmount={1} />
+      {ADS_REWARD_ENABLED && <RewardedAdPopup isOpen={rewardPopupOpen} onClose={() => setRewardPopupOpen(false)} onRewardClaimed={handleRewardClaimed} rewardAmount={1} />}
 
-      {adBlockDetected && (
+      {ADS_REWARD_ENABLED && adBlockDetected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="alertdialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div className="relative w-full max-w-sm glass-strong rounded-3xl overflow-hidden fade-in-up">

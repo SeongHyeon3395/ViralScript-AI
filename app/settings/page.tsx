@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -26,6 +26,7 @@ interface UserSettings {
 }
 
 type TabId = 'profile' | 'platform' | 'billing' | 'danger';
+const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
 
 function showToast(message: string, variant: 'success' | 'error' | 'info' = 'info') {
   window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, variant } }));
@@ -75,8 +76,8 @@ function TextInput({ value, onChange, placeholder, disabled }: {
   );
 }
 
-function PasswordField({ label, value, onChange, placeholder }: {
-  label: string; value: string; onChange: (value: string) => void; placeholder: string;
+function PasswordField({ label, value, onChange, placeholder, inputRef }: {
+  label: string; value: string; onChange: (value: string) => void; placeholder: string; inputRef?: React.Ref<HTMLInputElement>;
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -85,6 +86,7 @@ function PasswordField({ label, value, onChange, placeholder }: {
       <FieldLabel>{label}</FieldLabel>
       <div className="relative">
         <input
+          ref={inputRef}
           type={visible ? 'text' : 'password'}
           value={value}
           onChange={event => onChange(event.target.value)}
@@ -130,6 +132,9 @@ function Toggle({ checked, onChange, label, hint }: {
         {hint && <p className="text-xs text-white/30 mt-0.5">{hint}</p>}
       </div>
       <button
+        type="button"
+        aria-pressed={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-violet-600' : 'bg-white/10'}`}
       >
@@ -195,8 +200,10 @@ function PasswordChangeModal({ email, onClose }: { email: string; onClose: () =>
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const initialFocusRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    initialFocusRef.current?.focus();
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape' && !submitting) onClose();
     }
@@ -210,6 +217,10 @@ function PasswordChangeModal({ email, onClose }: { email: string; onClose: () =>
 
     if (newPassword.length < 8) {
       setError(t('settings_password_too_short'));
+      return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>~`_\-+=\[\]\\;'/]/.test(newPassword)) {
+      setError(t('auth_password_special_char'));
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -255,10 +266,10 @@ function PasswordChangeModal({ email, onClose }: { email: string; onClose: () =>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <PasswordField label={t('settings_current_password')} value={currentPassword} onChange={setCurrentPassword} placeholder={t('settings_current_password')} />
+          <PasswordField label={t('settings_current_password')} value={currentPassword} onChange={setCurrentPassword} placeholder={t('settings_current_password')} inputRef={initialFocusRef} />
           <PasswordField label={t('settings_new_password')} value={newPassword} onChange={setNewPassword} placeholder={t('settings_password_min')} />
           <PasswordField label={t('settings_confirm_password')} value={confirmPassword} onChange={setConfirmPassword} placeholder={t('settings_password_again')} />
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} disabled={submitting} className="rounded-xl px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40">{t('settings_cancel')}</button>
             <button type="submit" disabled={submitting || !currentPassword || !newPassword || !confirmPassword} className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40">
@@ -320,12 +331,14 @@ function BillingTab() {
           <Lock size={22} className="text-white/30" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white/50">{t('settings_billing_soon')}</p>
-          <p className="text-xs text-white/25 mt-1 max-w-xs">{t('settings_billing_desc')}</p>
+          <p className="text-sm font-semibold text-white/50">{t(PAYMENT_ENABLED ? 'settings_billing_ready' : 'settings_billing_soon')}</p>
+          <p className="text-xs text-white/25 mt-1 max-w-xs">{t(PAYMENT_ENABLED ? 'settings_billing_ready_desc' : 'settings_billing_desc')}</p>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs text-amber-300">
-          🔒 {t('settings_preparing')}
-        </span>
+        {PAYMENT_ENABLED ? (
+          <Link href="/pricing" className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm">{t('settings_manage_credits')}<ArrowRight size={14} /></Link>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs text-amber-300">🔒 {t('settings_preparing')}</span>
+        )}
       </div>
     </SectionCard>
   );
@@ -357,6 +370,7 @@ function DangerTab({ email, deleting, onDeleteAccount }: {
           />
         </div>
         <button
+          type="button"
           onClick={onDeleteAccount}
           disabled={!canDelete || deleting}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
@@ -378,6 +392,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [fetchLoading, setFetchLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveOk, setSaveOk] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -386,6 +401,8 @@ export default function SettingsPage() {
 
   const loadSettings = useCallback(async () => {
     if (!user) return;
+    setFetchLoading(true);
+    setLoadError(null);
     const supabase = getSupabaseBrowserClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
@@ -395,6 +412,8 @@ export default function SettingsPage() {
       .maybeSingle() as { data: Record<string, unknown> | null; error: unknown };
 
     if (error || !data) {
+      setSettings(null);
+      setLoadError(t('settings_load_failed'));
       setFetchLoading(false);
       return;
     }
@@ -501,6 +520,22 @@ export default function SettingsPage() {
     );
   }
 
+  if (!settings) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 px-4 pb-20 pt-32">
+          <div className="mx-auto max-w-md rounded-2xl border border-red-500/20 bg-red-500/5 p-7 text-center">
+            <AlertTriangle className="mx-auto text-red-300" size={28} aria-hidden="true" />
+            <p className="mt-4 text-sm text-red-200" role="alert">{loadError ?? t('settings_load_failed')}</p>
+            <button type="button" onClick={() => void loadSettings()} className="btn-primary mt-5 px-5 py-2.5 text-sm">{t('settings_retry')}</button>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -518,6 +553,8 @@ export default function SettingsPage() {
             <nav className="flex sm:flex-col gap-1 sm:w-44 shrink-0 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
               {TABS.map(({ id, icon: Icon, labelKey }) => (
                 <button
+                  type="button"
+                  aria-pressed={activeTab === id}
                   key={id}
                   onClick={() => setActiveTab(id)}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap
@@ -554,6 +591,7 @@ export default function SettingsPage() {
                   )}
                   {!saveError && !saveOk && <span />}
                   <button
+                    type="button"
                     onClick={handleSave}
                     disabled={saving}
                     className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-60"

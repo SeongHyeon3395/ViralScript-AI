@@ -2,9 +2,9 @@ import type { CreditPlan } from '@/types';
 
 /** 크레딧 과금 단위 */
 export const CREDIT_COST = {
-  FULL_ANALYSIS: 5,    // 대본 생성 1회 (스크래핑 + AI)
-  CACHE_HIT: 5,        // 동일 URL도 대본 생성 1회로 계산
-  BYOK_ANALYSIS: 5,    // BYOK 모드도 대본 생성 1회로 계산
+  FULL_ANALYSIS: 8,    // 대본 생성 1회 (스크래핑 + AI)
+  CACHE_HIT: 8,        // 동일 URL도 대본 생성 1회로 계산
+  BYOK_ANALYSIS: 8,    // BYOK 모드도 대본 생성 1회로 계산
 } as const;
 
 /** 판매 크레딧 플랜 */
@@ -15,7 +15,7 @@ export const CREDIT_PLANS: CreditPlan[] = [
     credits: 30,
     priceKrw: 9900,
     priceUsd: 7.49,
-    description: '첫 시작을 위한 기본 팩 · 6회 생성 가능',
+    description: 'Includes 30 credits · up to 3 generations',
   },
   {
     id: 'pro',
@@ -23,7 +23,7 @@ export const CREDIT_PLANS: CreditPlan[] = [
     credits: 90,
     priceKrw: 29700,
     priceUsd: 22.49,
-    description: '마케터 추천 · 18회 생성 가능',
+    description: 'Includes 90 credits · up to 11 generations',
   },
   {
     id: 'agency',
@@ -31,7 +31,7 @@ export const CREDIT_PLANS: CreditPlan[] = [
     credits: 300,
     priceKrw: 89000,
     priceUsd: 64.49,
-    description: '에이전시·팀 용 대용량 팩 · 60회 생성 가능',
+    description: 'Includes 300 credits · up to 37 generations',
   },
 ];
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Star, Shield, Zap, Check, ArrowRight, Gift, Play, Users, LogIn } from 'lucide-react';
-import { CREDIT_PLANS } from '@/lib/credits';
+import { CREDIT_COST, CREDIT_PLANS } from '@/lib/credits';
 import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
@@ -14,6 +14,7 @@ import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
 
 const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
+const ADS_REWARD_ENABLED = process.env.NEXT_PUBLIC_ENABLE_ADS_REWARD === 'true';
 
 export default function PricingPage() {
   useLanguage();
@@ -28,9 +29,9 @@ export default function PricingPage() {
     const status = new URLSearchParams(window.location.search).get('payment');
     const timer = window.setTimeout(() => {
       if (status === 'success') {
-        setPaymentMessage('Payment completed. Refreshing your credit balance…');
+        setPaymentMessage(t('payment_success_refreshing'));
         void refreshCredits();
-      } else if (status === 'cancelled') setPaymentMessage('Payment was cancelled.');
+      } else if (status === 'cancelled') setPaymentMessage(t('payment_cancelled'));
     }, 0);
     return () => window.clearTimeout(timer);
   }, [refreshCredits]);
@@ -41,16 +42,16 @@ export default function PricingPage() {
     try {
       const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
       const { data: { session } } = await getSupabaseBrowserClient().auth.getSession();
-      if (!session?.access_token) throw new Error('Please sign in to continue.');
+      if (!session?.access_token) throw new Error(t('contact_login_required'));
       const response = await fetch('/api/v1/billing', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ planId }),
       });
       const payload = await response.json() as { checkoutUrl?: string; error?: string };
-      if (!response.ok || !payload.checkoutUrl) throw new Error(payload.error ?? 'Payment checkout is unavailable.');
+      if (!response.ok || !payload.checkoutUrl) throw new Error(payload.error ?? t('payment_unavailable'));
       window.location.assign(payload.checkoutUrl);
     } catch (error) {
-      setPaymentMessage(error instanceof Error ? error.message : 'Payment checkout failed.');
+      setPaymentMessage(error instanceof Error ? error.message : t('payment_unavailable'));
       setPurchasingPlanId(null);
     }
   }
@@ -76,12 +77,12 @@ export default function PricingPage() {
                       {isPro && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-purple px-3 py-1 text-xs"><Star size={10} fill="currentColor" />{t('pricing_most_popular')}</span></div>}
                       <div className="flex-1">
                         <p className="text-xs font-bold text-white/40 tracking-widest uppercase mb-3">{plan.name}</p>
-                        <div className="flex items-end gap-1 mb-1"><span className="text-4xl font-extrabold text-white">{plan.credits}</span><span className="text-sm text-white/40 mb-1.5 ml-1">크레딧</span></div>
+                        <div className="flex items-end gap-1 mb-1"><span className="text-4xl font-extrabold text-white">{plan.credits}</span><span className="text-sm text-white/40 mb-1.5 ml-1">{t('pricing_credit_unit')}</span></div>
                         <p className={`text-2xl font-bold mb-0.5 ${isPro ? 'gradient-text' : 'text-violet-400'}`}>₩{plan.priceKrw.toLocaleString()}</p>
                         <p className="text-xs text-white/30">${plan.priceUsd} USD</p>
-                        <p className="text-sm text-white/50 mt-4 leading-relaxed">{plan.description}</p>
+                        <p className="text-sm text-white/50 mt-4 leading-relaxed">{t('pricing_generation_count').replace('{count}', String(Math.floor(plan.credits / CREDIT_COST.FULL_ANALYSIS)))}</p>
                       </div>
-                      <button type="button" onClick={() => void startPayment(plan.id)} disabled={purchasingPlanId !== null} className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${isPro ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{purchasingPlanId === plan.id ? 'Opening checkout…' : t('pricing_charge_btn')}<ArrowRight size={14} /></button>
+                      <button type="button" onClick={() => void startPayment(plan.id)} disabled={purchasingPlanId !== null} className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${isPro ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{purchasingPlanId === plan.id ? t('payment_checkout_opening') : t('pricing_charge_btn')}<ArrowRight size={14} /></button>
                     </div>
                   );
                 })}
@@ -115,10 +116,10 @@ export default function PricingPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                   {([
-                    { icon: Gift, title: t('free_roulette_title'), desc: t('free_roulette_desc'), badge: t('free_roulette_badge'), badgeClass: 'badge-green', action: t('pricing_roulette_action'), onClick: () => {}, highlight: false, isRoulette: true },
-                    { icon: Play, title: t('free_ad_title'), desc: t('free_ad_desc'), badge: t('free_ad_badge'), badgeClass: 'badge-amber', action: t('pricing_ad_action'), onClick: () => setAdOpen(true), highlight: true, isRoulette: false },
-                    { icon: Users, title: t('free_invite_title'), desc: t('free_invite_desc'), badge: t('free_invite_badge'), badgeClass: 'badge-purple', action: t('pricing_invite_action'), onClick: () => setReferralOpen(true), highlight: false, isRoulette: false },
-                  ] as const).map(({ icon: Icon, title, desc, badge, badgeClass, action, onClick, highlight, isRoulette }) => (
+                    { icon: Gift, title: t('free_roulette_title'), desc: t('free_roulette_desc'), badge: t('free_roulette_badge'), badgeClass: 'badge-green', action: t('pricing_roulette_action'), onClick: () => {}, highlight: false, isRoulette: true, disabled: false },
+                    { icon: Play, title: t('free_ad_title'), desc: t('free_ad_desc'), badge: ADS_REWARD_ENABLED ? t('free_ad_badge') : t('ads_temporarily_unavailable'), badgeClass: 'badge-amber', action: ADS_REWARD_ENABLED ? t('pricing_ad_action') : t('ads_temporarily_unavailable'), onClick: () => setAdOpen(true), highlight: ADS_REWARD_ENABLED, isRoulette: false, disabled: !ADS_REWARD_ENABLED },
+                    { icon: Users, title: t('free_invite_title'), desc: t('free_invite_desc'), badge: t('free_invite_badge'), badgeClass: 'badge-purple', action: t('pricing_invite_action'), onClick: () => setReferralOpen(true), highlight: false, isRoulette: false, disabled: false },
+                  ] as const).map(({ icon: Icon, title, desc, badge, badgeClass, action, onClick, highlight, isRoulette, disabled = false }) => (
                     <div key={title} className={`relative rounded-2xl p-7 card-hover flex flex-col ${highlight ? 'glow-purple' : ''}`}
                       style={{ background: highlight ? 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(79,70,229,0.10) 100%)' : 'rgba(13,13,20,0.6)', border: highlight ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.08)' }}>
                       {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-amber px-3 py-1 text-xs"><Star size={10} fill="currentColor" />{t('recommended')}</span></div>}
@@ -129,8 +130,10 @@ export default function PricingPage() {
                         <p className="text-sm text-white/50 leading-relaxed">{desc}</p>
                       </div>
                         <button
+                          type="button"
+                          disabled={disabled}
                           onClick={isRoulette ? () => window.dispatchEvent(new CustomEvent('daily-roulette:open')) : onClick}
-                          className={`pricing-action-button mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all ${highlight ? 'pricing-action-button--highlight' : ''}`}
+                          className={`pricing-action-button mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-45 ${highlight ? 'pricing-action-button--highlight' : ''}`}
                         >
                           {isRoulette ? t('pricing_roulette_action') : action}<ArrowRight size={14} />
                         </button>
@@ -144,7 +147,7 @@ export default function PricingPage() {
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg"><LogIn size={28} className="text-white" /></div>
                     <h2 className="text-2xl font-bold text-white">{t('gen_login_required')}</h2>
                     <p className="text-sm text-white/40">{t('gen_login_desc')}</p>
-                    <button onClick={() => navbarRef.current?.openLoginModal()} className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />{t('gen_login_btn')}<ArrowRight size={15} /></button>
+                    <button type="button" onClick={() => navbarRef.current?.openLoginModal()} className="btn-primary inline-flex items-center gap-2 px-6 py-3"><LogIn size={16} />{t('gen_login_btn')}<ArrowRight size={15} /></button>
                   </div>
                 </section>
               )}
@@ -156,14 +159,14 @@ export default function PricingPage() {
 
       {/* 어디서든 열리는 모달들 */}
       <ReferralSystem isOpen={referralOpen} onClose={() => setReferralOpen(false)} />
-      <RewardedAdPopup
+      {ADS_REWARD_ENABLED && <RewardedAdPopup
         isOpen={adOpen}
         onClose={() => setAdOpen(false)}
         onRewardClaimed={() => {
           setAdOpen(false);
           void refreshCredits();
         }}
-      />
+      />}
       {user && <DailyRewardWheel onClaim={() => void refreshCredits()} />}
     </>
   );

@@ -99,7 +99,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [appealStatus, setAppealStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
   // ─── 이메일 찾기 상태 ───
-  const [foundEmailResult, setFoundEmailResult] = useState<{ email?: string; masked_email?: string } | null>(null);
+  const [foundEmailResult, setFoundEmailResult] = useState<{ masked_email?: string } | null>(null);
 
   // ─── 이메일 인증 타이머 상태 ───
   const [verifyCountdown, setVerifyCountdown] = useState(VERIFY_TIMEOUT);
@@ -316,7 +316,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
     try {
       const supabase = getSupabaseBrowserClient();
-      const { data, error } = await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<{ data: Array<{ email: string; masked_email: string }> | null; error: { message: string } | null }>)('find_email_by_phone', {
+      const { data, error } = await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<{ data: Array<{ masked_email: string }> | null; error: { message: string } | null }>)('find_email_by_phone', {
         p_full_name: name,
         p_phone_country_code: phoneCountryCode,
         p_phone_number: phoneNumber,

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CheckCircle2, Copy, Download, ExternalLink, Info } from 'lucide-react';
 import type { GenerationOutput, SceneScript } from '@/types';
+import { CREDIT_COST } from '@/lib/credits';
 import { getLang } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
 
@@ -41,6 +42,12 @@ export default function GenerationResult({ result, creditsRemaining, showCreditS
   const language = getLang();
   const ui = UI[language] ?? UI.ko;
   const json = JSON.stringify(result, null, 2);
+  const creditSummary = {
+    ko: ['크레딧', `${CREDIT_COST.FULL_ANALYSIS}크레딧 소모 · 현재 잔여 ${creditsRemaining ?? '—'}크레딧`],
+    en: ['Credits', `${CREDIT_COST.FULL_ANALYSIS} credits used · ${creditsRemaining ?? '—'} credits remaining`],
+    zh: ['积分', `消耗 ${CREDIT_COST.FULL_ANALYSIS} 积分 · 剩余 ${creditsRemaining ?? '—'} 积分`],
+    ja: ['クレジット', `${CREDIT_COST.FULL_ANALYSIS}クレジット消費 · 残り ${creditsRemaining ?? '—'}クレジット`],
+  }[language];
   const allPrompts = result.scenes.map((scene) => `Scene ${scene.scene_number}\nVeo:\n${scene.ai_prompts.veo}\n\nRunway:\n${scene.ai_prompts.runway}\n\nKling:\n${scene.ai_prompts.kling}\n\nGeneric:\n${scene.ai_prompts.generic}`).join('\n\n---\n\n');
   const overview = [
     [language === 'ko' ? '프로젝트 제목' : language === 'ja' ? 'プロジェクトタイトル' : language === 'zh' ? '项目标题' : 'Project title', result.project_title],
@@ -50,7 +57,7 @@ export default function GenerationResult({ result, creditsRemaining, showCreditS
     [language === 'ko' ? '핵심 후킹 문구' : language === 'ja' ? 'フック' : language === 'zh' ? '核心钩子' : 'Core hook', result.hook],
     [language === 'ko' ? '마무리 문구' : language === 'ja' ? '締めの文句' : language === 'zh' ? '结尾文案' : 'Closing line', result.final_cta],
     [language === 'ko' ? '바이럴 전략' : language === 'ja' ? 'バイラル戦略' : language === 'zh' ? '爆款策略' : 'Viral strategy', result.overall_viral_strategy],
-    ...(showCreditSummary ? [['크레딧', `5크레딧 소모 · 현재 잔여 ${creditsRemaining ?? '—'}크레딧`]] : []),
+    ...(showCreditSummary ? [creditSummary] : []),
   ];
   const structure = Object.entries(result.structure_analysis).filter(([key]) => key !== 'restricted_elements');
 
