@@ -46,8 +46,8 @@ function CountrySelect({ value, countryIso, onChange }: { value: string; country
   const selected = PHONE_COUNTRIES.find(([code, dial]) => code === countryIso && dial === value) ?? PHONE_COUNTRIES[0];
 
   return (
-    <div className="relative min-w-[190px]">
-      <button type="button" onClick={() => setOpen((current) => !current)} className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-3 text-left text-sm text-white hover:border-white/25">
+    <div className="relative w-full">
+      <button type="button" aria-label={t('signup_country_label')} aria-expanded={open} onClick={() => setOpen((current) => !current)} className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-3 text-left text-sm text-white hover:border-white/25">
         <FlagIcon countryCode={selected[0]} />
         <span className="truncate">{selected[0]} {selected[1]} {selected[2]}</span>
         <ChevronDown size={14} className={`ml-auto shrink-0 text-white/50 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -203,7 +203,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     e.preventDefault();
     setPasswordError('');
 
-    if ((mode === 'signup' || mode === 'login') && password && !/[!@#$%^&*(),.?":{}|<>~`_\-+=\[\]\\;'/]/.test(password)) {
+    if (mode === 'signup' && password && !/[!@#$%^&*(),.?":{}|<>~`_\-+=\[\]\\;'/]/.test(password)) {
       setPasswordError(t('auth_password_special_char'));
       return;
     }
@@ -540,19 +540,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         />
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="space-y-2">
+                        <p className="pl-1 text-xs font-medium text-white/55">{t('signup_country_label')}</p>
                         <CountrySelect value={phoneCountryCode} countryIso={phoneCountryIso} onChange={(dial, iso) => { setPhoneCountryCode(dial); setPhoneCountryIso(iso); }} />
 
-                        <div className="relative flex-1">
-                          <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
-                          <input
-                            type="tel"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder={t('signup_phone_placeholder')}
-                            required
-                            className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
-                          />
+                        <div className="space-y-1.5">
+                          <label htmlFor="signup-phone-number" className="block pl-1 text-xs font-medium text-white/55">{t('signup_phone_label')}</label>
+                          <div className="relative">
+                            <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                            <input
+                              id="signup-phone-number"
+                              type="tel"
+                              inputMode="tel"
+                              autoComplete="tel-national"
+                              value={phoneNumber}
+                              onChange={(e) => setPhoneNumber(e.target.value)}
+                              placeholder={t('signup_phone_placeholder')}
+                              required
+                              className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
+                            />
+                          </div>
                         </div>
                       </div>
                       <p className="text-[11px] text-white/40 pl-1">
@@ -574,26 +581,42 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   </div>
 
                   {mode !== 'forgot' && (
-                    <div className="relative">
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder={t('auth_password_placeholder')}
-                        required
-                        minLength={8}
-                        className={`w-full pl-10 pr-11 py-3 rounded-xl text-sm ${passwordError ? 'border-red-500/60 ring-1 ring-red-500/30' : 'input-dark'}`}
-                      />
-                      {passwordError && <p className="flex items-center gap-1.5 text-xs text-red-400 mt-1"><span>⚠️</span> {passwordError}</p>}
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                        tabIndex={-1}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
+                    <div>
+                      <div className="relative">
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder={t('auth_password_placeholder')}
+                          required
+                          minLength={mode === 'signup' ? 8 : undefined}
+                          autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                          aria-describedby={mode === 'signup' ? 'signup-password-requirements' : undefined}
+                          className={`w-full pl-10 pr-11 py-3 rounded-xl text-sm ${passwordError ? 'border-red-500/60 ring-1 ring-red-500/30' : 'input-dark'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={t(showPassword ? 'settings_hide_password' : 'settings_show_password')}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md text-white/30 transition-colors hover:text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      {mode === 'signup' && (
+                        <div id="signup-password-requirements" className="mt-2 flex flex-wrap gap-x-3 gap-y-1 pl-1 text-xs" aria-live="polite">
+                          <span className={`flex items-center gap-1 ${password.length >= 8 ? 'text-emerald-300' : 'text-white/55'}`}>
+                            {password.length >= 8 ? <CheckCircle2 size={13} aria-hidden="true" /> : <span aria-hidden="true">•</span>}
+                            {t('auth_password_minimum')}
+                          </span>
+                          <span className={`flex items-center gap-1 ${/[!@#$%^&*(),.?":{}|<>~`_\-+=\[\]\\;'/]/.test(password) ? 'text-emerald-300' : 'text-white/55'}`}>
+                            {/[!@#$%^&*(),.?":{}|<>~`_\-+=\[\]\\;'/]/.test(password) ? <CheckCircle2 size={13} aria-hidden="true" /> : <span aria-hidden="true">•</span>}
+                            {t('auth_password_special_required')}
+                          </span>
+                        </div>
+                      )}
+                      {passwordError && <p role="alert" className="mt-1 flex items-center gap-1.5 text-xs text-red-400"><AlertCircle size={13} aria-hidden="true" /> {passwordError}</p>}
                     </div>
                   )}
 

@@ -98,6 +98,28 @@ describe('referral signup and reward flow', () => {
   });
 });
 
+describe('signup form usability and password policy', () => {
+  it('places the country selector above a full-width phone input', () => {
+    const modal = read('app/components/AuthModal.tsx');
+    expect(modal).toContain('<div className="relative w-full">');
+    expect(modal).toContain('<div className="space-y-2">');
+    expect(modal).toContain('htmlFor="signup-phone-number"');
+    expect(modal).toContain('autoComplete="tel-national"');
+  });
+
+  it('shows localized signup requirements and does not apply signup-only rules to login', () => {
+    const modal = read('app/components/AuthModal.tsx');
+    const translations = read('app/components/LanguageSwitcher.tsx');
+    expect(modal).toContain("minLength={mode === 'signup' ? 8 : undefined}");
+    expect(modal).toContain("if (mode === 'signup' && password");
+    expect(modal).toContain("t('auth_password_minimum')");
+    expect(modal).toContain("t('auth_password_special_required')");
+    expect(translations.match(/auth_password_minimum:/g)).toHaveLength(4);
+    expect(translations.match(/auth_password_special_required:/g)).toHaveLength(4);
+    expect(read('supabase/config.toml')).toContain('minimum_password_length = 8');
+  });
+});
+
 describe('payment and ad verification contracts', () => {
   it('accepts only planId at billing start and derives the order server-side', () => {
     const route = read('app/api/v1/billing/route.ts');
