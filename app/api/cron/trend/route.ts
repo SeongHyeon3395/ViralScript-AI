@@ -196,6 +196,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { onConflict: 'platform,video_url' },
     );
     if (upsertError) throw new Error(`DB upsert failed: ${upsertError.message}`);
+    const { error: auditError } = await supabase.from('admin_audit_logs').insert({
+      admin_user_id: null,
+      action: 'trend.refresh',
+      target_type: 'trend_feed',
+      target_id: null,
+      before_data: null,
+      after_data: { inserted: selection.inserted, updated: selection.updated, collected: candidates.length, insertedByBucket: selection.insertedByBucket },
+      reason: 'Scheduled trend refresh',
+    });
+    if (auditError) throw new Error(`Trend refresh audit failed: ${auditError.message}`);
     return NextResponse.json({ ok: true, inserted: selection.inserted, updated: selection.updated, collected: candidates.length, insertedByBucket: selection.insertedByBucket, sourceErrors, updatedAt: collectedAt });
   } catch (error) {
     console.error('[cron/trend]', error instanceof Error ? error.message : error);

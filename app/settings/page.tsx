@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   User, Globe, CreditCard, AlertTriangle,
   Save, Loader2, CheckCircle2, LogIn, ArrowRight,
-  Bell, Monitor, Smartphone, Lock, KeyRound, X, Eye, EyeOff,
+  Bell, Monitor, Lock, KeyRound, X, Eye, EyeOff,
 } from 'lucide-react';
 import Navbar from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
@@ -287,21 +287,6 @@ function PlatformTab({ settings, onUpdate }: { settings: UserSettings; onUpdate:
   const { setLanguage } = useLanguage();
   return (
     <div className="space-y-4">
-      <SectionCard title={t('settings_platform_section')} icon={Smartphone}>
-        <div>
-          <FieldLabel>{t('settings_default_platform')}</FieldLabel>
-          <SelectInput
-            value={settings.default_target_platform}
-            onChange={v => onUpdate({ default_target_platform: v })}
-            options={[
-              { value: 'tiktok',    label: '🎵 TikTok' },
-              { value: 'youtube',   label: '▶️ YouTube Shorts' },
-            ]}
-          />
-          <p className="text-xs text-white/30 mt-2">{t('settings_platform_hint')}</p>
-        </div>
-      </SectionCard>
-
       <SectionCard title={t('settings_display')} icon={Monitor}>
         <div className="space-y-4">
           <div>

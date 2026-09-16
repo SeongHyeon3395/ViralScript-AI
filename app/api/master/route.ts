@@ -127,13 +127,31 @@ async function getTrends(req: NextRequest, session: Awaited<ReturnType<typeof re
 
 async function getAudits(req: NextRequest, session: Awaited<ReturnType<typeof requireMaster>>) {
   const page = pageFrom(req);
+  const kind = req.nextUrl.searchParams.get('kind') === 'user' ? 'user' : 'admin';
+  const table = kind === 'user' ? 'user_activity_logs' : 'admin_audit_logs';
+  const fields = kind === 'user'
+    ? 'id, user_id, action, target_type, target_id, before_data, after_data, created_at'
+    : 'id, admin_user_id, action, target_type, target_id, before_data, after_data, reason, created_at';
   const { data, error, count } = await session.supabase
-    .from('admin_audit_logs')
-    .select('id, admin_user_id, action, target_type, target_id, reason, created_at', { count: 'exact' })
+    .from(table)
+    .select(fields, { count: 'exact' })
     .order('created_at', { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   if (error) throw new Error(error.message);
-  return { audits: data ?? [], page, pageSize: PAGE_SIZE, total: count ?? 0 };
+  const auditRows = (data ?? []) as unknown as Array<Record<string, unknown>>;
+  const actorIds = [...new Set(auditRows.map((row) => kind === 'user' ? row.user_id : row.admin_user_id).filter((id): id is string => typeof id === 'string'))];
+  const { data: profiles, error: profileError } = actorIds.length
+    ? await session.supabase.from('profiles').select('id, full_name, email').in('id', actorIds)
+    : { data: [], error: null };
+  if (profileError) throw new Error(profileError.message);
+  const actorById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+  return {
+    audits: auditRows.map((row) => {
+      const actorId = kind === 'user' ? row.user_id : row.admin_user_id;
+      return { ...row, actor_user_id: actorId ?? null, actor: actorId ? actorById.get(actorId) ?? null : null };
+    }),
+    kind, page, pageSize: PAGE_SIZE, total: count ?? 0,
+  };
 }
 
 async function getInquiries(req: NextRequest, session: Awaited<ReturnType<typeof requireMaster>>) {
@@ -208,6 +226,11 @@ interface TrendModerationBody {
   trendId: string;
   reason?: string;
 }
+interface TrendBulkBody {
+  action: 'bulk_delete_trends' | 'bulk_restore_trends' | 'purge_trends' | 'empty_trash';
+  trendIds?: string[];
+  reason?: string;
+}
 
 interface InquiryUpdateBody {
   action: 'update_inquiry';
@@ -216,7 +239,7 @@ interface InquiryUpdateBody {
   adminNote?: string;
 }
 
-type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody | InquiryUpdateBody;
+type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody | TrendBulkBody | InquiryUpdateBody;
 
 async function updateUser(session: Awaited<ReturnType<typeof requireMaster>>, body: UserUpdateBody) {
   if (session.role !== 'master') throw new MasterAuthError(403, 'Only a master may change user accounts.');
@@ -291,16 +314,24 @@ async function updateTrend(session: Awaited<ReturnType<typeof requireMaster>>, b
 }
 
 async function moderateTrend(session: Awaited<ReturnType<typeof requireMaster>>, body: TrendModerationBody) {
-  const { data: before, error: beforeError } = await session.supabase.from('trend_feed').select(TREND_FIELDS).eq('id', body.trendId).single();
-  if (beforeError || !before) throw new Error('피드를 찾을 수 없습니다.');
-  const deleting = body.action === 'delete_trend';
-  const updates = deleting
-    ? { deleted_at: new Date().toISOString(), deleted_by: session.user.id, delete_reason: body.reason?.trim().slice(0, 500) || '관리자 삭제' }
-    : { deleted_at: null, deleted_by: null, delete_reason: null };
-  const { data: after, error } = await session.supabase.from('trend_feed').update(updates).eq('id', body.trendId).select(TREND_FIELDS).single();
-  if (error || !after) throw new Error(error?.message ?? '피드 상태 변경 실패');
-  await writeMasterAudit(session, { action: deleting ? 'trend.delete' : 'trend.restore', targetType: 'trend', targetId: body.trendId, before, after, reason: body.reason });
-  return after;
+  return manageTrends(session, { action: body.action === 'delete_trend' ? 'bulk_delete_trends' : 'bulk_restore_trends', trendIds: [body.trendId], reason: body.reason });
+}
+
+async function manageTrends(session: Awaited<ReturnType<typeof requireMaster>>, body: TrendBulkBody) {
+  const isEmptyTrash = body.action === 'empty_trash';
+  const dbAction = body.action === 'bulk_delete_trends' ? 'delete' : body.action === 'bulk_restore_trends' ? 'restore' : 'purge';
+  const ids = isEmptyTrash ? null : body.trendIds;
+  if (!isEmptyTrash && (!Array.isArray(ids) || !ids.length || ids.length > 100 || ids.some((id) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))) {
+    throw new Error('트렌드 선택이 올바르지 않습니다.');
+  }
+  const { data, error } = await session.supabase.rpc('master_manage_trends_with_audit', {
+    p_actor_id: session.user.id,
+    p_action: dbAction,
+    p_trend_ids: ids,
+    p_reason: body.reason?.trim().slice(0, 500) || null,
+  });
+  if (error || !data) throw new Error(error?.message ?? '트렌드 일괄 작업에 실패했습니다.');
+  return data;
 }
 
 async function updateInquiry(session: Awaited<ReturnType<typeof requireMaster>>, body: InquiryUpdateBody) {
@@ -330,10 +361,12 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       ? await updateUser(session, body)
       : body.action === 'update_trend'
         ? await updateTrend(session, body)
-        : body.action === 'update_inquiry'
-          ? await updateInquiry(session, body)
-          : body.action === 'delete_trend' || body.action === 'restore_trend'
-            ? await moderateTrend(session, body)
+          : body.action === 'update_inquiry'
+            ? await updateInquiry(session, body)
+            : body.action === 'delete_trend' || body.action === 'restore_trend'
+              ? await moderateTrend(session, body)
+              : body.action === 'bulk_delete_trends' || body.action === 'bulk_restore_trends' || body.action === 'purge_trends' || body.action === 'empty_trash'
+                ? await manageTrends(session, body)
             : null;
     if (!data) return NextResponse.json({ error: '지원하지 않는 작업입니다.' }, { status: 400 });
     return NextResponse.json({ data });

@@ -154,6 +154,22 @@ ALTER TABLE public.trend_feed
 -- Added SECURITY DEFINER RPCs (definitions and grants are in the migration above):
 -- public.complete_verified_payment_order(TEXT, TEXT, TEXT, NUMERIC, NUMERIC)
 -- public.master_update_user_with_audit(UUID, UUID, JSONB, TEXT)
+-- public.master_manage_trends_with_audit(UUID, TEXT, UUID[], TEXT)
+
+CREATE TABLE IF NOT EXISTS public.user_activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL DEFAULT 'profile',
+  target_id UUID,
+  before_data JSONB,
+  after_data JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS user_activity_logs_user_created_at_idx ON public.user_activity_logs(user_id, created_at DESC);
+ALTER TABLE public.user_activity_logs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.user_activity_logs FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.user_activity_logs TO service_role;
 
 -- Persistent referral codes are assigned to every profile; signup rewards are
 -- inserted and credited atomically by public.handle_new_user() in migration

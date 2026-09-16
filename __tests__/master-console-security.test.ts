@@ -60,4 +60,27 @@ describe('master console security contracts', () => {
     expect(consoleSource).toContain('추천인');
     expect(consoleSource).toContain('referred_by_code');
   });
+
+  it('keeps bulk trend moderation and its audit record in a master-only RPC', () => {
+    const migration = read('supabase/migrations/20260916000033_master_bulk_trends_and_user_activity.sql');
+    const api = read('app/api/master/route.ts');
+    const consoleSource = read('app/Master/MasterConsole.tsx');
+    expect(migration).toContain('master_manage_trends_with_audit');
+    expect(migration).toContain("role = 'master'");
+    expect(migration).toContain('INSERT INTO public.admin_audit_logs');
+    expect(api).toContain("action === 'bulk_delete_trends'");
+    expect(consoleSource).toContain('휴지통 비우기');
+    expect(consoleSource).toContain('선택 복원');
+  });
+
+  it('records user profile updates separately and makes both audit streams available', () => {
+    const migration = read('supabase/migrations/20260916000033_master_bulk_trends_and_user_activity.sql');
+    const api = read('app/api/master/route.ts');
+    const consoleSource = read('app/Master/MasterConsole.tsx');
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS public.user_activity_logs');
+    expect(migration).toContain("'profile.update'");
+    expect(api).toContain("kind === 'user'");
+    expect(consoleSource).toContain('사용자 로그');
+    expect(consoleSource).toContain('관리자 로그');
+  });
 });

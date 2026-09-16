@@ -486,19 +486,25 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     />
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="space-y-2">
+                    <p className="pl-1 text-xs font-medium text-white/55">{t('signup_country_label')}</p>
                     <CountrySelect value={phoneCountryCode} countryIso={phoneCountryIso} onChange={(dial, iso) => { setPhoneCountryCode(dial); setPhoneCountryIso(iso); }} />
-
-                    <div className="relative flex-1">
+                    <div className="space-y-1.5">
+                      <label htmlFor="find-email-phone-number" className="block pl-1 text-xs font-medium text-white/55">{t('signup_phone_label')}</label>
+                      <div className="relative">
                       <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
                       <input
+                        id="find-email-phone-number"
                         type="tel"
+                        inputMode="tel"
+                        autoComplete="tel-national"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
                         placeholder={t('find_email_phone_placeholder')}
                         required
                         className="w-full pl-10 pr-4 py-3 rounded-xl input-dark text-sm"
                       />
+                      </div>
                     </div>
                   </div>
 
