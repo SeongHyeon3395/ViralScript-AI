@@ -315,13 +315,49 @@ export default function GeneratorPage() {
           </section>
         ) : (
           <section className="pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 sm:px-6 flex-1">
-          <div className="mx-auto max-w-2xl space-y-6 sm:space-y-8">
-            <div className="text-center space-y-2 px-4">
+          <div className="mx-auto max-w-6xl space-y-6 sm:space-y-8">
+            <div className="space-y-2 px-1 text-center lg:text-left">
               <span className="badge badge-purple inline-flex"><Sparkles size={11} /> {t('nav_generator')}</span>
               <h2 className="text-xl sm:text-2xl font-bold text-white">{t('gen_title')}</h2>
               <p className="text-xs sm:text-sm text-white/40">{t('gen_subtitle')}</p>
             </div>
 
+            <div className="grid items-start gap-6 lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
+            <aside className="hidden lg:sticky lg:top-24 lg:block lg:space-y-4" aria-label={t('gen_sidebar_title')}>
+              <div className="rounded-2xl border border-white/8 bg-[#0d0d14]/80 p-5">
+                <p className="text-xs font-bold uppercase tracking-wider text-violet-300">{t('gen_sidebar_title')}</p>
+                <div className="mt-4 space-y-3">
+                  {[
+                    { icon: Sparkles, label: t('gen_sidebar_step_topic'), active: true },
+                    { icon: Link2, label: t('gen_sidebar_step_reference'), active: Boolean(url.trim()) },
+                    { icon: SlidersHorizontal, label: t('gen_sidebar_step_details'), active: showAdvanced },
+                  ].map(({ icon: Icon, label, active }) => (
+                    <div key={label} className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs ${active ? 'bg-violet-500/15 text-violet-100' : 'bg-white/[0.025] text-white/45'}`}>
+                      <Icon size={14} className={active ? 'text-violet-300' : 'text-white/30'} />
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] p-5">
+                <p className="text-xs font-bold text-cyan-100">{t('gen_platform_fit_title')}</p>
+                <p className="mt-2 text-[11px] leading-relaxed text-white/45">{t('gen_platform_fit_note')}</p>
+                <div className="mt-4 space-y-3">
+                  {[
+                    [t('gen_platform_tiktok'), t('gen_platform_tiktok_desc')],
+                    [t('gen_platform_shorts'), t('gen_platform_shorts_desc')],
+                    [t('gen_platform_reels'), t('gen_platform_reels_desc')],
+                  ].map(([platform, description]) => (
+                    <div key={platform} className="border-l-2 border-cyan-400/35 pl-3">
+                      <p className="text-xs font-semibold text-white/75">{platform}</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-white/40">{description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </aside>
+
+            <div className="min-w-0 space-y-5">
             <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-4 text-xs leading-relaxed text-cyan-100/75">{t('gen_beginner_guide')}</div>
 
             <div className="space-y-5">
@@ -435,6 +471,8 @@ export default function GeneratorPage() {
 
 
             {result && <GenerationResult result={result} creditsRemaining={credits} showCreditSummary={false} />}
+            </div>
+            </div>
           </div>
         </section>
         )}
