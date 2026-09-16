@@ -2,9 +2,10 @@ import type { CreditPlan } from '@/types';
 
 /** 크레딧 과금 단위 */
 export const CREDIT_COST = {
-  FULL_ANALYSIS: 8,    // 대본 생성 1회 (스크래핑 + AI)
-  CACHE_HIT: 8,        // 동일 URL도 대본 생성 1회로 계산
-  BYOK_ANALYSIS: 8,    // BYOK 모드도 대본 생성 1회로 계산
+  TOPIC_ONLY: 5,       // 기본 주제만으로 만드는 영상 제작 플랜
+  FULL_ANALYSIS: 8,    // 참고 영상 또는 상세 설정을 포함한 영상 제작 플랜
+  CACHE_HIT: 8,        // 동일 참고 영상도 대본 생성 1회로 계산
+  BYOK_ANALYSIS: 8,    // BYOK 모드도 참고 영상/상세 설정 단가를 따른다
 } as const;
 
 /** 판매 크레딧 플랜 */

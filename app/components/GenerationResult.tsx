@@ -35,7 +35,7 @@ function ScenePlan({ scene, ui }: { scene: SceneScript; ui: ResultUi }) {
   return <article className="rounded-2xl border border-white/8 bg-white/[0.025] p-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-bold text-white">{ui.scene} {scene.scene_number} — {scene.purpose}</p><p className="mt-1 text-xs text-cyan-300">{scene.start_time}~{scene.end_time}</p></div><CopyButton text={scene.ai_prompts.generic} label={ui.scenePrompt} ui={ui} /></div><div className="grid gap-3 sm:grid-cols-2">{details.map(([label, value]) => <div key={label} className="rounded-xl bg-black/15 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-white/35">{label}</p><p className="mt-1 text-xs leading-relaxed text-white/70">{value}</p></div>)}</div></article>;
 }
 
-export default function GenerationResult({ result, creditsRemaining, showCreditSummary = true }: { result: GenerationOutput; creditsRemaining?: number; showCreditSummary?: boolean }) {
+export default function GenerationResult({ result, creditsRemaining, creditCostApplied = CREDIT_COST.FULL_ANALYSIS, showCreditSummary = true }: { result: GenerationOutput; creditsRemaining?: number; creditCostApplied?: number; showCreditSummary?: boolean }) {
   useLanguage();
   const [tab, setTab] = useState<Tab>('overview');
   const [guideTab, setGuideTab] = useState<Tab | null>(null);
@@ -43,10 +43,10 @@ export default function GenerationResult({ result, creditsRemaining, showCreditS
   const ui = UI[language] ?? UI.ko;
   const json = JSON.stringify(result, null, 2);
   const creditSummary = {
-    ko: ['크레딧', `${CREDIT_COST.FULL_ANALYSIS}크레딧 소모 · 현재 잔여 ${creditsRemaining ?? '—'}크레딧`],
-    en: ['Credits', `${CREDIT_COST.FULL_ANALYSIS} credits used · ${creditsRemaining ?? '—'} credits remaining`],
-    zh: ['积分', `消耗 ${CREDIT_COST.FULL_ANALYSIS} 积分 · 剩余 ${creditsRemaining ?? '—'} 积分`],
-    ja: ['クレジット', `${CREDIT_COST.FULL_ANALYSIS}クレジット消費 · 残り ${creditsRemaining ?? '—'}クレジット`],
+    ko: ['크레딧', `${creditCostApplied}크레딧 소모 · 현재 잔여 ${creditsRemaining ?? '—'}크레딧`],
+    en: ['Credits', `${creditCostApplied} credits used · ${creditsRemaining ?? '—'} credits remaining`],
+    zh: ['积分', `消耗 ${creditCostApplied} 积分 · 剩余 ${creditsRemaining ?? '—'} 积分`],
+    ja: ['クレジット', `${creditCostApplied}クレジット消費 · 残り ${creditsRemaining ?? '—'}クレジット`],
   }[language];
   const allPrompts = result.scenes.map((scene) => `Scene ${scene.scene_number}\nVeo:\n${scene.ai_prompts.veo}\n\nRunway:\n${scene.ai_prompts.runway}\n\nKling:\n${scene.ai_prompts.kling}\n\nGeneric:\n${scene.ai_prompts.generic}`).join('\n\n---\n\n');
   const overview = [

@@ -132,12 +132,18 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(read('app/components/AuthModal.tsx')).not.toContain('Array<{ email: string; masked_email: string }>');
   });
 
-  it('uses one server-derived eight-credit generation price everywhere', () => {
+  it('derives topic-only and reference or advanced generation prices on the server', () => {
+    expect(read('lib/credits.ts')).toContain('TOPIC_ONLY: 5');
     expect(read('lib/credits.ts')).toContain('FULL_ANALYSIS: 8');
-    expect(read('app/api/v1/analyze/route.ts')).toContain('관계없이 8크레딧');
-    expect(read('app/components/GenerationResult.tsx')).toContain('CREDIT_COST.FULL_ANALYSIS');
+    const route = read('app/api/v1/analyze/route.ts');
+    expect(route).toContain('const hasAdvancedSettings = Boolean(userCustomPrompt?.trim())');
+    expect(route).toContain('CREDIT_COST.TOPIC_ONLY');
+    expect(route).toContain('CREDIT_COST.FULL_ANALYSIS');
+    expect(read('app/components/GenerationResult.tsx')).toContain('creditCostApplied = CREDIT_COST.FULL_ANALYSIS');
     const translations = read('app/components/LanguageSwitcher.tsx');
-    expect(translations).not.toMatch(/gen_(?:cost_value|create_plan_cost|credits_cost_range):[^\n]*5/);
+    expect(translations.match(/gen_cost_topic:/g)).toHaveLength(4);
+    expect(translations.match(/gen_cost_full:/g)).toHaveLength(4);
+    expect(read('app/terms/page.tsx')).toContain('A completed topic-only generation costs five credits');
   });
 
   it('keeps the unverified ad reward action disabled in the client', () => {
@@ -151,13 +157,13 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(popup).not.toContain("fetch('/api/v1/monetization/ad-reward'");
   });
 
-  it('aligns the legal documents with stored data and the eight-credit policy', () => {
+  it('aligns the legal documents with the generation pricing policy', () => {
     const privacy = read('app/privacy/page.tsx');
     const terms = read('app/terms/page.tsx');
     expect(privacy).toContain('국가번호, 전화번호');
     expect(privacy).toContain('Ad rewards are currently disabled');
-    expect(terms).toContain('생성 1회당 8크레딧');
-    expect(terms).toContain('Each completed generation costs eight credits');
+    expect(terms).toContain('기본 주제만으로 만드는 생성은 정상 완료 시 5크레딧');
+    expect(terms).toContain('참고 URL을 제공하거나 상세 설정을 적용한 생성은 정상 완료 시 8크레딧');
   });
 });
 

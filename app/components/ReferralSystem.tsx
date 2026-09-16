@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Copy, Check, Users, Share2, Sparkles, Send, Link2,
+  Copy, Check, Users, Share2, Sparkles, Send,
   ChevronRight, X, Zap,
 } from 'lucide-react';
 import { t } from './LanguageSwitcher';
@@ -29,7 +29,7 @@ interface ReferralStats { referralCode: string; referralUrl: string; invitedCoun
 export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps) {
   useLanguage();
   const { user, isLoading: authLoading } = useAuth();
-  const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [statsError, setStatsError] = useState(false);
   const referralCode = stats?.referralCode ?? '';
@@ -58,8 +58,13 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
   async function copyLink() {
     if (!referralLink) return;
     await navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function copyCode() {
+    if (!referralCode) return;
+    await navigator.clipboard.writeText(referralCode);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   }
 
   if (!isOpen) return null;
@@ -120,8 +125,8 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
               <div className="flex-1 rounded-xl px-4 py-3 text-center" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
                 <span className="text-lg font-bold tracking-widest gradient-text">{referralCode || '----------'}</span>
               </div>
-              <button type="button" onClick={() => void copyLink()} disabled={!referralLink} aria-label={t('referral_copy_link')} className="w-11 h-11 rounded-xl flex items-center justify-center transition-all disabled:opacity-40" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)' }}>
-                {copied ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} className="text-violet-400" />}
+              <button type="button" onClick={() => void copyCode()} disabled={!referralCode} aria-label={t('referral_copy_code')} className="w-11 h-11 rounded-xl flex items-center justify-center transition-all disabled:opacity-40" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)' }}>
+                {copiedCode ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} className="text-violet-400" />}
               </button>
             </div>
           </div>
@@ -156,7 +161,7 @@ export default function ReferralSystem({ isOpen, onClose }: ReferralSystemProps)
           </div>
 
           {/* CTA */}
-          <button onClick={copyLink} className="btn-primary w-full flex items-center justify-center gap-2"><Link2 size={16} />{copied ? t('referral_copied') : t('referral_copy_link')}<ChevronRight size={15} /></button>
+          <button type="button" onClick={() => void copyCode()} disabled={!referralCode} className="btn-primary w-full flex items-center justify-center gap-2"><Copy size={16} />{copiedCode ? t('referral_code_copied') : t('referral_copy_code')}<ChevronRight size={15} /></button>
           <div className="h-px w-full bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent mt-6" />
         </div>
       </div>

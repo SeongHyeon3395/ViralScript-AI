@@ -23,7 +23,7 @@ export default function PrivacyPage() {
               <h2 className="font-bold text-violet-300">1. Information we process</h2>
               <p>Required account information includes your name, email address, country calling code, phone number, authentication identifier, account status, settings, credit balance, referral relationship, and service activity. Generation inputs, generated plans, reference URLs when supplied, support inquiries, suspension appeals, and transaction/order records are stored when you use those features. Technical logs may include IP address, device/browser data, cookies, and security events.</p>
               <h2 className="font-bold text-violet-300">2. Purposes</h2>
-              <p>We use this information for authentication and account recovery, service delivery, the fixed eight-credit generation charge, fraud and abuse prevention, customer support, payment verification, legal compliance, and service reliability.</p>
+              <p>We use this information for authentication and account recovery, service delivery, generation charges based on the selected generation method, fraud and abuse prevention, customer support, payment verification, legal compliance, and service reliability.</p>
               <h2 className="font-bold text-violet-300">3. Service providers and international processing</h2>
               <p>Supabase provides authentication and database services; Vercel provides hosting; Google Gemini provides AI inference; Apify and YouTube APIs may provide public video metadata. Stripe or Toss Payments processes verified payments only when payments are enabled. Ad rewards are currently disabled because server-side reward verification is unavailable.</p>
               <h2 className="font-bold text-violet-300">4. Retention and deletion</h2>
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
           <p>수집한 개인정보는 다음의 목적을 위해서만 활용됩니다.</p>
           <ol>
             <li><strong>회원 관리:</strong> 본인 확인, 불량 회원의 부정을 방지하기 위한 계정 식별, 가입 및 탈퇴 의사 확인</li>
-            <li><strong>서비스 제공 및 과금 제어:</strong> 생성 1회당 8크레딧 차감, 생성 이력 저장, 다국어 영상 대본·장면 설계 제공</li>
+            <li><strong>서비스 제공 및 과금 제어:</strong> 기본 주제 생성은 5크레딧, 참고 URL 또는 상세 설정 생성은 8크레딧 차감, 생성 이력 저장, 다국어 영상 대본·장면 설계 제공</li>
             <li><strong>서비스 분석 및 통계:</strong> 접속 빈도 파악, 기능 개선을 위한 통계적 데이터 분석</li>
           </ol>
 

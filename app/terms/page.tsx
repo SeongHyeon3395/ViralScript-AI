@@ -24,7 +24,7 @@ export default function TermsPage() {
               <h2 className="font-bold text-violet-300">2. Your responsibilities</h2>
               <p>You must have the right to submit any URL or material you provide. You are responsible for reviewing generated output and for complying with copyright, advertising, platform, and other applicable rules before publishing it.</p>
               <h2 className="font-bold text-violet-300">3. Credits</h2>
-              <p>Each completed generation costs eight credits, regardless of video length, cache use, or whether a reference URL is supplied. Failed AI generation or a failed database transaction must not consume credits. Promotional credit terms may change with notice.</p>
+              <p>A completed topic-only generation costs five credits. A completed generation with a reference video URL or advanced settings costs eight credits. Failed AI generation or a failed database transaction must not consume credits. Promotional credit terms may change with notice.</p>
               <h2 className="font-bold text-violet-300">4. Payments and ad rewards</h2>
               <p>Payments are available only when the payment feature and verified provider configuration are enabled. Ad rewards are currently unavailable because server-side reward verification is not configured; browser events alone never qualify for credit.</p>
               <h2 className="font-bold text-violet-300">5. Account controls</h2>
@@ -77,7 +77,7 @@ export default function TermsPage() {
           </Section>
 
           <Section num="5" title="크레딧 정책 및 보상형 광고">
-            <HighlightItem label="일괄 소진" desc="영상 길이, 캐시 사용 여부, 참고 URL 제공 여부와 관계없이 정상 완료된 생성 1회당 8크레딧이 차감됩니다. AI 생성 또는 데이터베이스 저장이 실패하면 크레딧을 차감하지 않습니다." />
+            <HighlightItem label="생성 방식별 차감" desc="기본 주제만으로 만드는 생성은 정상 완료 시 5크레딧이 차감됩니다. 참고 URL을 제공하거나 상세 설정을 적용한 생성은 정상 완료 시 8크레딧이 차감됩니다. AI 생성 또는 데이터베이스 저장이 실패하면 크레딧을 차감하지 않습니다." />
             <HighlightItem label="광고 보상 일시 중단" desc="현재 광고 제공업체의 서버 측 보상 검증 기능이 준비되지 않아 광고 시청에 따른 크레딧 지급은 비활성화되어 있습니다. 브라우저 이벤트만으로는 보상을 지급하지 않습니다." />
             <HighlightItem label="어뷰징 금지" desc="광고 차단 프로그램(AdBlock) 사용, 비정상적인 스크립트·매크로·결함 유도 등을 통해 광고 시청 없이 크레딧을 부당 취득한 경우, 플랫폼은 사전 통보 없이 해당 계정을 영구 정지하고 보유 크레딧을 소멸시킬 수 있습니다." />
           </Section>

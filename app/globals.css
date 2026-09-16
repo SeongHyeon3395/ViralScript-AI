@@ -45,6 +45,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Make every native action visibly actionable across the application. */
+button:not(:disabled),
+a[href],
+[role='button'],
+select,
+input[type='checkbox'],
+input[type='radio'],
+summary {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

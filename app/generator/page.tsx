@@ -18,6 +18,7 @@ import { useLanguage } from '@/app/components/LanguageProvider';
 // disabled even if a stale public environment variable is accidentally true.
 const ADS_REWARD_ENABLED = false;
 import { clearUserCreditsCache } from '@/lib/profile';
+import { CREDIT_COST } from '@/lib/credits';
 import {
   Link2, SlidersHorizontal, Rocket, Loader2, Zap,
   Film, Clock, TrendingUp, ChevronDown, ChevronUp,
@@ -64,7 +65,7 @@ function ChoiceChips({ options, value, onChange }: { options: string[]; value: s
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((option) => (
-        <button key={option} type="button" onClick={() => onChange(option)} className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all ${value === option ? 'border-violet-400/70 bg-violet-500/20 text-violet-100' : 'border-white/10 bg-white/5 text-white/45 hover:border-white/25 hover:text-white/75'}`}>
+        <button key={option} type="button" onClick={() => onChange(option)} className={`cursor-pointer rounded-lg border px-3 py-2 text-xs font-medium transition-all ${value === option ? 'border-violet-400/70 bg-violet-500/20 text-violet-100' : 'border-white/10 bg-white/5 text-white/45 hover:border-white/25 hover:text-white/75'}`}>
           {localizedOption(option)}
         </button>
       ))}
@@ -193,6 +194,10 @@ export default function GeneratorPage() {
   const [adBlockDetected, setAdBlockDetected] = useState(false);
   const submittingRef = useRef(false);
   const expectedScenes = Number.parseInt(duration, 10) <= 15 ? 5 : Number.parseInt(duration, 10) <= 30 ? 6 : 8;
+  const estimatedCreditCost = url.trim() || showAdvanced
+    ? CREDIT_COST.FULL_ANALYSIS
+    : CREDIT_COST.TOPIC_ONLY;
+  const estimatedCostLabel = t(estimatedCreditCost === CREDIT_COST.FULL_ANALYSIS ? 'gen_cost_full' : 'gen_cost_topic');
 
   useEffect(() => {
     if (!loading) return;
@@ -227,7 +232,7 @@ export default function GeneratorPage() {
       setError(t('gen_topic_required'));
       return;
     }
-    if (credits !== undefined && credits < 5) {
+    if (credits !== undefined && credits < estimatedCreditCost) {
       setError(t('gen_no_credits'));
       return;
     }
@@ -245,7 +250,7 @@ export default function GeneratorPage() {
         body: JSON.stringify({
           ...(url.trim() ? { url: url.trim() } : {}),
           targetProduct: targetProduct.trim(),
-          userCustomPrompt: [
+          ...(showAdvanced ? { userCustomPrompt: [
             `Content goal: ${purpose}`,
             `Concept: ${concept}`,
             `Desired mood: ${mood || 'Not specified'}`,
@@ -255,7 +260,7 @@ export default function GeneratorPage() {
             `Production method: ${productionMethod}`,
             productionMethod === 'AI video generation' ? `AI video tool: ${aiVideoTool} (provide copy-ready prompts without calling a video generation API)` : '',
             customPrompt.trim(),
-          ].filter(Boolean).join('\n'),
+          ].filter(Boolean).join('\n') } : {}),
         }),
       });
       const data: AnalyzeResponse = await res.json();
@@ -350,7 +355,7 @@ export default function GeneratorPage() {
                </div>
                <div className="rounded-xl border border-white/8 bg-white/[0.025] p-3">
                  <p className="text-[11px] text-white/45">{t('gen_defaults_summary')}</p>
-                 <button type="button" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-100"><SlidersHorizontal size={13} />{t('gen_advanced_options')}</button>
+                 <button type="button" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)} className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-100"><SlidersHorizontal size={13} />{t('gen_advanced_options')}</button>
                  <p className="mt-1 text-[11px] text-white/35">{t('gen_advanced_options_desc')}</p>
                </div>
                {showAdvanced && <div className="space-y-4 rounded-xl border border-violet-400/15 bg-violet-500/[0.03] p-4 fade-in-up">
@@ -382,22 +387,22 @@ export default function GeneratorPage() {
                 {[
                   [t('gen_reference_heading'), trendReference?.title || url || t('gen_reference_none')], [t('gen_topic_label'), targetProduct || t('gen_input_required')],
                   [t('gen_summary_goal'), localizedOption(purpose)], [t('gen_summary_duration'), duration], [t('gen_summary_method'), localizedOption(productionMethod)], [t('gen_summary_ai_tool'), productionMethod === 'AI video generation' ? localizedOption(aiVideoTool) : t('gen_not_applicable')],
-                  [t('gen_summary_scenes'), `${expectedScenes}`], [t('gen_summary_cost'), t('gen_cost_value')],
+                  [t('gen_summary_scenes'), `${expectedScenes}`], [t('gen_summary_cost'), estimatedCostLabel],
                 ].map(([label, value]) => <div key={label} className="rounded-lg bg-black/15 p-3"><p className="text-[10px] font-bold text-white/35">{label}</p><p className="mt-1 truncate text-xs text-white/75">{value}</p></div>)}
               </div>
-              {credits !== undefined && credits < 5 && (
+              {credits !== undefined && credits < estimatedCreditCost && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
                   {ADS_REWARD_ENABLED && <button type="button" onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>}
                 </div>
               )}
-              <button onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (credits !== undefined && credits < 5)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
+              <button type="button" onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (credits !== undefined && credits < estimatedCreditCost)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
                 {loading ? (
                   <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />{t('gen_creating_plan')} {progress}%</span>
                 ) : (
                   <>
-                    <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />{t('gen_create_plan')} — {t('gen_create_plan_cost')}<ArrowRight size={15} /></span>
-                    <span className="inline-flex min-w-[180px] items-center justify-center gap-1 text-xs text-white/60 font-normal tabular-nums"><Zap size={11} className="text-violet-300" />{t('gen_credits_balance').replace('{credits}', credits === undefined ? '—' : String(credits))} <span className="text-violet-200 font-semibold">{t('gen_credits_cost_range')}</span></span>
+                    <span className="flex items-center gap-2 text-sm font-bold"><Rocket size={16} />{t('gen_create_plan')} — {estimatedCostLabel}<ArrowRight size={15} /></span>
+                    <span className="inline-flex min-w-[180px] items-center justify-center gap-1 text-xs text-white/60 font-normal tabular-nums"><Zap size={11} className="text-violet-300" />{t('gen_credits_balance').replace('{credits}', credits === undefined ? '—' : String(credits))} <span className="text-violet-200 font-semibold">{estimatedCostLabel}</span></span>
                   </>
                 )}
               </button>

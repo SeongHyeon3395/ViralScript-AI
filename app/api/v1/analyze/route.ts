@@ -162,8 +162,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   const isCacheHit = !!cached;
 
-  // 모든 대본 생성은 캐시 여부와 영상 길이에 관계없이 8크레딧이다.
-  const minCreditCheck = CREDIT_COST.FULL_ANALYSIS;
+  // 비용은 서버에서만 결정한다. 참고 영상 URL이 있거나 실제 상세 설정이
+  // 전달된 요청은 8크레딧, 기본 주제 생성은 5크레딧이다.
+  // 클라이언트가 보낸 비용이나 잔액 값은 절대 사용하지 않는다.
+  const hasAdvancedSettings = Boolean(userCustomPrompt?.trim());
+  const creditCost = normalizedUrl || hasAdvancedSettings
+    ? CREDIT_COST.FULL_ANALYSIS
+    : CREDIT_COST.TOPIC_ONLY;
+  const minCreditCheck = creditCost;
 
   // 5. 최소 잔액 확인 (캐시 미스 시 스크래핑 원가 낭비 방지)
   if (profile.credits_remaining < minCreditCheck) {
@@ -172,8 +178,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       { status: 402 }
     );
   }
-
-  const creditCost = CREDIT_COST.FULL_ANALYSIS;
 
   // 6. 캐시 히트: DB에서 바로 반환
   if (isCacheHit && cached) {
@@ -251,7 +255,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  // 7-b. 스크래핑 완료 후에도 고정 단가를 재검증한다.
+  // 7-b. 스크래핑 완료 후에도 서버가 결정한 단가를 재검증한다.
   if (profile.credits_remaining < creditCost) {
     return NextResponse.json(
       {
