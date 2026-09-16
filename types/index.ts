@@ -192,6 +192,7 @@ export interface AnalyzeResponse {
   creditsRemaining?: number;
   creditCostApplied?: number;
   durationSeconds?: number;
+  generationId?: string | null;
   requiredCredits?: number;
   error?: string;
   errorCode?: string;

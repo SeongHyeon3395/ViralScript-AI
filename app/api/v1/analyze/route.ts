@@ -347,6 +347,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     .select('credits_remaining')
     .eq('id', user.id)
     .maybeSingle();
+  const { data: latestGeneration } = await supabase
+    .from('user_generation_history')
+    .select('id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
 
   return NextResponse.json({
     success: true,
@@ -355,5 +362,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     creditsRemaining: updatedProfile?.credits_remaining ?? profile.credits_remaining - creditCost,
     creditCostApplied: creditCost,
     durationSeconds: metadata.durationSeconds,
+    generationId: latestGeneration?.id ?? null,
   });
 }

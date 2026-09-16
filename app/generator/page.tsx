@@ -278,6 +278,7 @@ export default function GeneratorPage() {
       }
       setProgress(100); setProgressLabel(t('gen_analyzing_done'));
       setResult(data.data!); setCached(data.cached ?? false);
+      if (data.generationId) window.dispatchEvent(new CustomEvent('generation:completed', { detail: { generationId: data.generationId } }));
       if (typeof data.creditsRemaining === 'number') applyCreditsFromServer(data.creditsRemaining);
       clearUserCreditsCache();
       void refreshCredits();
