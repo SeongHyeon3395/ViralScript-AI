@@ -148,8 +148,8 @@ GRANT ALL ON TABLE public.payment_orders TO service_role;
 -- Trends retain original creation time and separately track the latest collector refresh.
 ALTER TABLE public.trend_feed
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
-CREATE UNIQUE INDEX IF NOT EXISTS trend_feed_platform_video_url_unique
-  ON public.trend_feed(platform, video_url) WHERE video_url IS NOT NULL;
+ALTER TABLE public.trend_feed
+  ADD CONSTRAINT trend_feed_platform_video_url_unique UNIQUE (platform, video_url);
 
 -- Added SECURITY DEFINER RPCs (definitions and grants are in the migration above):
 -- public.complete_verified_payment_order(TEXT, TEXT, TEXT, NUMERIC, NUMERIC)

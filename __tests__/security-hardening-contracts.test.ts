@@ -8,6 +8,7 @@ const migration = () => read('supabase/migrations/20260914000026_security_and_to
 const referralMigration = () => read('supabase/migrations/20260915000027_referrals_and_rewards.sql');
 const emailRecoveryMigration = () => read('supabase/migrations/20260915000030_email_recovery_privacy.sql');
 const inquiryWorkflowMigration = () => read('supabase/migrations/20260915000031_support_inquiry_workflow.sql');
+const trendUpsertMigration = () => read('supabase/migrations/20260916000032_trend_feed_upsert_constraint.sql');
 
 describe('topic-only generation contracts', () => {
   it('stores a missing source URL as NULL and leaves debit/history atomic', () => {
@@ -217,6 +218,15 @@ describe('admin, language, and trend contracts', () => {
     expect(cron).toContain("onConflict: 'platform,video_url'");
     expect(cron).toContain('updated_at: collectedAt');
     expect(migration()).toContain('ADD COLUMN IF NOT EXISTS updated_at');
+  });
+
+  it('uses an actual unique constraint for daily trend upserts and collects enough candidates to avoid stale top-ten refreshes', () => {
+    const cron = read('app/api/cron/trend/route.ts');
+    expect(trendUpsertMigration()).toContain('ADD CONSTRAINT trend_feed_platform_video_url_unique UNIQUE (platform, video_url)');
+    expect(trendUpsertMigration()).toContain('DROP INDEX IF EXISTS public.trend_feed_platform_video_url_unique');
+    expect(cron).toContain('const CANDIDATES_PER_PLATFORM = 50');
+    expect(cron).toContain('selectDailyTrendRows(candidates, existingKeys, DAILY_NEW_TARGET)');
+    expect(cron).toContain(".in('video_url', candidateUrls)");
   });
 
   it('adds browser security headers and recovers visibly from settings load failures', () => {

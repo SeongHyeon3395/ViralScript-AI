@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
+import { selectDailyTrendRows } from '@/lib/trendSelection';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -9,7 +10,8 @@ export const dynamic = 'force-dynamic';
 
 type TrendPlatform = 'TikTok' | 'YouTube Shorts';
 type Region = 'US' | 'KR' | 'JP';
-const TARGET_PER_PLATFORM = 10;
+const DAILY_NEW_TARGET = 10;
+const CANDIDATES_PER_PLATFORM = 50;
 
 const REGION_LANG: Record<Region, 'en' | 'ko' | 'ja'> = { US: 'en', KR: 'ko', JP: 'ja' };
 const REGION_YT_QUERIES: Record<Region, string[]> = {
@@ -83,6 +85,10 @@ function validPermalink(platform: TrendPlatform, url: string): boolean {
   return platform === 'YouTube Shorts' ? DIRECT_URLS.youtube.test(url) : DIRECT_URLS.tiktok.test(url);
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown source error';
+}
+
 function buildRow(platform: TrendPlatform, region: Region, item: ApifyItem, videoUrl: string): TrendRow | null {
   if (!validPermalink(platform, videoUrl)) return null;
   const views = finiteNumber(item.playCount ?? item.viewCount ?? item.videoPlayCount ?? item.views);
@@ -103,15 +109,15 @@ async function collectYouTube(region: Region): Promise<TrendRow[]> {
   const key = process.env.YOUTUBE_API_KEY ?? process.env.YOUTUBE_DATA_API_KEY ?? process.env.GOOGLE_YOUTUBE_API_KEY;
   if (!key) throw new Error('YOUTUBE_API_KEY is not configured');
   const ids = new Set<string>();
-  for (const query of REGION_YT_QUERIES[region]) {
-    try {
-      const search = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-        params: { key, part: 'snippet', q: `${query} -kids -children -nursery -cartoon -toy`, type: 'video', videoDuration: 'short', order: 'relevance', regionCode: region, relevanceLanguage: REGION_LANG[region], maxResults: 50 },
-        timeout: 15_000,
-      });
-      for (const item of search.data.items ?? []) if (item.id?.videoId) ids.add(item.id.videoId);
-    } catch (error) {
-      console.error('[cron/trend] YouTube query failed', { region, query, error: error instanceof Error ? error.message : error });
+  const searches = await Promise.allSettled(REGION_YT_QUERIES[region].map((query) => axios.get('https://www.googleapis.com/youtube/v3/search', {
+    params: { key, part: 'snippet', q: `${query} -kids -children -nursery -cartoon -toy`, type: 'video', videoDuration: 'short', order: 'relevance', regionCode: region, relevanceLanguage: REGION_LANG[region], maxResults: 25 },
+    timeout: 12_000,
+  })));
+  for (const [index, result] of searches.entries()) {
+    if (result.status === 'fulfilled') {
+      for (const item of result.value.data.items ?? []) if (item.id?.videoId) ids.add(item.id.videoId);
+    } else {
+      console.error('[cron/trend] YouTube query failed', { region, query: REGION_YT_QUERIES[region][index], error: errorMessage(result.reason) });
     }
   }
   if (!ids.size) throw new Error(`${region}: YouTube returned no videos`);
@@ -126,21 +132,26 @@ async function collectYouTube(region: Region): Promise<TrendRow[]> {
     const { sourceText, ...dbRow } = row;
     void sourceText;
     return dbRow;
-  }).slice(0, TARGET_PER_PLATFORM);
+  }).slice(0, CANDIDATES_PER_PLATFORM);
 }
 
 async function collectTikTok(region: Region): Promise<TrendRow[]> {
   const token = process.env.APIFY_API_TOKEN;
   if (!token) throw new Error('APIFY_API_TOKEN is not configured for TikTok');
-  let input: Record<string, unknown> = { hashtags: REGION_TIKTOK_HASHTAGS[region], resultsPerPage: 50, maxItems: 120, shouldDownloadVideos: false, countryCode: region };
-  if (process.env.APIFY_TREND_TIKTOK_INPUT_JSON) input = JSON.parse(process.env.APIFY_TREND_TIKTOK_INPUT_JSON) as Record<string, unknown>;
+  const regionInput: Record<string, unknown> = { hashtags: REGION_TIKTOK_HASHTAGS[region], resultsPerPage: 50, maxItems: 120, shouldDownloadVideos: false, countryCode: region };
+  const configuredInput = process.env.APIFY_TREND_TIKTOK_INPUT_JSON
+    ? JSON.parse(process.env.APIFY_TREND_TIKTOK_INPUT_JSON) as Record<string, unknown>
+    : {};
+  // Keep actor-specific settings, but never let a global env object erase the
+  // region-specific country and hashtags for every daily bucket.
+  const input = { ...configuredInput, ...regionInput };
   const response = await axios.post(`https://api.apify.com/v2/acts/clockworks~tiktok-scraper/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`, input, { timeout: 45_000 });
   return (response.data ?? []).map((item: ApifyItem) => {
     let videoUrl = item.webVideoUrl ?? item.permalink ?? item.postUrl ?? item.url ?? '';
     const username = item.username ?? item.authorMeta?.uniqueId ?? item.author?.uniqueId ?? item.author?.username;
     if (!videoUrl && username && item.id) videoUrl = `https://www.tiktok.com/@${username}/video/${item.id}`;
     return buildRow('TikTok', region, item, videoUrl);
-  }).filter((row: TrendRow | null): row is TrendRow => row !== null).slice(0, TARGET_PER_PLATFORM);
+  }).filter((row: TrendRow | null): row is TrendRow => row !== null).slice(0, CANDIDATES_PER_PLATFORM);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -148,31 +159,44 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!expected) return NextResponse.json({ error: 'CRON_SECRET is not configured' }, { status: 500 });
   if (req.headers.get('authorization') !== `Bearer ${expected}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) return NextResponse.json({ ok: false, error: 'Trend database configuration is missing' }, { status: 500 });
     const regions: Region[] = ['US', 'KR', 'JP'];
+    const sourceErrors: Array<{ region: Region; source: TrendPlatform; error: string }> = [];
     const settled = await Promise.allSettled(regions.map(async (region) => {
       const [youtubeResult, tiktokResult] = await Promise.allSettled([collectYouTube(region), collectTikTok(region)]);
-      if (youtubeResult.status === 'rejected') console.error('[cron/trend] YouTube source failed', { region, error: youtubeResult.reason });
-      if (tiktokResult.status === 'rejected') console.error('[cron/trend] TikTok source failed', { region, error: tiktokResult.reason });
+      if (youtubeResult.status === 'rejected') {
+        const error = errorMessage(youtubeResult.reason);
+        sourceErrors.push({ region, source: 'YouTube Shorts', error });
+        console.error('[cron/trend] YouTube source failed', { region, error });
+      }
+      if (tiktokResult.status === 'rejected') {
+        const error = errorMessage(tiktokResult.reason);
+        sourceErrors.push({ region, source: 'TikTok', error });
+        console.error('[cron/trend] TikTok source failed', { region, error });
+      }
       return [...(youtubeResult.status === 'fulfilled' ? youtubeResult.value : []), ...(tiktokResult.status === 'fulfilled' ? tiktokResult.value : [])];
     }));
     const collected = settled.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
     const uniqueUrls = new Set<string>();
-    const rows = collected.filter((row) => validPermalink(row.platform, row.video_url) && !uniqueUrls.has(row.video_url) && uniqueUrls.add(row.video_url));
-    if (!rows.length) return NextResponse.json({ ok: true, inserted: 0, updated: 0, collected: 0, preserved: true, updatedAt: new Date().toISOString() });
+    const candidates = collected.filter((row) => validPermalink(row.platform, row.video_url) && !uniqueUrls.has(row.video_url) && uniqueUrls.add(row.video_url));
+    if (!candidates.length) return NextResponse.json({ ok: false, inserted: 0, updated: 0, collected: 0, sourceErrors }, { status: 503 });
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-    const { data: existingRows, error: existingErr } = await supabase.from('trend_feed').select('platform, video_url');
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const candidateUrls = [...new Set(candidates.map((row) => row.video_url))];
+    const { data: existingRows, error: existingErr } = await supabase.from('trend_feed').select('platform, video_url').in('video_url', candidateUrls);
     if (existingErr) throw new Error(`Existing trend lookup failed: ${existingErr.message}`);
     const existingKeys = new Set((existingRows ?? []).map((row) => `${row.platform}|${row.video_url}`));
+    const selection = selectDailyTrendRows(candidates, existingKeys, DAILY_NEW_TARGET);
+    if (!selection.rows.length) return NextResponse.json({ ok: false, inserted: 0, updated: 0, collected: candidates.length, sourceErrors }, { status: 503 });
     const collectedAt = new Date().toISOString();
-    const inserted = rows.filter((row) => !existingKeys.has(`${row.platform}|${row.video_url}`)).length;
-    const updated = rows.length - inserted;
     const { error: upsertError } = await supabase.from('trend_feed').upsert(
-      rows.map((row) => ({ ...row, updated_at: collectedAt })),
+      selection.rows.map((row) => ({ ...row, updated_at: collectedAt })),
       { onConflict: 'platform,video_url' },
     );
     if (upsertError) throw new Error(`DB upsert failed: ${upsertError.message}`);
-    return NextResponse.json({ ok: true, inserted, updated, collected: rows.length, updatedAt: collectedAt });
+    return NextResponse.json({ ok: true, inserted: selection.inserted, updated: selection.updated, collected: candidates.length, insertedByBucket: selection.insertedByBucket, sourceErrors, updatedAt: collectedAt });
   } catch (error) {
     console.error('[cron/trend]', error instanceof Error ? error.message : error);
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unknown' }, { status: 500 });
