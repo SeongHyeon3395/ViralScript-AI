@@ -82,7 +82,10 @@ export default function PricingPage() {
                         <div className="flex items-end gap-1 mb-1"><span className="text-4xl font-extrabold text-white">{plan.credits}</span><span className="text-sm text-white/40 mb-1.5 ml-1">{t('pricing_credit_unit')}</span></div>
                         <p className={`text-2xl font-bold mb-0.5 ${isPro ? 'gradient-text' : 'text-violet-400'}`}>₩{plan.priceKrw.toLocaleString()}</p>
                         <p className="text-xs text-white/30">${plan.priceUsd} USD</p>
-                        <p className="text-sm text-white/50 mt-4 leading-relaxed">{t('pricing_generation_count').replace('{count}', String(Math.floor(plan.credits / CREDIT_COST.FULL_ANALYSIS)))}</p>
+                        <div className="mt-4 space-y-1 text-sm leading-relaxed text-white/50">
+                          <p>{t('pricing_reference_generation_count').replace('{count}', String(Math.floor(plan.credits / CREDIT_COST.FULL_ANALYSIS)))}</p>
+                          <p>{t('pricing_topic_generation_count').replace('{count}', String(Math.floor(plan.credits / CREDIT_COST.TOPIC_ONLY)))}</p>
+                        </div>
                       </div>
                       <button type="button" onClick={() => void startPayment(plan.id)} disabled={purchasingPlanId !== null} className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${isPro ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20' : 'border border-white/15 text-white/70 hover:bg-white/8 hover:text-white'}`}>{purchasingPlanId === plan.id ? t('payment_checkout_opening') : t('pricing_charge_btn')}<ArrowRight size={14} /></button>
                     </div>

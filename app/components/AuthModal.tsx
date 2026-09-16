@@ -30,7 +30,7 @@ import { useLanguage } from './LanguageProvider';
 type AuthMode = 'login' | 'signup' | 'forgot' | 'find_email' | 'suspended';
 
 const PHONE_COUNTRIES = [
-  ['KR', '+82', 'South Korea'], ['US', '+1', 'United States'], ['CA', '+1', 'Canada'], ['JP', '+81', 'Japan'], ['CN', '+86', 'China'], ['TW', '+886', 'Taiwan'], ['HK', '+852', 'Hong Kong'],
+  ['US', '+1', 'United States'], ['KR', '+82', 'South Korea'], ['CA', '+1', 'Canada'], ['JP', '+81', 'Japan'], ['CN', '+86', 'China'], ['TW', '+886', 'Taiwan'], ['HK', '+852', 'Hong Kong'],
   ['GB', '+44', 'United Kingdom'], ['DE', '+49', 'Germany'], ['FR', '+33', 'France'], ['IT', '+39', 'Italy'], ['ES', '+34', 'Spain'], ['PT', '+351', 'Portugal'], ['NL', '+31', 'Netherlands'], ['BE', '+32', 'Belgium'], ['CH', '+41', 'Switzerland'], ['AT', '+43', 'Austria'], ['SE', '+46', 'Sweden'], ['NO', '+47', 'Norway'], ['DK', '+45', 'Denmark'], ['FI', '+358', 'Finland'], ['IE', '+353', 'Ireland'], ['PL', '+48', 'Poland'], ['CZ', '+420', 'Czech Republic'], ['HU', '+36', 'Hungary'], ['RO', '+40', 'Romania'], ['GR', '+30', 'Greece'], ['UA', '+380', 'Ukraine'], ['RU', '+7', 'Russia'],
   ['AU', '+61', 'Australia'], ['NZ', '+64', 'New Zealand'], ['IN', '+91', 'India'], ['SG', '+65', 'Singapore'], ['MY', '+60', 'Malaysia'], ['TH', '+66', 'Thailand'], ['VN', '+84', 'Vietnam'], ['PH', '+63', 'Philippines'], ['ID', '+62', 'Indonesia'], ['KH', '+855', 'Cambodia'], ['LA', '+856', 'Laos'], ['MM', '+95', 'Myanmar'], ['BD', '+880', 'Bangladesh'], ['PK', '+92', 'Pakistan'], ['LK', '+94', 'Sri Lanka'], ['NP', '+977', 'Nepal'], ['MN', '+976', 'Mongolia'],
   ['AE', '+971', 'United Arab Emirates'], ['SA', '+966', 'Saudi Arabia'], ['IL', '+972', 'Israel'], ['TR', '+90', 'Turkey'], ['IR', '+98', 'Iran'], ['IQ', '+964', 'Iraq'], ['QA', '+974', 'Qatar'], ['KW', '+965', 'Kuwait'], ['BH', '+973', 'Bahrain'], ['JO', '+962', 'Jordan'], ['EG', '+20', 'Egypt'], ['ZA', '+27', 'South Africa'], ['NG', '+234', 'Nigeria'], ['KE', '+254', 'Kenya'], ['MA', '+212', 'Morocco'],
@@ -86,8 +86,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [name, setName] = useState('');
-  const [phoneCountryCode, setPhoneCountryCode] = useState('+82');
-  const [phoneCountryIso, setPhoneCountryIso] = useState('KR');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+1');
+  const [phoneCountryIso, setPhoneCountryIso] = useState('US');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -112,8 +112,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setPassword('');
     setPasswordError('');
     setName('');
-    setPhoneCountryCode('+82');
-    setPhoneCountryIso('KR');
+    setPhoneCountryCode('+1');
+    setPhoneCountryIso('US');
     setPhoneNumber('');
     setShowPassword(false);
     setMessage(null);

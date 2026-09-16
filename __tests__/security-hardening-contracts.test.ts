@@ -143,6 +143,9 @@ describe('privacy, credits, and disabled reward UX', () => {
     const translations = read('app/components/LanguageSwitcher.tsx');
     expect(translations.match(/gen_cost_topic:/g)).toHaveLength(4);
     expect(translations.match(/gen_cost_full:/g)).toHaveLength(4);
+    expect(translations.match(/gen_advanced_cost_notice:/g)).toHaveLength(4);
+    expect(read('app/generator/page.tsx')).toContain("const LANGUAGES = ['English', 'Korean', 'Japanese']");
+    expect(read('app/components/AuthModal.tsx')).toContain("['US', '+1', 'United States'], ['KR', '+82', 'South Korea']");
     expect(read('app/terms/page.tsx')).toContain('A completed topic-only generation costs five credits');
   });
 

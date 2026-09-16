@@ -45,7 +45,7 @@ const ANALYSIS_POINTS = ['First 1–3 second hook', 'Scene pacing', 'Narration s
 const PURPOSES = ['Inform', 'Entertain and relate', 'Share an experience', 'Tell a story', 'Join a challenge', 'Grow followers', 'Build community'];
 const CONCEPTS = ['Problem-solving', 'Review', 'Before and after', 'How-to', 'Emotional story', 'Comedy or meme', 'Vlog', 'Information summary', 'Faceless content'];
 const DURATIONS = ['10s', '15s', '30s', '45s', '60s'];
-const LANGUAGES = ['Korean', 'English', 'Japanese'];
+const LANGUAGES = ['English', 'Korean', 'Japanese'];
 const PRODUCTION_METHODS = ['Live action', 'AI video generation', 'Existing video editing', 'Faceless content', 'Screen recording', 'Photo or image based'];
 const AI_VIDEO_TOOLS = ['Google Veo', 'Runway', 'Kling', 'Adobe Firefly', 'Generic prompt'];
 const ANALYSIS_POINT_KEYS = ['gen_analysis_hook', 'gen_analysis_pacing', 'gen_analysis_narration', 'gen_analysis_caption', 'gen_analysis_emotion', 'gen_analysis_product', 'gen_analysis_cta'];
@@ -178,7 +178,7 @@ export default function GeneratorPage() {
   const [mood, setMood] = useState('');
   const [duration, setDuration] = useState('30s');
   const [cast, setCast] = useState('On-camera talent');
-  const [language, setLanguage] = useState('Korean');
+  const [language, setLanguage] = useState('English');
   const [productionMethod, setProductionMethod] = useState('Live action');
   const [aiVideoTool, setAiVideoTool] = useState('Google Veo');
   const [customPrompt, setCustomPrompt] = useState('');
@@ -326,7 +326,7 @@ export default function GeneratorPage() {
 
             <div className="space-y-5">
             <div id="content-options" className="rounded-2xl p-5 sm:p-7 space-y-5 scroll-mt-24" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
-              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-xs font-black">1</span><div><h3 className="text-sm font-bold text-white">{t('gen_reference_heading')}</h3><p className="text-xs text-white/40">{t('gen_reference_desc')}</p></div></div>
+              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-violet-600 px-1 text-[10px] font-black">{t('gen_optional_label')}</span><div><h3 className="text-sm font-bold text-white">{t('gen_reference_heading')}</h3><p className="text-xs text-white/40">{t('gen_reference_desc')}</p></div></div>
               {trendReference && (
                 <div className="flex gap-3 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-3 fade-in-up">
                   {trendReference.thumbnail && <NextImage src={trendReference.thumbnail} alt="Reference video thumbnail" width={80} height={56} unoptimized className="h-14 w-20 shrink-0 rounded-lg object-cover" />}
@@ -347,7 +347,7 @@ export default function GeneratorPage() {
             </div>
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-5" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
-              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black">2</span><div><h3 className="text-sm font-bold text-white">{t('gen_topic_heading')}</h3><p className="text-xs text-white/40">{t('gen_topic_desc')}</p></div></div>
+              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black">1</span><div><h3 className="text-sm font-bold text-white">{t('gen_topic_heading')}</h3><p className="text-xs text-white/40">{t('gen_topic_desc')}</p></div></div>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/70"><Sparkles size={14} className="text-emerald-400" />{t('gen_topic_label')} <span className="text-xs font-bold text-amber-300">({t('gen_input_required')})</span></label>
                 <input type="text" value={targetProduct} onChange={e => setTargetProduct(e.target.value)} placeholder={t('gen_topic_required')} className="w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm input-dark" />
@@ -357,6 +357,7 @@ export default function GeneratorPage() {
                  <p className="text-[11px] text-white/45">{t('gen_defaults_summary')}</p>
                  <button type="button" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)} className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-100"><SlidersHorizontal size={13} />{t('gen_advanced_options')}</button>
                  <p className="mt-1 text-[11px] text-white/35">{t('gen_advanced_options_desc')}</p>
+                 {showAdvanced && <p className="mt-2 text-[11px] font-semibold text-amber-300">{t('gen_advanced_cost_notice')}</p>}
                </div>
                {showAdvanced && <div className="space-y-4 rounded-xl border border-violet-400/15 bg-violet-500/[0.03] p-4 fade-in-up">
                <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_content_goal_heading')}</label><ChoiceChips options={PURPOSES} value={purpose} onChange={setPurpose} /></div>
@@ -371,7 +372,7 @@ export default function GeneratorPage() {
              </div>
 
             {showAdvanced && <div className="rounded-2xl p-5 sm:p-7 space-y-5 fade-in-up" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
-              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black">3</span><div><h3 className="text-sm font-bold text-white">{t('gen_method_heading')}</h3><p className="text-xs text-white/40">{t('gen_method_desc')}</p></div></div>
+              <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black">2</span><div><h3 className="text-sm font-bold text-white">{t('gen_method_heading')}</h3><p className="text-xs text-white/40">{t('gen_method_desc')}</p></div></div>
               <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_production_method')}</label><ChoiceChips options={PRODUCTION_METHODS} value={productionMethod} onChange={setProductionMethod} /></div>
               {productionMethod === 'AI video generation' && (
                 <div className="space-y-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.07] p-4 fade-in-up">
@@ -382,7 +383,7 @@ export default function GeneratorPage() {
             </div>}
 
             <div className="rounded-2xl p-5 sm:p-7 space-y-4" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
-              <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-xs font-black">4</span><div><h3 className="text-sm font-bold text-white">{t('gen_options_heading')}</h3><p className="text-xs text-white/40">{t('gen_options_desc')}</p></div></div>
+              <div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-xs font-black">{showAdvanced ? '3' : '2'}</span><div><h3 className="text-sm font-bold text-white">{t('gen_options_heading')}</h3><p className="text-xs text-white/40">{t('gen_options_desc')}</p></div></div>
               <div className="grid gap-2 rounded-xl border border-white/8 bg-white/[0.025] p-4 sm:grid-cols-2">
                 {[
                   [t('gen_reference_heading'), trendReference?.title || url || t('gen_reference_none')], [t('gen_topic_label'), targetProduct || t('gen_input_required')],
