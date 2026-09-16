@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const PAGE_SIZE = 25;
-const PROFILE_FIELDS = 'id, email, full_name, subscription_plan, credits_remaining, theme_preference, default_language, email_notifications, default_target_platform, is_suspended, suspended_at, suspension_reason, created_at, updated_at';
+const PROFILE_FIELDS = 'id, email, full_name, subscription_plan, credits_remaining, theme_preference, default_language, email_notifications, default_target_platform, is_suspended, suspended_at, suspension_reason, referral_code, created_at, updated_at';
 const TREND_FIELDS = 'id, platform, region, title, subtitle, views, likes, tags, thumb_url, video_url, url, created_at, deleted_at, deleted_by, delete_reason';
 
 function apiError(error: unknown): NextResponse {
@@ -75,11 +75,23 @@ async function getUsers(req: NextRequest, session: Awaited<ReturnType<typeof req
   if (error) throw new Error(error.message);
 
   const ids = (data ?? []).map((profile) => profile.id);
-  const { data: adminRows, error: adminsError } = ids.length
-    ? await session.supabase.from('admin_users').select('user_id, role, is_active').in('user_id', ids)
-    : { data: [], error: null };
-  if (adminsError) throw new Error(adminsError.message);
+  const [adminsResult, referrerEventsResult, referredEventsResult] = ids.length
+    ? await Promise.all([
+      session.supabase.from('admin_users').select('user_id, role, is_active').in('user_id', ids),
+      session.supabase.from('referral_events').select('referrer_user_id').in('referrer_user_id', ids),
+      session.supabase.from('referral_events').select('referred_user_id, referral_code').in('referred_user_id', ids),
+    ])
+    : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }] as const;
+  if (adminsResult.error || referrerEventsResult.error || referredEventsResult.error) {
+    throw new Error(adminsResult.error?.message ?? referrerEventsResult.error?.message ?? referredEventsResult.error?.message ?? '추천인 정보 조회 실패');
+  }
+  const adminRows = adminsResult.data;
   const adminById = new Map((adminRows ?? []).map((admin) => [admin.user_id, admin]));
+  const invitedCountById = new Map<string, number>();
+  for (const event of referrerEventsResult.data ?? []) {
+    invitedCountById.set(event.referrer_user_id, (invitedCountById.get(event.referrer_user_id) ?? 0) + 1);
+  }
+  const referredByCodeById = new Map((referredEventsResult.data ?? []).map((event) => [event.referred_user_id, event.referral_code]));
 
   const users = await Promise.all((data ?? []).map(async (profile) => {
     const authResult = await session.supabase.auth.admin.getUserById(profile.id);
@@ -90,6 +102,8 @@ async function getUsers(req: NextRequest, session: Awaited<ReturnType<typeof req
       last_sign_in_at: authResult.data.user?.last_sign_in_at ?? null,
       email_confirmed_at: authResult.data.user?.email_confirmed_at ?? null,
       admin_role: admin?.is_active ? admin.role : null,
+      invited_count: invitedCountById.get(profile.id) ?? 0,
+      referred_by_code: referredByCodeById.get(profile.id) ?? null,
     };
   }));
   return { users, page, pageSize: PAGE_SIZE, total: count ?? 0 };

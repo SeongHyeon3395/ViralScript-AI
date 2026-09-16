@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { setTranslationLanguage } from './LanguageSwitcher';
 
 export type AppLanguage = 'en' | 'ko' | 'ja' | 'zh';
 const STORAGE_KEY = 'viralLang';
@@ -17,11 +18,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     const initialTimer = window.setTimeout(() => {
-      if (validLanguage(stored)) setLanguageState(stored);
+      if (validLanguage(stored)) {
+        setTranslationLanguage(stored);
+        setLanguageState(stored);
+      }
     }, 0);
     const restore = (event: Event) => {
       const next = (event as CustomEvent<unknown>).detail;
       if (validLanguage(next)) {
+        setTranslationLanguage(next);
         setLanguageState(next);
         window.localStorage.setItem(STORAGE_KEY, next);
       }
@@ -39,6 +44,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const setLanguage = useCallback(async (next: AppLanguage) => {
     if (!validLanguage(next)) return;
+    setTranslationLanguage(next);
     setLanguageState(next);
     window.localStorage.setItem(STORAGE_KEY, next);
     window.dispatchEvent(new CustomEvent('language:changed', { detail: next }));

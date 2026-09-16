@@ -14,7 +14,9 @@ import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
 
 const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
-const ADS_REWARD_ENABLED = process.env.NEXT_PUBLIC_ENABLE_ADS_REWARD === 'true';
+// No provider SSV or signed reward event is configured. Keep browser reward UI
+// disabled even if a stale public environment variable is accidentally true.
+const ADS_REWARD_ENABLED = false;
 
 export default function PricingPage() {
   useLanguage();

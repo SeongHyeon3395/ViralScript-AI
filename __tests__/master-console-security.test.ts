@@ -49,4 +49,15 @@ describe('master console security contracts', () => {
     expect(selectedFields).not.toContain('toss_billing_key');
     expect(selectedFields).not.toContain('stripe_customer_id');
   });
+
+  it('shows stored referral codes and referral relationships only to authenticated administrators', () => {
+    const api = read('app/api/master/route.ts');
+    const consoleSource = read('app/Master/MasterConsole.tsx');
+    expect(api).toContain('referral_code');
+    expect(api).toContain("from('referral_events').select('referrer_user_id')");
+    expect(api).toContain("from('referral_events').select('referred_user_id, referral_code')");
+    expect(api).toContain('invited_count');
+    expect(consoleSource).toContain('추천인');
+    expect(consoleSource).toContain('referred_by_code');
+  });
 });

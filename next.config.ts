@@ -3,12 +3,12 @@ import type { NextConfig } from "next";
 const isDevelopment = process.env.NODE_ENV === 'development';
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''} https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net`,
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''} https://vercel.live`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net",
-  "frame-src 'self' https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live",
+  "frame-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

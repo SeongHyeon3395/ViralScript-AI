@@ -16,7 +16,7 @@ const LANGS: { code: Lang; label: string; flag: string }[] = [
 // 간단한 번역 테이블
 export const T: Record<Lang, Record<string, string>> = {
   ko: {
-    settings_hide_password: '비밀번호 숨기기', settings_show_password: '비밀번호 표시', settings_load_failed: '설정을 불러오지 못했습니다.', settings_retry: '다시 불러오기', settings_billing_ready: '크레딧 구매를 이용할 수 있습니다', settings_billing_ready_desc: '크레딧 구매와 결제 상태는 크레딧 페이지에서 확인할 수 있습니다.', settings_manage_credits: '크레딧 관리', ads_temporarily_unavailable: '광고 보상 준비 중', payment_success_refreshing: '결제가 완료되었습니다. 크레딧 잔액을 확인하고 있습니다…', payment_cancelled: '결제가 취소되었습니다.', payment_unavailable: '결제 서비스를 이용할 수 없습니다.', payment_checkout_opening: '결제창 여는 중…', pricing_credit_unit: '크레딧', pricing_generation_count: '최대 {count}회 생성 가능',
+    settings_hide_password: '비밀번호 숨기기', settings_show_password: '비밀번호 표시', settings_load_failed: '설정을 불러오지 못했습니다.', settings_retry: '다시 불러오기', settings_billing_ready: '크레딧 구매를 이용할 수 있습니다', settings_billing_ready_desc: '크레딧 구매와 결제 상태는 크레딧 페이지에서 확인할 수 있습니다.', settings_manage_credits: '크레딧 관리', ads_temporarily_unavailable: '광고 보상 준비 중', ads_verification_notice: '광고 시청 보상은 서버 검증이 준비된 뒤에만 제공됩니다. 현재는 룰렛과 친구 초대로 크레딧을 받을 수 있습니다.', payment_success_refreshing: '결제가 완료되었습니다. 크레딧 잔액을 확인하고 있습니다…', payment_cancelled: '결제가 취소되었습니다.', payment_unavailable: '결제 서비스를 이용할 수 없습니다.', payment_checkout_opening: '결제창 여는 중…', pricing_credit_unit: '크레딧', pricing_generation_count: '최대 {count}회 생성 가능',
     trend_sort_latest: '최신순', trend_sort_popular: '인기순', pricing_credits_balance: '크레딧 {credits}개 보유',
     gen_analysis_heading: '분석할 바이럴 구조', gen_analysis_hook: '첫 1~3초 후킹', gen_analysis_pacing: '장면 구성 속도', gen_analysis_narration: '내레이션 구조', gen_analysis_caption: '자막 패턴', gen_analysis_emotion: '감정 변화', gen_analysis_product: '제품 노출', gen_analysis_cta: '마지막 행동 유도(CTA)',
     gen_language_ko: '한국어', gen_language_en: '영어', gen_language_ja: '일본어', gen_method_live: '실사 촬영', gen_method_ai: 'AI 영상 생성', gen_method_existing: '기존 영상 편집', gen_method_screen: '화면 녹화', gen_method_photo: '사진 또는 이미지 기반', gen_tool_veo: 'Google Veo', gen_tool_runway: 'Runway', gen_tool_kling: 'Kling', gen_tool_firefly: 'Adobe Firefly', gen_tool_generic: '범용 프롬프트',
@@ -327,7 +327,7 @@ export const T: Record<Lang, Record<string, string>> = {
     cancel: '취소',
   },
   en: {
-    settings_hide_password: 'Hide password', settings_show_password: 'Show password', settings_load_failed: 'We could not load your settings.', settings_retry: 'Try again', settings_billing_ready: 'Credit purchases are available', settings_billing_ready_desc: 'Manage credit purchases and payment status on the Credits page.', settings_manage_credits: 'Manage credits', ads_temporarily_unavailable: 'Ad rewards unavailable', payment_success_refreshing: 'Payment completed. Refreshing your credit balance…', payment_cancelled: 'Payment was cancelled.', payment_unavailable: 'Payment checkout is unavailable.', payment_checkout_opening: 'Opening checkout…', pricing_credit_unit: 'credits', pricing_generation_count: 'Up to {count} generations',
+    settings_hide_password: 'Hide password', settings_show_password: 'Show password', settings_load_failed: 'We could not load your settings.', settings_retry: 'Try again', settings_billing_ready: 'Credit purchases are available', settings_billing_ready_desc: 'Manage credit purchases and payment status on the Credits page.', settings_manage_credits: 'Manage credits', ads_temporarily_unavailable: 'Ad rewards unavailable', ads_verification_notice: 'Ad rewards are available only after server-side verification is configured. For now, use the daily wheel or invite friends to earn credits.', payment_success_refreshing: 'Payment completed. Refreshing your credit balance…', payment_cancelled: 'Payment was cancelled.', payment_unavailable: 'Payment checkout is unavailable.', payment_checkout_opening: 'Opening checkout…', pricing_credit_unit: 'credits', pricing_generation_count: 'Up to {count} generations',
     trend_sort_latest: 'Latest', trend_sort_popular: 'Popular', pricing_credits_balance: '{credits} credits available',
     gen_analysis_heading: 'Viral structure to analyze', gen_analysis_hook: 'First 1–3 second hook', gen_analysis_pacing: 'Scene pacing', gen_analysis_narration: 'Narration structure', gen_analysis_caption: 'Caption pattern', gen_analysis_emotion: 'Emotional changes', gen_analysis_product: 'Product visibility', gen_analysis_cta: 'Final CTA',
     gen_language_ko: 'Korean', gen_language_en: 'English', gen_language_ja: 'Japanese', gen_method_live: 'Live action', gen_method_ai: 'AI video generation', gen_method_existing: 'Existing video editing', gen_method_screen: 'Screen recording', gen_method_photo: 'Photo or image based', gen_tool_veo: 'Google Veo', gen_tool_runway: 'Runway', gen_tool_kling: 'Kling', gen_tool_firefly: 'Adobe Firefly', gen_tool_generic: 'Generic prompt',
@@ -642,7 +642,7 @@ export const T: Record<Lang, Record<string, string>> = {
     cancel: 'Cancel',
   },
   zh: {
-    settings_hide_password: '隐藏密码', settings_show_password: '显示密码', settings_load_failed: '无法加载设置。', settings_retry: '重新加载', settings_billing_ready: '可以购买积分', settings_billing_ready_desc: '请在积分页面管理积分购买和付款状态。', settings_manage_credits: '管理积分', ads_temporarily_unavailable: '广告奖励暂不可用', payment_success_refreshing: '付款已完成，正在刷新积分余额…', payment_cancelled: '付款已取消。', payment_unavailable: '当前无法使用付款服务。', payment_checkout_opening: '正在打开付款页面…', pricing_credit_unit: '积分', pricing_generation_count: '最多可生成 {count} 次',
+    settings_hide_password: '隐藏密码', settings_show_password: '显示密码', settings_load_failed: '无法加载设置。', settings_retry: '重新加载', settings_billing_ready: '可以购买积分', settings_billing_ready_desc: '请在积分页面管理积分购买和付款状态。', settings_manage_credits: '管理积分', ads_temporarily_unavailable: '广告奖励暂不可用', ads_verification_notice: '广告奖励仅在服务器验证配置完成后提供。目前可通过每日转盘或邀请好友获得积分。', payment_success_refreshing: '付款已完成，正在刷新积分余额…', payment_cancelled: '付款已取消。', payment_unavailable: '当前无法使用付款服务。', payment_checkout_opening: '正在打开付款页面…', pricing_credit_unit: '积分', pricing_generation_count: '最多可生成 {count} 次',
     trend_sort_latest: '最新', trend_sort_popular: '热门', pricing_credits_balance: '剩余积分：{credits}',
     gen_analysis_heading: '需要分析的热门结构', gen_analysis_hook: '前1–3秒吸引点', gen_analysis_pacing: '镜头节奏', gen_analysis_narration: '旁白结构', gen_analysis_caption: '字幕模式', gen_analysis_emotion: '情绪变化', gen_analysis_product: '产品展示', gen_analysis_cta: '结尾行动号召',
     gen_language_ko: '韩语', gen_language_en: '英语', gen_language_ja: '日语', gen_method_live: '真人拍摄', gen_method_ai: 'AI 视频生成', gen_method_existing: '编辑现有视频', gen_method_screen: '屏幕录制', gen_method_photo: '照片或图片制作', gen_tool_veo: 'Google Veo', gen_tool_runway: 'Runway', gen_tool_kling: 'Kling', gen_tool_firefly: 'Adobe Firefly', gen_tool_generic: '通用提示词',
@@ -957,7 +957,7 @@ export const T: Record<Lang, Record<string, string>> = {
     cancel: '取消',
   },
   ja: {
-    settings_hide_password: 'パスワードを隠す', settings_show_password: 'パスワードを表示', settings_load_failed: '設定を読み込めませんでした。', settings_retry: '再読み込み', settings_billing_ready: 'クレジットを購入できます', settings_billing_ready_desc: 'クレジットの購入と支払い状況はクレジットページで管理できます。', settings_manage_credits: 'クレジットを管理', ads_temporarily_unavailable: '広告報酬は準備中です', payment_success_refreshing: '支払いが完了しました。クレジット残高を更新しています…', payment_cancelled: '支払いがキャンセルされました。', payment_unavailable: '現在、支払いサービスを利用できません。', payment_checkout_opening: '決済画面を開いています…', pricing_credit_unit: 'クレジット', pricing_generation_count: '最大{count}回生成可能',
+    settings_hide_password: 'パスワードを隠す', settings_show_password: 'パスワードを表示', settings_load_failed: '設定を読み込めませんでした。', settings_retry: '再読み込み', settings_billing_ready: 'クレジットを購入できます', settings_billing_ready_desc: 'クレジットの購入と支払い状況はクレジットページで管理できます。', settings_manage_credits: 'クレジットを管理', ads_temporarily_unavailable: '広告報酬は準備中です', ads_verification_notice: '広告報酬はサーバー検証の設定後にのみ利用できます。現在はデイリールーレットまたは友達招待でクレジットを獲得できます。', payment_success_refreshing: '支払いが完了しました。クレジット残高を更新しています…', payment_cancelled: '支払いがキャンセルされました。', payment_unavailable: '現在、支払いサービスを利用できません。', payment_checkout_opening: '決済画面を開いています…', pricing_credit_unit: 'クレジット', pricing_generation_count: '最大{count}回生成可能',
     trend_sort_latest: '最新順', trend_sort_popular: '人気順', pricing_credits_balance: '保有クレジット：{credits}',
     gen_analysis_heading: '分析するバイラル構成', gen_analysis_hook: '最初の1〜3秒のフック', gen_analysis_pacing: 'シーンのテンポ', gen_analysis_narration: 'ナレーション構成', gen_analysis_caption: '字幕パターン', gen_analysis_emotion: '感情の変化', gen_analysis_product: '商品露出', gen_analysis_cta: '最後のCTA',
     gen_language_ko: '韓国語', gen_language_en: '英語', gen_language_ja: '日本語', gen_method_live: '実写撮影', gen_method_ai: 'AI動画生成', gen_method_existing: '既存動画の編集', gen_method_screen: '画面録画', gen_method_photo: '写真・画像ベース', gen_tool_veo: 'Google Veo', gen_tool_runway: 'Runway', gen_tool_kling: 'Kling', gen_tool_firefly: 'Adobe Firefly', gen_tool_generic: '汎用プロンプト',
@@ -1273,11 +1273,17 @@ export const T: Record<Lang, Record<string, string>> = {
   },
 };
 
-const LANG_KEY = 'viralLang';
+// Keep the first client render identical to the SSR fallback. Reading
+// localStorage from t() during hydration made Korean/Japanese/Chinese users
+// render different text from the English server HTML (React error #418).
+let activeLanguage: Lang = 'en';
+
+export function setTranslationLanguage(language: Lang): void {
+  activeLanguage = language;
+}
 
 export function getLang(): Lang {
-  if (typeof window === 'undefined') return 'en';
-  return (localStorage.getItem(LANG_KEY) as Lang) || 'en';
+  return activeLanguage;
 }
 
 export function t(key: string): string {

@@ -142,10 +142,13 @@ describe('privacy, credits, and disabled reward UX', () => {
 
   it('keeps the unverified ad reward action disabled in the client', () => {
     const pricing = read('app/pricing/page.tsx');
-    expect(pricing).toContain("NEXT_PUBLIC_ENABLE_ADS_REWARD === 'true'");
+    const popup = read('app/components/RewardedAdPopup.tsx');
+    expect(pricing).toContain('const ADS_REWARD_ENABLED = false');
     expect(pricing).toContain('disabled: !ADS_REWARD_ENABLED');
     expect(pricing).toContain('{ADS_REWARD_ENABLED && <RewardedAdPopup');
     expect(read('app/generator/page.tsx')).toContain('{ADS_REWARD_ENABLED && <RewardedAdPopup');
+    expect(popup).not.toContain('adsbygoogle');
+    expect(popup).not.toContain("fetch('/api/v1/monetization/ad-reward'");
   });
 
   it('aligns the legal documents with stored data and the eight-credit policy', () => {
@@ -209,6 +212,9 @@ describe('admin, language, and trend contracts', () => {
     expect(layout).toContain('lang="en"');
     expect(provider).toContain("useState<AppLanguage>('en')");
     expect(translations).toContain('T.en[key] ?? key');
+    expect(translations).toContain("let activeLanguage: Lang = 'en'");
+    expect(translations).not.toContain('localStorage.getItem(LANG_KEY)');
+    expect(provider).toContain('setTranslationLanguage(stored)');
   });
 
   it('returns a degraded trend response and cron upserts updated rows', () => {
@@ -236,6 +242,7 @@ describe('admin, language, and trend contracts', () => {
     expect(config).toContain("frame-ancestors 'none'");
     expect(config).toContain("key: 'X-Content-Type-Options'");
     expect(config).toContain('poweredByHeader: false');
+    expect(config).toContain('https://vercel.live');
     expect(settings).toContain("setLoadError(t('settings_load_failed'))");
     expect(settings).toContain("t('settings_retry')");
     expect(settings).toContain("t('auth_password_special_char')");

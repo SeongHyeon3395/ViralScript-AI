@@ -5,6 +5,7 @@ import { Loader2, Mail, Send, X } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
+import { useLanguage } from './LanguageProvider';
 
 const categories = [
   ['account', 'contact_category_account'],
@@ -16,6 +17,7 @@ const categories = [
 ] as const;
 
 export default function ContactSupport() {
+  useLanguage();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<(typeof categories)[number][0]>('other');
