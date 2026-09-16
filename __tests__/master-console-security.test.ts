@@ -83,4 +83,25 @@ describe('master console security contracts', () => {
     expect(consoleSource).toContain('사용자 로그');
     expect(consoleSource).toContain('관리자 로그');
   });
+
+  it('allows only masters to delete inquiries through an audited database RPC', () => {
+    const migration = read('supabase/migrations/20260916000034_inquiry_deletion_audit.sql');
+    const api = read('app/api/master/route.ts');
+    const consoleSource = read('app/Master/MasterConsole.tsx');
+    expect(migration).toContain('master_delete_inquiry_with_audit');
+    expect(migration).toContain("role = 'master'");
+    expect(migration).toContain("'inquiry.delete'");
+    expect(api).toContain("body.action === 'delete_inquiry'");
+    expect(api).toContain("session.role !== 'master'");
+    expect(consoleSource).toContain('문의 삭제');
+  });
+
+  it('returns audit actors and targets with human-readable identities', () => {
+    const api = read('app/api/master/route.ts');
+    const consoleSource = read('app/Master/MasterConsole.tsx');
+    expect(api).toContain("select('id, full_name, email').in('id', profileTargetIds)");
+    expect(api).toContain("select('id, sender_email').in('id', inquiryTargetIds)");
+    expect(consoleSource).toContain('변경 전후 상세 보기');
+    expect(consoleSource).toContain('관리자 또는 시스템이 수행한 운영 작업입니다.');
+  });
 });

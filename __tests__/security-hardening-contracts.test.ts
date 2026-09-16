@@ -160,6 +160,15 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(popup).not.toContain("fetch('/api/v1/monetization/ad-reward'");
   });
 
+  it('can show an environment-configured AdSense display slot without connecting it to rewards', () => {
+    const displayAd = read('app/components/AdSenseDisplayAd.tsx');
+    const pricing = read('app/pricing/page.tsx');
+    expect(displayAd).toContain('NEXT_PUBLIC_ADSENSE_DISPLAY_SLOT');
+    expect(displayAd).toContain('pagead/js/adsbygoogle.js');
+    expect(displayAd).not.toContain('onRewardClaimed');
+    expect(pricing).toContain('<AdSenseDisplayAd />');
+  });
+
   it('aligns the legal documents with the generation pricing policy', () => {
     const privacy = read('app/privacy/page.tsx');
     const terms = read('app/terms/page.tsx');

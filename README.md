@@ -96,7 +96,7 @@ Authorization: Bearer <CRON_SECRET>
 NEXT_PUBLIC_ENABLE_PAYMENT=false
 NEXT_PUBLIC_ENABLE_ADS_REWARD=false
 NEXT_PUBLIC_ADSENSE_CLIENT_ID=your-adsense-client-id
-NEXT_PUBLIC_ADSENSE_REWARDED_AD_SLOT=your-adsense-slot-id
+NEXT_PUBLIC_ADSENSE_DISPLAY_SLOT=your-adsense-display-slot-id
 NEXT_PUBLIC_SITE_URL=https://your-domain.example
 ```
 

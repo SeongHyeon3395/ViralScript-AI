@@ -145,10 +145,34 @@ async function getAudits(req: NextRequest, session: Awaited<ReturnType<typeof re
     : { data: [], error: null };
   if (profileError) throw new Error(profileError.message);
   const actorById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+  const profileTargetIds = [...new Set(auditRows
+    .filter((row) => ['profile', 'user'].includes(String(row.target_type)) && typeof row.target_id === 'string')
+    .map((row) => String(row.target_id)))];
+  const inquiryTargetIds = [...new Set(auditRows
+    .filter((row) => row.target_type === 'support_inquiry' && typeof row.target_id === 'string')
+    .map((row) => String(row.target_id)))];
+  const [targetProfiles, targetInquiries] = await Promise.all([
+    profileTargetIds.length ? session.supabase.from('profiles').select('id, full_name, email').in('id', profileTargetIds) : Promise.resolve({ data: [], error: null }),
+    inquiryTargetIds.length ? session.supabase.from('support_inquiries').select('id, sender_email').in('id', inquiryTargetIds) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (targetProfiles.error || targetInquiries.error) throw new Error(targetProfiles.error?.message ?? targetInquiries.error?.message ?? '감사 로그 대상 조회 실패');
+  const targetProfileById = new Map((targetProfiles.data ?? []).map((profile) => [profile.id, profile]));
+  const targetInquiryById = new Map((targetInquiries.data ?? []).map((inquiry) => [inquiry.id, inquiry]));
   return {
     audits: auditRows.map((row) => {
       const actorId = kind === 'user' ? row.user_id : row.admin_user_id;
-      return { ...row, actor_user_id: actorId ?? null, actor: actorId ? actorById.get(actorId) ?? null : null };
+      const targetId = typeof row.target_id === 'string' ? row.target_id : null;
+      const profileTarget = targetId ? targetProfileById.get(targetId) : null;
+      const inquiryTarget = targetId ? targetInquiryById.get(targetId) : null;
+      const deletedInquiryEmail = typeof row.before_data === 'object' && row.before_data && typeof (row.before_data as Record<string, unknown>).sender_email === 'string'
+        ? (row.before_data as Record<string, string>).sender_email
+        : null;
+      return {
+        ...row,
+        actor_user_id: actorId ?? null,
+        actor: actorId ? actorById.get(actorId) ?? null : null,
+        target: profileTarget ?? (inquiryTarget ? { email: inquiryTarget.sender_email } : deletedInquiryEmail ? { email: deletedInquiryEmail } : null),
+      };
     }),
     kind, page, pageSize: PAGE_SIZE, total: count ?? 0,
   };
@@ -238,8 +262,13 @@ interface InquiryUpdateBody {
   status: 'new' | 'in_progress' | 'resolved';
   adminNote?: string;
 }
+interface InquiryDeleteBody {
+  action: 'delete_inquiry';
+  inquiryId: string;
+  reason?: string;
+}
 
-type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody | TrendBulkBody | InquiryUpdateBody;
+type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody | TrendBulkBody | InquiryUpdateBody | InquiryDeleteBody;
 
 async function updateUser(session: Awaited<ReturnType<typeof requireMaster>>, body: UserUpdateBody) {
   if (session.role !== 'master') throw new MasterAuthError(403, 'Only a master may change user accounts.');
@@ -348,6 +377,19 @@ async function updateInquiry(session: Awaited<ReturnType<typeof requireMaster>>,
   return data;
 }
 
+async function deleteInquiry(session: Awaited<ReturnType<typeof requireMaster>>, body: InquiryDeleteBody) {
+  if (session.role !== 'master') throw new MasterAuthError(403, 'Only a master may delete inquiries.');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.inquiryId ?? '')) throw new Error('문의 ID가 올바르지 않습니다.');
+  if (body.reason !== undefined && (typeof body.reason !== 'string' || body.reason.length > 500)) throw new Error('삭제 사유가 너무 깁니다.');
+  const { data, error } = await session.supabase.rpc('master_delete_inquiry_with_audit', {
+    p_actor_id: session.user.id,
+    p_inquiry_id: body.inquiryId,
+    p_reason: body.reason?.trim() || null,
+  });
+  if (error || !data) throw new Error(error?.message ?? '문의 삭제에 실패했습니다.');
+  return data;
+}
+
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await requireMaster(req);
@@ -363,6 +405,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         ? await updateTrend(session, body)
           : body.action === 'update_inquiry'
             ? await updateInquiry(session, body)
+            : body.action === 'delete_inquiry'
+              ? await deleteInquiry(session, body)
             : body.action === 'delete_trend' || body.action === 'restore_trend'
               ? await moderateTrend(session, body)
               : body.action === 'bulk_delete_trends' || body.action === 'bulk_restore_trends' || body.action === 'purge_trends' || body.action === 'empty_trash'

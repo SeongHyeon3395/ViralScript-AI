@@ -9,6 +9,7 @@ import Footer from '@/app/components/Footer';
 import ReferralSystem from '@/app/components/ReferralSystem';
 import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
+import AdSenseDisplayAd from '@/app/components/AdSenseDisplayAd';
 import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
@@ -159,6 +160,7 @@ export default function PricingPage() {
             </>
           )}
         </div>
+        <AdSenseDisplayAd />
       </main>
       <Footer />
 
