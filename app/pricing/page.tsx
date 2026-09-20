@@ -15,15 +15,13 @@ import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
 
 const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
-// Test the configured regular AdSense slot and its entry points. This never
-// awards credits; production rewards still require server-side verification.
-const ADS_REWARD_ENABLED = true;
 
 export default function PricingPage() {
   useLanguage();
   const navbarRef = useRef<NavbarRef>(null);
   const [referralOpen, setReferralOpen] = useState(false);
   const [adOpen, setAdOpen] = useState(false);
+  const [adDemoMessage, setAdDemoMessage] = useState<string | null>(null);
   const [purchasingPlanId, setPurchasingPlanId] = useState<string | null>(null);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
   const { user, credits, isLoading, refreshCredits } = useAuth();
@@ -123,7 +121,7 @@ export default function PricingPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                   {([
                     { icon: Gift, title: t('free_roulette_title'), desc: t('free_roulette_desc'), badge: t('free_roulette_badge'), badgeClass: 'badge-green', action: t('pricing_roulette_action'), onClick: () => {}, highlight: false, isRoulette: true, disabled: false },
-                    { icon: Play, title: t('ads_test_title'), desc: t('ads_test_notice'), badge: t('ads_test_badge'), badgeClass: 'badge-amber', action: t('ads_test_action'), onClick: () => setAdOpen(true), highlight: ADS_REWARD_ENABLED, isRoulette: false, disabled: !ADS_REWARD_ENABLED },
+                    { icon: Play, title: t('ads_demo_title'), desc: t('ads_demo_notice'), badge: t('ads_demo_badge'), badgeClass: 'badge-amber', action: t('ads_demo_action'), onClick: () => { setAdDemoMessage(null); setAdOpen(true); }, highlight: false, isRoulette: false, disabled: false },
                     { icon: Users, title: t('free_invite_title'), desc: t('free_invite_desc'), badge: t('free_invite_badge'), badgeClass: 'badge-purple', action: t('pricing_invite_action'), onClick: () => setReferralOpen(true), highlight: false, isRoulette: false, disabled: false },
                   ] as const).map(({ icon: Icon, title, desc, badge, badgeClass, action, onClick, highlight, isRoulette, disabled = false }) => (
                     <div key={title} className={`relative rounded-2xl p-7 card-hover flex flex-col ${highlight ? 'glow-purple' : ''}`}
@@ -146,6 +144,7 @@ export default function PricingPage() {
                     </div>
                   ))}
                 </div>
+                {adDemoMessage && <p role="status" className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-center text-sm text-amber-100">{adDemoMessage}</p>}
                 </>
               ) : (
                 <section className="pt-16 pb-20 px-4">
@@ -159,6 +158,15 @@ export default function PricingPage() {
               )}
             </>
           )}
+          {PAYMENT_ENABLED && user && (
+            <section className="mx-auto mt-12 max-w-xl rounded-2xl border border-amber-400/20 bg-amber-400/5 p-6 text-center">
+              <span className="text-xs font-bold text-amber-300">{t('ads_demo_badge')}</span>
+              <h3 className="mt-2 text-lg font-bold text-white">{t('ads_demo_title')}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/55">{t('ads_demo_notice')}</p>
+              <button type="button" onClick={() => { setAdDemoMessage(null); setAdOpen(true); }} className="mt-5 inline-flex items-center gap-2 rounded-xl border border-amber-300/30 bg-amber-400/10 px-5 py-3 text-sm font-semibold text-amber-100 hover:bg-amber-400/20"><Play size={16} />{t('ads_demo_action')}</button>
+              {adDemoMessage && <p role="status" className="mt-4 text-sm text-amber-100">{adDemoMessage}</p>}
+            </section>
+          )}
         </div>
         <AdSenseDisplayAd />
       </main>
@@ -166,14 +174,14 @@ export default function PricingPage() {
 
       {/* 어디서든 열리는 모달들 */}
       <ReferralSystem isOpen={referralOpen} onClose={() => setReferralOpen(false)} />
-      {ADS_REWARD_ENABLED && <RewardedAdPopup
+      <RewardedAdPopup
         isOpen={adOpen}
-        onClose={() => setAdOpen(false)}
-        onRewardClaimed={() => {
+        onClose={() => { setAdOpen(false); setAdDemoMessage(t('ads_demo_forfeit')); }}
+        onDemoComplete={() => {
           setAdOpen(false);
-          void refreshCredits();
+          setAdDemoMessage(t('ads_demo_complete'));
         }}
-      />}
+      />
       {user && <DailyRewardWheel onClaim={() => void refreshCredits()} />}
     </>
   );

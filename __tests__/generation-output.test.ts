@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeGenerationOutput } from '@/lib/generationOutput';
+import { formatProductionPlanText } from '@/lib/productionPlanText';
 
 const legacyResult = {
   project_title: '구형 프로젝트',
@@ -40,5 +41,23 @@ describe('normalizeGenerationOutput', () => {
 
   it('rejects structurally unusable results', () => {
     expect(() => normalizeGenerationOutput({ project_title: '', scenes: [] })).toThrow();
+  });
+});
+
+describe('production plan export', () => {
+  it('includes scenes, selected-language narration, prompts, and timeline in TXT', () => {
+    const result = normalizeGenerationOutput(legacyResult);
+    const text = formatProductionPlanText(result, 'ko', 'kr');
+    expect(text).toContain('장면별 제작 플랜');
+    expect(text).toContain('한국어');
+    expect(text).toContain('Create a vertical video.');
+    expect(text).toContain('편집 타임라인');
+  });
+
+  it('uses the chosen script language without exporting another language narration', () => {
+    const result = normalizeGenerationOutput(legacyResult);
+    const text = formatProductionPlanText(result, 'en', 'us');
+    expect(text).toContain('Narration (US): English');
+    expect(text).not.toContain('Narration (US): 한국어');
   });
 });
