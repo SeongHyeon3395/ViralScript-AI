@@ -10,7 +10,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@google/genai": "^2.11.0",
     "@supabase/supabase-js": "^2.110.2",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",

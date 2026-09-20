@@ -1,5 +1,14 @@
-import { Type, type Schema } from '@google/genai';
 import type { AiPromptTool } from '@/types';
+
+// Keep the plan schema local: Gemini is called through OpenRouter, so the
+// Google SDK (and its install-time dependencies) is no longer needed.
+const Type = { OBJECT: 'OBJECT', STRING: 'STRING', INTEGER: 'INTEGER', ARRAY: 'ARRAY' } as const;
+type Schema = {
+  type: typeof Type[keyof typeof Type];
+  properties?: Record<string, Schema>;
+  required?: string[];
+  items?: Schema;
+};
 
 const localizedText: Schema = { type: Type.OBJECT, properties: { kr: { type: Type.STRING }, us: { type: Type.STRING }, jp: { type: Type.STRING } }, required: ['kr', 'us', 'jp'] };
 const promptText: Schema = { type: Type.OBJECT, properties: { veo: { type: Type.STRING }, runway: { type: Type.STRING }, kling: { type: Type.STRING }, firefly: { type: Type.STRING }, generic: { type: Type.STRING } }, required: ['veo', 'runway', 'kling', 'firefly', 'generic'] };
