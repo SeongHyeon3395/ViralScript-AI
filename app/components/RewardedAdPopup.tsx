@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 import { t } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
-import AdSenseDisplayAd from './AdSenseDisplayAd';
+import AdSenseDisplayAd, { isAdSenseDisplayConfigured } from './AdSenseDisplayAd';
 
 interface RewardedAdPopupProps {
   isOpen: boolean;
@@ -37,7 +37,7 @@ export default function RewardedAdPopup({ isOpen, onClose }: RewardedAdPopupProp
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-amber-500/15 text-amber-300"><AlertCircle size={25} /></div>
         <h2 id="ad-reward-test-title" className="mt-5 text-lg font-bold text-white">{t('ads_test_title')}</h2>
         <p className="mt-2 text-sm leading-6 text-white/50">{t('ads_test_notice')}</p>
-        <AdSenseDisplayAd />
+        {isAdSenseDisplayConfigured ? <AdSenseDisplayAd testMode /> : <p className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs leading-5 text-amber-100">{t('ads_test_missing_config')}</p>}
         <button type="button" onClick={onClose} className="btn-primary-compact mt-6 px-5 py-2.5 text-sm">{t('close')}</button>
       </section>
     </div>

@@ -73,17 +73,18 @@ export async function generateLocalizedScripts(
   metadata: ScrapedMetadata,
   contentTopic: string,
   userCustomPrompt?: string,
-  customApiKey?: string
+  customApiKey?: string,
+  timeoutMs = 45_000
 ): Promise<GenerationOutput> {
   const apiKey = customApiKey ?? process.env.GOOGLE_AI_API_KEY;
 
   if (!apiKey) {
-    throw new Error('GOOGLE_AI_API_KEY is not configured');
+    throw new Error(ERROR_CODES.AI_CONFIG_MISSING);
   }
 
   const ai = new GoogleGenAI({
     apiKey,
-    httpOptions: { timeout: 45_000 },
+    httpOptions: { timeout: timeoutMs },
   });
 
   try {
@@ -104,15 +105,11 @@ export async function generateLocalizedScripts(
         responseMimeType: 'application/json',
         responseSchema: geminiOutputSchema,
         temperature: 0.75,
-        maxOutputTokens: 12288,
+        maxOutputTokens: 24576,
       },
     });
 
     const rawText = response.text;
-
-    if (!rawText) {
-      throw new Error(ERROR_CODES.AI_GENERATION_FAILED);
-    }
 
     // safetyRatings 체크 — 유해 콘텐츠 필터링 감지 시 즉시 에러
     const candidates = response.candidates;
@@ -120,26 +117,40 @@ export async function generateLocalizedScripts(
       throw new Error(ERROR_CODES.AI_MODERATION_BLOCK);
     }
     if (candidates?.[0]?.finishReason === 'MAX_TOKENS') {
-      throw new Error(ERROR_CODES.AI_GENERATION_FAILED);
+      throw new Error(ERROR_CODES.AI_OUTPUT_INVALID);
     }
 
+    if (!rawText) throw new Error(ERROR_CODES.AI_OUTPUT_INVALID);
+
     const parsed: unknown = JSON.parse(rawText);
-    return normalizeGenerationOutput(parsed);
+    try {
+      return normalizeGenerationOutput(parsed);
+    } catch {
+      throw new Error(ERROR_CODES.AI_OUTPUT_INVALID);
+    }
   } catch (err) {
     if (err instanceof Error) {
       if (
         err.message === ERROR_CODES.AI_GENERATION_FAILED ||
-        err.message === ERROR_CODES.AI_MODERATION_BLOCK
+        err.message === ERROR_CODES.AI_MODERATION_BLOCK ||
+        err.message === ERROR_CODES.AI_OUTPUT_INVALID
       ) {
         throw err;
       }
-      // JSON 파싱 에러
       if (err instanceof SyntaxError) {
         console.error('[aiEngine] JSON parse error from Gemini output');
-        throw new Error(ERROR_CODES.AI_GENERATION_FAILED);
+        throw new Error(ERROR_CODES.AI_OUTPUT_INVALID);
       }
     }
-    console.error('[aiEngine] Gemini execution error:', err);
+    const status = typeof err === 'object' && err !== null && 'status' in err ? Number(err.status) : undefined;
+    const name = err instanceof Error ? err.name : 'UnknownError';
+    const providerCode = typeof err === 'object' && err !== null && 'code' in err ? String(err.code).slice(0, 40) : undefined;
+    console.error('[aiEngine] Gemini execution failed', { status, name, providerCode });
+    if (status === 429) throw new Error(ERROR_CODES.AI_RATE_LIMITED);
+    if (status === 401 || status === 403 || status === 404) throw new Error(ERROR_CODES.AI_CONFIG_MISSING);
+    if ((status !== undefined && status >= 500) || name === 'TimeoutError' || name === 'AbortError' || providerCode === 'ETIMEDOUT') {
+      throw new Error(ERROR_CODES.AI_PROVIDER_UNAVAILABLE);
+    }
     throw new Error(ERROR_CODES.AI_GENERATION_FAILED);
   }
 }

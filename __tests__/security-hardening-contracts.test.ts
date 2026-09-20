@@ -165,18 +165,36 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(pricing).toContain('const ADS_REWARD_ENABLED = true');
     expect(pricing).toContain('disabled: !ADS_REWARD_ENABLED');
     expect(pricing).toContain('{ADS_REWARD_ENABLED && <RewardedAdPopup');
-    expect(read('app/generator/page.tsx')).toContain('{ADS_REWARD_ENABLED && <RewardedAdPopup');
-    expect(popup).toContain('<AdSenseDisplayAd />');
+    expect(read('app/generator/page.tsx')).not.toContain('ads_test_action');
+    expect(read('app/generator/page.tsx')).not.toContain('RewardedAdPopup');
+    expect(popup).toContain('<AdSenseDisplayAd testMode />');
     expect(popup).not.toContain("fetch('/api/v1/monetization/ad-reward'");
   });
 
   it('can show an environment-configured AdSense display slot without connecting it to rewards', () => {
     const displayAd = read('app/components/AdSenseDisplayAd.tsx');
     const pricing = read('app/pricing/page.tsx');
+    const popup = read('app/components/RewardedAdPopup.tsx');
     expect(displayAd).toContain('NEXT_PUBLIC_ADSENSE_DISPLAY_SLOT');
     expect(displayAd).toContain('pagead/js/adsbygoogle.js');
+    expect(displayAd).toContain("data-adtest={testMode ? 'on' : undefined}");
+    expect(popup).toContain('ads_test_missing_config');
     expect(displayAd).not.toContain('onRewardClaimed');
     expect(pricing).toContain('<AdSenseDisplayAd />');
+  });
+
+  it('explains generation failures and only promises no debit for recognized API errors', () => {
+    const generator = read('app/generator/page.tsx');
+    const route = read('app/api/v1/analyze/route.ts');
+    const engine = read('services/aiEngine.ts');
+    const translations = read('app/components/LanguageSwitcher.tsx');
+    expect(generator).toContain("code ? t('gen_error_no_charge') : t('gen_error_check_balance')");
+    expect(generator).toContain("'gen_error_quota'");
+    expect(generator).toContain("'gen_error_setup'");
+    expect(route).toContain('AI generation failed before credits were debited');
+    expect(engine).toContain('ERROR_CODES.AI_RATE_LIMITED');
+    expect(engine).toContain('ERROR_CODES.AI_OUTPUT_INVALID');
+    expect(translations.match(/gen_error_no_charge:/g)).toHaveLength(4);
   });
 
   it('aligns the legal documents with the generation pricing policy', () => {

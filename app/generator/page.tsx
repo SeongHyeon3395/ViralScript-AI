@@ -8,22 +8,18 @@ import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import RemixPanel from '@/app/components/RemixPanel';
 import GenerationResult from '@/app/components/GenerationResult';
-import RewardedAdPopup from '@/app/components/RewardedAdPopup';
 import DailyRewardWheel from '@/app/components/DailyRewardWheel';
 import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
 
-// Test the configured regular AdSense slot and its entry points. This never
-// awards credits; production rewards still require server-side verification.
-const ADS_REWARD_ENABLED = true;
 import { clearUserCreditsCache } from '@/lib/profile';
 import { CREDIT_COST } from '@/lib/credits';
 import {
   Link2, SlidersHorizontal, Rocket, Loader2, Zap,
   Film, Clock, TrendingUp, ChevronDown, ChevronUp,
-  Sparkles, BarChart3, ArrowRight, Gift, RefreshCw, Shuffle,
-  CheckCircle2, Shield, LogIn, Copy, Clapperboard, Languages,
+  Sparkles, BarChart3, ArrowRight, Shuffle,
+  CheckCircle2, LogIn, Copy, Clapperboard, Languages,
 } from 'lucide-react';
 
 const DIRECT_SHORT_FORM_REGEX = /^https?:\/\/(?:www\.|vm\.|vt\.)?(?:tiktok\.com\/(?:(?:@[^\/\s]+)\/video\/\d+|v\/\d+)|vm\.tiktok\.com\/[\w-]+|vt\.tiktok\.com\/[\w-]+|youtube\.com\/shorts\/[^\s?]+|youtu\.be\/[^\s?]+)(?:[\/?#].*)?$/i;
@@ -190,8 +186,6 @@ export default function GeneratorPage() {
   const [, setCached] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
-  const [rewardPopupOpen, setRewardPopupOpen] = useState(false);
-  const [adBlockDetected, setAdBlockDetected] = useState(false);
   const submittingRef = useRef(false);
   const expectedScenes = Number.parseInt(duration, 10) <= 15 ? 5 : Number.parseInt(duration, 10) <= 30 ? 6 : 8;
   const estimatedCreditCost = url.trim() || showAdvanced
@@ -266,14 +260,22 @@ export default function GeneratorPage() {
       const data: AnalyzeResponse = await res.json();
       if (!res.ok || !data.success) {
         const code = data.errorCode ?? '';
-        const friendlyMsg =
-          res.status === 401 ? 'Please log in again.' :
-          res.status === 402 ? `Insufficient credits. Please top up your balance. (Current: ${credits ?? 0})` :
-          code.includes('UNSUPPORTED') ? 'Only TikTok and YouTube Shorts links are supported.' :
-          code.includes('PRIVATE') || code.includes('DELETED') ? 'This video is private or deleted.' :
-          code.includes('TIMEOUT') ? 'Video analysis timed out. Please try again.' :
-          (data.error ?? 'Analysis failed. Please try again with a different link.');
-        setError(friendlyMsg);
+        const messageKey = res.status === 401 || res.status === 403 ? 'gen_error_login' :
+          res.status === 402 ? 'gen_error_balance' :
+          code === 'ERR_URL_PRIVATE_OR_DELETED' ? 'gen_error_video' :
+          code === 'ERR_SCRAPER_TIMEOUT' ? 'gen_error_timeout' :
+          code === 'AI_RATE_LIMITED' ? 'gen_error_quota' :
+          code === 'AI_PROVIDER_UNAVAILABLE' ? 'gen_error_provider' :
+          code === 'AI_CONFIG_MISSING' ? 'gen_error_setup' :
+          code === 'AI_OUTPUT_INVALID' ? 'gen_error_output' :
+          code === 'ERR_AI_MODERATION_BLOCK' ? 'gen_error_moderation' :
+          res.status === 400 || res.status === 413 || res.status === 422 ? 'gen_error_invalid' :
+          'gen_error_server';
+        const message = t(messageKey).replace('{status}', String(res.status));
+        // Recognized application errors return before the atomic debit RPC,
+        // or after that RPC has failed and rolled back. Unknown infrastructure
+        // responses cannot safely make that promise.
+        setError(`${message} ${code ? t('gen_error_no_charge') : t('gen_error_check_balance')}`);
         return;
       }
       setProgress(100); setProgressLabel(t('gen_analyzing_done'));
@@ -282,17 +284,10 @@ export default function GeneratorPage() {
       if (typeof data.creditsRemaining === 'number') applyCreditsFromServer(data.creditsRemaining);
       clearUserCreditsCache();
       void refreshCredits();
-    } catch { setError(t('gen_request_failed')); } finally { submittingRef.current = false; setLoading(false); }
+    } catch { setError(`${t('gen_request_failed')} ${t('gen_error_check_balance')}`); } finally { submittingRef.current = false; setLoading(false); }
   }
 
   function handleRewardClaimed() { void refreshCredits(); }
-
-  function handleOpenAdPopup() {
-    const testImg = new Image();
-    testImg.onload = () => { setAdBlockDetected(false); setRewardPopupOpen(true); };
-    testImg.onerror = () => setAdBlockDetected(true);
-    testImg.src = 'https://pagead2.googlesyndication.com/pagead/gen_204?id=adblock_test&' + Date.now();
-  }
 
   return (
     <>
@@ -431,7 +426,6 @@ export default function GeneratorPage() {
               {credits !== undefined && credits < estimatedCreditCost && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
-                  {ADS_REWARD_ENABLED && <button type="button" onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('ads_test_action')}</button>}
                 </div>
               )}
               <button type="button" onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (credits !== undefined && credits < estimatedCreditCost)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
@@ -459,9 +453,6 @@ export default function GeneratorPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-center gap-1">
-                {ADS_REWARD_ENABLED ? <button type="button" onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('ads_test_action')}<RefreshCw size={11} /></button> : <span className="text-xs text-white/30">{t('ads_temporarily_unavailable')}</span>}
-              </div>
             </div>
             {result && <div className="flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-5"><span className="mt-0.5 text-emerald-300">✓</span><div><h3 className="text-sm font-bold text-white">{t('gen_complete_title')}</h3><p className="mt-1 text-xs leading-relaxed text-white/55">{t('gen_complete_desc')}</p></div></div>}
             {result?.source_url && <p role="note" className="rounded-xl border border-amber-400/25 bg-amber-400/10 p-4 text-xs leading-relaxed text-amber-100">{t('gen_source_limit_notice')}</p>}
@@ -482,22 +473,6 @@ export default function GeneratorPage() {
       </main>
 
       <DailyRewardWheel onClaim={handleRewardClaimed} />
-      {ADS_REWARD_ENABLED && <RewardedAdPopup isOpen={rewardPopupOpen} onClose={() => setRewardPopupOpen(false)} onRewardClaimed={handleRewardClaimed} rewardAmount={1} />}
-
-      {ADS_REWARD_ENABLED && adBlockDetected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="alertdialog" aria-modal="true">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-          <div className="relative w-full max-w-sm glass-strong rounded-3xl overflow-hidden fade-in-up">
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
-            <div className="p-8 text-center space-y-5">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mx-auto shadow-lg shadow-orange-500/20"><Shield size={28} className="text-white" /></div>
-              <div><h2 className="text-lg font-bold text-white">{t('gen_adblock_title')}</h2><p className="text-sm text-white/40 mt-2 leading-relaxed">{t('gen_adblock_desc')}</p></div>
-              <button onClick={() => { setAdBlockDetected(false); setRewardPopupOpen(true); }} className="btn-primary w-full"><Gift size={16} /> {t('gen_adblock_dismiss_btn')}</button>
-              <button onClick={() => setAdBlockDetected(false)} className="text-xs text-white/30 hover:text-white/60">{t('close')}</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

@@ -34,7 +34,8 @@ export const T: Record<Lang, Record<string, string>> = {
     history_video_goal: '영상 목표', history_previous_result: '기존 생성 결과', history_unspecified: '미지정', history_credits: '크레딧 사용',
     history_collapse: '결과 접기', history_view_result: '전체 결과 보기', history_copy_prompt: '영상 프롬프트 복사', history_download_json: '원본 JSON 다운로드',
     history_regenerate: '다시 생성', history_delete: '삭제', history_load_more: '더 보기 ({count}개 남음)', history_old_format: '이전 형식의 결과는 화면에 표시할 수 없습니다. 원본 JSON은 다운로드할 수 있습니다.',
-    gen_copy_prompt: '프롬프트 복사', gen_prompt_copied: '프롬프트 복사됨', gen_checking_video: '영상 정보를 확인하는 중...', gen_request_failed: '분석 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+    gen_copy_prompt: '프롬프트 복사', gen_prompt_copied: '프롬프트 복사됨', gen_checking_video: '영상 정보를 확인하는 중...', gen_request_failed: '서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    gen_error_server: '영상 기획을 만들지 못했습니다 (오류 {status}). 잠시 후 다시 시도하거나 관리자에게 문의해 주세요.', gen_error_no_charge: '크레딧은 차감되지 않았습니다.', gen_error_check_balance: '요청 결과를 확인할 수 없으니 재시도 전 크레딧 잔액과 생성 기록을 확인해 주세요.', gen_error_login: '로그인 세션이 만료되었거나 계정에 접근할 수 없습니다. 다시 로그인해 주세요 (오류 {status}).', gen_error_balance: '크레딧이 부족합니다 (오류 {status}). 크레딧 페이지에서 잔액을 확인해 주세요.', gen_error_video: '참고 영상을 찾을 수 없거나 비공개입니다 (오류 {status}). 링크를 확인해 주세요.', gen_error_timeout: '영상 정보를 가져오는 데 시간이 초과되었습니다 (오류 {status}). 잠시 후 다시 시도해 주세요.', gen_error_quota: 'AI 서비스의 요청 한도에 도달했습니다 (오류 {status}). 잠시 후 다시 시도해 주세요.', gen_error_provider: 'AI 서비스가 일시적으로 응답하지 않습니다 (오류 {status}). 잠시 후 다시 시도해 주세요.', gen_error_setup: 'AI 서비스 설정을 확인해야 합니다 (오류 {status}). 관리자에게 문의해 주세요.', gen_error_output: 'AI가 완성된 결과를 반환하지 못했습니다 (오류 {status}). 다시 시도해 주세요.', gen_error_moderation: '요청 내용으로는 생성할 수 없습니다 (오류 {status}). 내용을 수정해 주세요.', gen_error_invalid: '입력한 내용을 확인해 주세요 (오류 {status}).', ads_test_missing_config: '광고 단위가 설정되지 않았습니다. 관리자에게 AdSense 광고 슬롯 ID 설정을 요청해 주세요.',
     // ─── Navbar ───
     nav_generator: '영상 기획 만들기',
     nav_credits: '크레딧',
@@ -349,7 +350,8 @@ export const T: Record<Lang, Record<string, string>> = {
     history_video_goal: 'Video goal', history_previous_result: 'Previous generation result', history_unspecified: 'Unspecified', history_credits: 'credits used',
     history_collapse: 'Collapse result', history_view_result: 'View full result', history_copy_prompt: 'Copy video prompts', history_download_json: 'Download original JSON',
     history_regenerate: 'Generate again', history_delete: 'Delete', history_load_more: 'Load more ({count} remaining)', history_old_format: 'This result uses an older format and cannot be displayed. You can still download the original JSON.',
-    gen_copy_prompt: 'Copy prompt', gen_prompt_copied: 'Prompt copied', gen_checking_video: 'Checking video information...', gen_request_failed: 'The analysis request failed. Please try again shortly.',
+    gen_copy_prompt: 'Copy prompt', gen_prompt_copied: 'Prompt copied', gen_checking_video: 'Checking video information...', gen_request_failed: 'Could not reach the server. Please try again shortly.',
+    gen_error_server: 'Could not create the video plan (error {status}). Try again shortly or contact support.', gen_error_no_charge: 'No credits were deducted.', gen_error_check_balance: 'The request outcome is unknown. Check your credit balance and generation history before retrying.', gen_error_login: 'Your session expired or your account is unavailable. Sign in again (error {status}).', gen_error_balance: 'Insufficient credits (error {status}). Check your balance on the Credits page.', gen_error_video: 'The reference video was not found or is private (error {status}). Check the link.', gen_error_timeout: 'Fetching the video timed out (error {status}). Try again shortly.', gen_error_quota: 'The AI service has reached its request limit (error {status}). Try again later.', gen_error_provider: 'The AI service is temporarily unavailable (error {status}). Try again shortly.', gen_error_setup: 'The AI service configuration needs attention (error {status}). Contact support.', gen_error_output: 'The AI did not return a complete result (error {status}). Please retry.', gen_error_moderation: 'This request cannot be generated (error {status}). Edit the content and retry.', gen_error_invalid: 'Please check your input (error {status}).', ads_test_missing_config: 'The ad unit is not configured. Ask the administrator to set the AdSense display slot ID.',
     // ─── Navbar ───
     nav_generator: 'Script Generator',
     nav_credits: 'Credits',
@@ -668,7 +670,8 @@ export const T: Record<Lang, Record<string, string>> = {
     history_video_goal: '视频目标', history_previous_result: '之前的生成结果', history_unspecified: '未指定', history_credits: '消耗积分',
     history_collapse: '收起结果', history_view_result: '查看完整结果', history_copy_prompt: '复制视频提示词', history_download_json: '下载原始 JSON',
     history_regenerate: '重新生成', history_delete: '删除', history_load_more: '加载更多（剩余 {count} 条）', history_old_format: '此结果使用旧格式，无法显示。仍可下载原始 JSON。',
-    gen_copy_prompt: '复制提示词', gen_prompt_copied: '提示词已复制', gen_checking_video: '正在检查视频信息…', gen_request_failed: '分析请求失败，请稍后重试。',
+    gen_copy_prompt: '复制提示词', gen_prompt_copied: '提示词已复制', gen_checking_video: '正在检查视频信息…', gen_request_failed: '无法连接服务器，请稍后重试。',
+    gen_error_server: '无法创建视频方案（错误 {status}）。请稍后重试或联系管理员。', gen_error_no_charge: '未扣除积分。', gen_error_check_balance: '无法确认请求结果。重试前请检查积分余额和生成记录。', gen_error_login: '登录已过期或账户不可用，请重新登录（错误 {status}）。', gen_error_balance: '积分不足（错误 {status}）。请在积分页面查看余额。', gen_error_video: '参考视频不存在或已设为私密（错误 {status}）。请检查链接。', gen_error_timeout: '获取视频信息超时（错误 {status}）。请稍后重试。', gen_error_quota: 'AI 服务已达到请求限额（错误 {status}）。请稍后重试。', gen_error_provider: 'AI 服务暂时不可用（错误 {status}）。请稍后重试。', gen_error_setup: 'AI 服务配置需要检查（错误 {status}）。请联系管理员。', gen_error_output: 'AI 未返回完整结果（错误 {status}）。请重试。', gen_error_moderation: '无法根据当前内容生成（错误 {status}）。请修改内容后重试。', gen_error_invalid: '请检查输入内容（错误 {status}）。', ads_test_missing_config: '广告单元尚未配置。请管理员设置 AdSense 广告位 ID。',
     // ─── Navbar ───
     nav_generator: '脚本生成器',
     nav_credits: '积分',
@@ -987,7 +990,8 @@ export const T: Record<Lang, Record<string, string>> = {
     history_video_goal: '動画の目的', history_previous_result: '以前の生成結果', history_unspecified: '未指定', history_credits: 'クレジット使用',
     history_collapse: '結果を閉じる', history_view_result: '結果をすべて表示', history_copy_prompt: '動画プロンプトをコピー', history_download_json: '元の JSON をダウンロード',
     history_regenerate: '再生成', history_delete: '削除', history_load_more: 'さらに表示（残り {count} 件）', history_old_format: '古い形式のため結果を表示できません。元の JSON はダウンロードできます。',
-    gen_copy_prompt: 'プロンプトをコピー', gen_prompt_copied: 'プロンプトをコピーしました', gen_checking_video: '動画情報を確認しています…', gen_request_failed: '分析に失敗しました。しばらくしてから再試行してください。',
+    gen_copy_prompt: 'プロンプトをコピー', gen_prompt_copied: 'プロンプトをコピーしました', gen_checking_video: '動画情報を確認しています…', gen_request_failed: 'サーバーに接続できませんでした。しばらくしてから再試行してください。',
+    gen_error_server: '動画プランを作成できませんでした（エラー {status}）。しばらくしてから再試行するか、管理者にお問い合わせください。', gen_error_no_charge: 'クレジットは差し引かれていません。', gen_error_check_balance: 'リクエストの結果を確認できません。再試行前に残高と生成履歴をご確認ください。', gen_error_login: 'ログインの有効期限が切れたか、アカウントを利用できません。再度ログインしてください（エラー {status}）。', gen_error_balance: 'クレジットが不足しています（エラー {status}）。クレジットページで残高をご確認ください。', gen_error_video: '参照動画が見つからないか、非公開です（エラー {status}）。リンクをご確認ください。', gen_error_timeout: '動画情報の取得がタイムアウトしました（エラー {status}）。しばらくしてから再試行してください。', gen_error_quota: 'AI サービスのリクエスト上限に達しました（エラー {status}）。しばらくしてから再試行してください。', gen_error_provider: 'AI サービスは一時的に利用できません（エラー {status}）。しばらくしてから再試行してください。', gen_error_setup: 'AI サービスの設定を確認する必要があります（エラー {status}）。管理者にお問い合わせください。', gen_error_output: 'AI から完全な結果が返されませんでした（エラー {status}）。再試行してください。', gen_error_moderation: 'この内容では生成できません（エラー {status}）。内容を修正してください。', gen_error_invalid: '入力内容をご確認ください（エラー {status}）。', ads_test_missing_config: '広告ユニットが設定されていません。管理者に AdSense 広告スロット ID の設定を依頼してください。',
     // ─── Navbar ───
     nav_generator: '脚本ジェネレーター',
     nav_credits: 'クレジット',

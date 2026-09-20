@@ -34,6 +34,10 @@ function mapErrorToStatus(code: string): number {
       return 504;
     case ERROR_CODES.AI_MODERATION_BLOCK:
       return 451;
+    case ERROR_CODES.AI_RATE_LIMITED:
+      return 429;
+    case ERROR_CODES.AI_PROVIDER_UNAVAILABLE:
+      return 503;
     default:
       return 500;
   }
@@ -275,6 +279,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       { status: 504 }
     );
   }
+  // Leave time for the atomic debit and response after Gemini finishes.
+  const aiTimeoutMs = Math.min(45_000, 50_000 - (Date.now() - requestStart));
+  if (aiTimeoutMs <= 0) {
+    return NextResponse.json(
+      { success: false, error: 'Not enough time remains to generate safely', errorCode: ERROR_CODES.SCRAPER_TIMEOUT },
+      { status: 504 }
+    );
+  }
 
   // 8. AI 생성 (Gemini) — 실패 시 크레딧 차감 없음 (RPC는 step 9에서 호출)
   // BYOK: profile에 custom_gemini_key가 있으면 사용
@@ -284,14 +296,23 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       metadata,
       targetProduct,
       userCustomPrompt,
-      profile.custom_gemini_key ?? undefined
+      profile.custom_gemini_key ?? undefined,
+      aiTimeoutMs
     );
   } catch (err) {
     // AI 실패: 크레딧 차감 RPC 호출 없이 에러 반환 → 자동 롤백
     const code = err instanceof Error ? err.message : ERROR_CODES.AI_GENERATION_FAILED;
+    console.error('[analyze] AI generation failed before debit', { code });
     return NextResponse.json(
-      { success: false, error: 'AI generation failed', errorCode: code },
+      { success: false, error: 'AI generation failed before credits were debited', errorCode: code },
       { status: mapErrorToStatus(code) }
+    );
+  }
+
+  if (isDeadlineExceeded()) {
+    return NextResponse.json(
+      { success: false, error: 'Request timed out after AI generation, before credits were debited', errorCode: ERROR_CODES.AI_PROVIDER_UNAVAILABLE },
+      { status: 503 }
     );
   }
 
