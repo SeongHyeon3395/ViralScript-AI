@@ -101,6 +101,7 @@ async function getUsers(req: NextRequest, session: Awaited<ReturnType<typeof req
       ...profile,
       last_sign_in_at: authResult.data.user?.last_sign_in_at ?? null,
       email_confirmed_at: authResult.data.user?.email_confirmed_at ?? null,
+      auth_providers: [...new Set((authResult.data.user?.identities ?? []).map((identity) => identity.provider))],
       admin_role: admin?.is_active ? admin.role : null,
       invited_count: invitedCountById.get(profile.id) ?? 0,
       referred_by_code: referredByCodeById.get(profile.id) ?? null,

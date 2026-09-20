@@ -26,6 +26,7 @@ import {
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
+import { REFERRAL_STORAGE_KEY } from './GoogleProfileCompletion';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'find_email' | 'suspended';
 
@@ -183,6 +184,23 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setMode(newMode);
   }
 
+  async function signInWithGoogle() {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref && /^[A-F0-9]{12}$/i.test(ref)) window.sessionStorage.setItem(REFERRAL_STORAGE_KEY, ref.toUpperCase());
+      const { error } = await getSupabaseBrowserClient().auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw error;
+    } catch {
+      setMessage({ type: 'error', text: t('google_login_failed') });
+      setLoading(false);
+    }
+  }
+
   async function submitSuspensionAppeal(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAppealStatus('sending');
@@ -269,8 +287,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             setMode('suspended');
           } else if (msg.toLowerCase().includes('email not confirmed')) {
             setMessage({ type: 'error', text: t('auth_email_not_confirmed') });
+          } else if (error.code === 'invalid_credentials' || msg.toLowerCase().includes('invalid login credentials')) {
+            setMessage({ type: 'error', text: t('auth_invalid_credentials') });
           } else {
-            setMessage({ type: 'error', text: msg || t('auth_network_error') });
+            setMessage({ type: 'error', text: t('auth_network_error') });
           }
         } else {
           const token = data.session?.access_token;
@@ -690,6 +710,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     )}
                   </button>
                 </form>
+              )}
+
+              {mode === 'login' && (
+                <button type="button" disabled={loading} onClick={() => void signInWithGoogle()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-50">
+                  <span aria-hidden="true" className="text-base font-bold text-[#4285F4]">G</span>
+                  {t('google_login_button')}
+                </button>
               )}
 
               <p className="text-center text-sm text-white/40">
