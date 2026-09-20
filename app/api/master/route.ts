@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const PAGE_SIZE = 25;
-const PROFILE_FIELDS = 'id, email, full_name, subscription_plan, credits_remaining, theme_preference, default_language, email_notifications, default_target_platform, is_suspended, suspended_at, suspension_reason, referral_code, created_at, updated_at';
+const PROFILE_FIELDS = 'id, email, full_name, phone_country_code, phone_number, subscription_plan, credits_remaining, theme_preference, default_language, email_notifications, default_target_platform, is_suspended, suspended_at, suspension_reason, referral_code, created_at, updated_at';
 const TREND_FIELDS = 'id, platform, region, title, subtitle, views, likes, tags, thumb_url, video_url, url, created_at, deleted_at, deleted_by, delete_reason';
 
 function apiError(error: unknown): NextResponse {
