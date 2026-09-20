@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from './AuthProvider';
 import { useLanguage } from './LanguageProvider';
 import { t } from './LanguageSwitcher';
+import PhoneCountrySelect from './PhoneCountrySelect';
 
 const REFERRAL_STORAGE_KEY = 'google_signup_referral';
 
@@ -13,6 +14,7 @@ export default function GoogleProfileCompletion() {
   const { user, refreshCredits } = useAuth();
   const [open, setOpen] = useState(false);
   const [countryCode, setCountryCode] = useState('+1');
+  const [countryIso, setCountryIso] = useState('US');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [saving, setSaving] = useState(false);
@@ -73,9 +75,13 @@ export default function GoogleProfileCompletion() {
         <h2 id="google-profile-title" className="text-xl font-bold text-white">{t('google_profile_title')}</h2>
         <p className="mt-2 text-sm text-white/55">{t('google_profile_desc')}</p>
         <form onSubmit={(event) => void save(event)} className="mt-5 space-y-4">
-          <div className="grid grid-cols-[90px_1fr] gap-2">
-            <label className="text-xs text-white/60">{t('google_country_code')}<input type="tel" value={countryCode} onChange={(event) => setCountryCode(event.target.value)} required maxLength={5} className="input-dark mt-1 w-full rounded-lg px-3 py-2" /></label>
-            <label className="text-xs text-white/60">{t('signup_phone_label')}<input type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} required autoComplete="tel-national" className="input-dark mt-1 w-full rounded-lg px-3 py-2" /></label>
+          <div className="space-y-2">
+            <p className="pl-1 text-xs font-medium text-white/55">{t('signup_country_label')}</p>
+            <PhoneCountrySelect value={countryCode} countryIso={countryIso} onChange={(dial, iso) => { setCountryCode(dial); setCountryIso(iso); }} />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="google-profile-phone" className="block pl-1 text-xs font-medium text-white/55">{t('signup_phone_label')}</label>
+            <input id="google-profile-phone" type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} required autoComplete="tel-national" className="input-dark w-full rounded-xl px-4 py-3 text-sm" />
           </div>
           {canApplyReferral && <label className="block text-xs text-white/60">{t('referral_signup_label')}<input value={referralCode} onChange={(event) => setReferralCode(event.target.value.toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 12))} maxLength={12} className="input-dark mt-1 w-full rounded-lg px-3 py-2 uppercase" /></label>}
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}

@@ -104,7 +104,9 @@ describe('referral signup and reward flow', () => {
 describe('signup form usability and password policy', () => {
   it('places the country selector above a full-width phone input', () => {
     const modal = read('app/components/AuthModal.tsx');
-    expect(modal).toContain('<div className="relative w-full">');
+    const countrySelect = read('app/components/PhoneCountrySelect.tsx');
+    expect(modal).toContain('<PhoneCountrySelect');
+    expect(countrySelect).toContain('<div className="relative w-full">');
     expect(modal).toContain('<div className="space-y-2">');
     expect(modal).toContain('htmlFor="signup-phone-number"');
     expect(modal).toContain('autoComplete="tel-national"');
@@ -153,7 +155,7 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(translations.match(/gen_cost_full:/g)).toHaveLength(4);
     expect(translations.match(/gen_advanced_cost_notice:/g)).toHaveLength(4);
     expect(read('app/generator/page.tsx')).toContain("const LANGUAGES = ['English', 'Korean', 'Japanese']");
-    expect(read('app/components/AuthModal.tsx')).toContain("['US', '+1', 'United States'], ['KR', '+82', 'South Korea']");
+    expect(read('app/components/PhoneCountrySelect.tsx')).toContain("['US', '+1', 'United States'], ['KR', '+82', 'South Korea']");
     expect(read('app/terms/page.tsx')).toContain('A completed topic-only generation costs five credits');
   });
 
@@ -184,6 +186,27 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(privacy).toContain('Ad rewards are currently disabled');
     expect(terms).toContain('기본 주제만으로 만드는 생성은 정상 완료 시 5크레딧');
     expect(terms).toContain('참고 URL을 제공하거나 상세 설정을 적용한 생성은 정상 완료 시 8크레딧');
+  });
+});
+
+describe('Google signup completion', () => {
+  it('uses the same country selector and localized labels as email signup', () => {
+    const completion = read('app/components/GoogleProfileCompletion.tsx');
+    const translations = read('app/components/LanguageSwitcher.tsx');
+    expect(completion).toContain('<PhoneCountrySelect');
+    expect(completion).toContain("t('signup_country_label')");
+    expect(completion).toContain('id="google-profile-phone"');
+    expect(completion).toContain("t('signup_phone_label')");
+    for (const key of ['google_login_button', 'google_profile_title', 'google_profile_desc', 'google_profile_later', 'google_profile_save_failed']) {
+      expect(translations.match(new RegExp(`${key}:`, 'g'))).toHaveLength(4);
+    }
+  });
+
+  it('turns a known duplicate signup error into the localized existing-email message', () => {
+    const modal = read('app/components/AuthModal.tsx');
+    expect(modal).toContain("t('auth_email_already_exists')");
+    expect(modal).toContain("normalizedMessage.includes('already registered')");
+    expect(modal).toContain("error.code === 'user_already_exists'");
   });
 });
 
