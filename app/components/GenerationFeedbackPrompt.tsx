@@ -5,6 +5,7 @@ import { ClipboardPenLine, X } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useLanguage } from './LanguageProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useFooterVisible } from '@/lib/useFooterVisible';
 
 const PENDING_KEY = 'generation_feedback_pending_v1';
 const WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -34,6 +35,7 @@ export default function GenerationFeedbackPrompt() {
   const [comment, setComment] = useState('');
   const [status, setStatus] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
   const copy = COPY[language];
+  const footerVisible = useFooterVisible();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -82,8 +84,8 @@ export default function GenerationFeedbackPrompt() {
   }
   if (!pending || !user) return null;
   return <>
-    {!isOpen && <button type="button" aria-label={copy.survey} onClick={() => setIsOpen(true)} className="fixed bottom-24 right-6 z-40 flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-300"><ClipboardPenLine size={17} />{copy.survey}</button>}
-    {isOpen && <div role="dialog" aria-modal="true" aria-labelledby="feedback-title" className="fixed inset-x-4 bottom-4 z-[100] mx-auto max-w-lg rounded-2xl border border-violet-400/30 bg-[#12111d] p-5 shadow-2xl shadow-black/50">
+    {!isOpen && !footerVisible && <button type="button" aria-label={copy.survey} onClick={() => setIsOpen(true)} className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-4 z-40 flex min-h-11 items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-300 sm:bottom-24 sm:left-auto sm:right-6 sm:px-4 sm:py-3 sm:text-sm"><ClipboardPenLine size={17} />{copy.survey}</button>}
+    {isOpen && <div role="dialog" aria-modal="true" aria-labelledby="feedback-title" className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[100] mx-auto max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-violet-400/30 bg-[#12111d] p-5 shadow-2xl shadow-black/50">
       {status === 'done' ? <p className="py-8 text-center font-semibold text-emerald-300">{copy.thanks}</p> : <>
         <div className="flex items-start justify-between gap-4"><div><h2 id="feedback-title" className="text-lg font-bold text-white">{copy.title}</h2><p className="mt-1 text-sm text-white/55">{copy.desc}</p></div><button type="button" aria-label={copy.later} onClick={dismiss} className="rounded p-1 text-white/45 hover:bg-white/10 hover:text-white"><X size={18} /></button></div>
         <div className="mt-4 flex gap-2" aria-label={copy.title}>{[1, 2, 3, 4, 5].map((value) => <button type="button" key={value} aria-label={`${value}/5`} aria-pressed={rating === value} onClick={() => setRating(value)} className={`h-9 w-9 rounded-full border text-sm ${rating === value ? 'border-violet-300 bg-violet-500/30 text-white' : 'border-white/15 text-white/55'}`}>{value}</button>)}</div>

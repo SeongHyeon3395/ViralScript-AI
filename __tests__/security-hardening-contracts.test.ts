@@ -203,7 +203,9 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(route).toContain('export const maxDuration = 120');
     expect(route).toContain('Math.min(90_000, 100_000 - (Date.now() - requestStart))');
     expect(route).toContain('case ERROR_CODES.AI_TIMEOUT:');
-    expect(engine).toContain('thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }');
+    expect(engine).toContain("model: GEMINI_MODEL");
+    expect(engine).toContain("reasoning: { effort: 'low' }");
+    expect(engine).toContain('AbortSignal.timeout(timeoutMs)');
     expect(scraper).toContain('const SCRAPER_TIMEOUT_MS = 30_000');
   });
 

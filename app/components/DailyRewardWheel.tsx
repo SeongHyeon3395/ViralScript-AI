@@ -6,6 +6,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useFooterVisible } from '@/lib/useFooterVisible';
 
 const ROULETTE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
@@ -60,6 +61,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
   const [result, setResult] = useState<{ label: string; value: number } | null>(null);
   const [hasSpunToday, setHasSpunToday] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const footerVisible = useFooterVisible();
 
   function emitToast(message: string, variant: 'success' | 'error' | 'info' = 'info') {
     window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, variant } }));
@@ -196,15 +198,15 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
   return (
     <>
       {/* Floating trigger button — 로그인 유저만 표시 */}
-      {user && (
+      {user && !footerVisible && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-xl border border-violet-400/30 bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition-all hover:from-violet-500 hover:to-indigo-500 hover:shadow-violet-500/50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-40 flex min-h-11 items-center gap-2 rounded-xl border border-violet-400/30 bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-violet-500/30 transition-all hover:from-violet-500 hover:to-indigo-500 hover:shadow-violet-500/50 active:scale-95 sm:bottom-6 sm:left-auto sm:right-6 sm:px-4 sm:py-3 sm:text-sm"
         >
           <Gift size={18} />
           <span>{t('daily_bonus')}</span>
           {hasSpunToday ? (
-            <span className="ml-1 text-xs font-mono text-white/50">· {formatCooldown()}</span>
+            <span className="ml-1 hidden text-xs font-mono text-white/50 sm:inline">· {formatCooldown()}</span>
           ) : (
             <span className="relative flex h-2 w-2 ml-1">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -219,7 +221,7 @@ export default function DailyRewardWheel({ onClaim }: { onClaim?: (credits: numb
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
 
-          <div className="relative w-full max-w-md glass-strong rounded-3xl p-8 fade-in-up overflow-hidden">
+          <div className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl p-5 glass-strong fade-in-up sm:p-8">
             {/* Gradient top */}
             <div className="h-px w-full bg-gradient-to-r from-transparent via-violet-500/50 to-transparent absolute top-0 left-0" />
 

@@ -1,4 +1,12 @@
-import type { AudioScript, GenerationOutput, SceneScript } from '@/types';
+import type { AiPromptTool, AudioScript, GenerationOutput, SceneScript } from '@/types';
+
+export const AI_PROMPT_TOOLS: AiPromptTool[] = ['veo', 'runway', 'kling', 'firefly', 'generic'];
+
+export function selectedPromptTools(result: GenerationOutput): AiPromptTool[] {
+  if (result.selected_ai_tools) return result.selected_ai_tools;
+  // Older saved generations had four prompts and no selection metadata.
+  return (['veo', 'runway', 'kling', 'generic'] as AiPromptTool[]).filter((tool) => result.scenes.some((scene) => Boolean(scene.ai_prompts[tool])));
+}
 
 const EMPTY_AUDIO: AudioScript = { kr: '', us: '', jp: '' };
 
@@ -65,6 +73,7 @@ function normalizeScene(value: unknown, index: number): SceneScript {
       veo: text(promptRecord.veo, genericPrompt),
       runway: text(promptRecord.runway, genericPrompt),
       kling: text(promptRecord.kling, genericPrompt),
+      firefly: text(promptRecord.firefly, genericPrompt),
       generic: text(promptRecord.generic, genericPrompt),
     },
     timestamp: text(item.timestamp, `${text(item.start_time, legacyStart)} - ${text(item.end_time, legacyEnd)}`),
@@ -79,6 +88,17 @@ export function normalizeGenerationOutput(value: unknown, sourceUrl = ''): Gener
   const item = record(value);
   const rawScenes = Array.isArray(item.scenes) ? item.scenes : [];
   const scenes = rawScenes.map(normalizeScene);
+  const selectedTools = Array.isArray(item.selected_ai_tools)
+    ? AI_PROMPT_TOOLS.filter((tool) => (item.selected_ai_tools as unknown[]).includes(tool))
+    : undefined;
+  if (selectedTools) {
+    for (const scene of scenes) {
+      for (const tool of AI_PROMPT_TOOLS) {
+        if (!selectedTools.includes(tool)) scene.ai_prompts[tool] = '';
+      }
+      scene.ai_video_prompt_en = selectedTools.map((tool) => scene.ai_prompts[tool]).find(Boolean) ?? '';
+    }
+  }
   if (!text(item.project_title) || scenes.length === 0) throw new Error('AI 응답에 필수 제작 플랜 정보가 없습니다.');
 
   const duration = typeof item.duration_seconds === 'number'
@@ -95,6 +115,7 @@ export function normalizeGenerationOutput(value: unknown, sourceUrl = ''): Gener
 
   return {
     schema_version: 2,
+    ...(selectedTools ? { selected_ai_tools: selectedTools } : {}),
     source_url: text(item.source_url, sourceUrl),
     project_title: text(item.project_title),
     target_product: text(item.target_product, '자유 주제 콘텐츠'),
@@ -128,6 +149,6 @@ export function normalizeGenerationOutput(value: unknown, sourceUrl = ''): Gener
     }) : scenes.map((scene) => ({ start_time: scene.start_time, end_time: scene.end_time, visual: scene.visual_description, caption: scene.captions.kr, voiceover: scene.audio_script.kr, sound_effect: scene.sound_effect, background_music: scene.background_music, transition: '빠르고 자연스러운 컷', editing_note: scene.purpose })),
     compliance_notes: Array.isArray(item.compliance_notes) ? item.compliance_notes.filter((entry): entry is string => typeof entry === 'string') : ['원본의 대사, 고유 장면, 인물, 로고, 음악을 복제하지 마세요.', '바이럴 구조만 추상화해 사용자 주제 중심으로 재창작하세요.'],
     total_duration_seconds: duration,
-    copy_ready_prompt_ko: text(item.copy_ready_prompt_ko, scenes.map((scene) => scene.ai_prompts.generic).join('\n\n')),
+    copy_ready_prompt_ko: text(item.copy_ready_prompt_ko, scenes.map((scene) => selectedTools?.map((tool) => scene.ai_prompts[tool]).find(Boolean) ?? scene.ai_prompts.generic).filter(Boolean).join('\n\n')),
   };
 }

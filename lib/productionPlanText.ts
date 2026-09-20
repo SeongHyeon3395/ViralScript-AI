@@ -1,4 +1,5 @@
 import type { GenerationOutput } from '@/types';
+import { selectedPromptTools } from '@/lib/generationOutput';
 
 type UiLanguage = 'ko' | 'en' | 'zh' | 'ja';
 type ScriptLanguage = 'kr' | 'us' | 'jp';
@@ -12,6 +13,7 @@ const LABELS = {
 
 export function formatProductionPlanText(result: GenerationOutput, uiLanguage: UiLanguage, scriptLanguage: ScriptLanguage): string {
   const l = LABELS[uiLanguage];
+  const promptTools = selectedPromptTools(result);
   const lines = [
     result.project_title,
     `=== ${l[0]} ===`,
@@ -34,10 +36,7 @@ export function formatProductionPlanText(result: GenerationOutput, uiLanguage: U
       `${l[14]} (${scriptLanguage.toUpperCase()}): ${scene.captions[scriptLanguage]}`,
       `${l[15]}: ${scene.sound_effect}`,
       `${l[16]}: ${scene.background_music}`,
-      `${l[17]} — Veo: ${scene.ai_prompts.veo}`,
-      `${l[17]} — Runway: ${scene.ai_prompts.runway}`,
-      `${l[17]} — Kling: ${scene.ai_prompts.kling}`,
-      `${l[17]} — Generic: ${scene.ai_prompts.generic}`,
+      ...promptTools.map((tool) => `${l[17]} — ${tool}: ${scene.ai_prompts[tool]}`),
       '',
     ]),
     `=== ${l[18]} ===`,

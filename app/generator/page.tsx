@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, startTransition } from 'react';
 import NextImage from 'next/image';
-import type { AnalyzeResponse, GenerationOutput, SceneScript } from '@/types';
+import type { AiPromptTool, AnalyzeResponse, GenerationOutput, SceneScript } from '@/types';
 import Navbar from '@/app/components/Navbar';
 import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
@@ -15,6 +15,7 @@ import { useLanguage } from '@/app/components/LanguageProvider';
 
 import { clearUserCreditsCache } from '@/lib/profile';
 import { CREDIT_COST } from '@/lib/credits';
+import { AI_VIDEO_TOOL_CHOICES, PRODUCTION_METHODS } from '@/lib/generationOptions';
 import {
   Link2, SlidersHorizontal, Rocket, Loader2, Zap,
   Film, Clock, TrendingUp, ChevronDown, ChevronUp,
@@ -42,8 +43,6 @@ const PURPOSES = ['Inform', 'Entertain and relate', 'Share an experience', 'Tell
 const CONCEPTS = ['Problem-solving', 'Review', 'Before and after', 'How-to', 'Emotional story', 'Comedy or meme', 'Vlog', 'Information summary', 'Faceless content'];
 const DURATIONS = ['10s', '15s', '30s', '45s', '60s'];
 const LANGUAGES = ['English', 'Korean', 'Japanese'];
-const PRODUCTION_METHODS = ['Live action', 'AI video generation', 'Existing video editing', 'Faceless content', 'Screen recording', 'Photo or image based'];
-const AI_VIDEO_TOOLS = ['Google Veo', 'Runway', 'Kling', 'Adobe Firefly', 'Generic prompt'];
 const ANALYSIS_POINT_KEYS = ['gen_analysis_hook', 'gen_analysis_pacing', 'gen_analysis_narration', 'gen_analysis_caption', 'gen_analysis_emotion', 'gen_analysis_product', 'gen_analysis_cta'];
 const OPTION_TRANSLATION_KEYS: Record<string, string> = {
   Inform: 'gen_goal_inform', 'Entertain and relate': 'gen_goal_entertain', 'Share an experience': 'gen_goal_experience', 'Tell a story': 'gen_goal_story', 'Join a challenge': 'gen_goal_challenge', 'Grow followers': 'gen_goal_followers', 'Build community': 'gen_goal_community',
@@ -67,6 +66,13 @@ function ChoiceChips({ options, value, onChange }: { options: string[]; value: s
       ))}
     </div>
   );
+}
+
+function ToolChips({ selected, onChange }: { selected: AiPromptTool[]; onChange: (value: AiPromptTool[]) => void }) {
+  return <div className="flex flex-wrap gap-2">{AI_VIDEO_TOOL_CHOICES.map(({ key, label }) => {
+    const active = selected.includes(key);
+    return <button key={key} type="button" aria-pressed={active} onClick={() => onChange(active ? selected.filter((tool) => tool !== key) : [...selected, key])} className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all ${active ? 'border-violet-400/70 bg-violet-500/20 text-violet-100' : 'border-white/10 bg-white/5 text-white/45 hover:border-white/25 hover:text-white/75'}`}>{localizedOption(label)}</button>;
+  })}</div>;
 }
 
 function SceneCard({ scene, activeLocale }: { scene: SceneScript; activeLocale: 'kr' | 'us' | 'jp' }) {
@@ -176,7 +182,7 @@ export default function GeneratorPage() {
   const [cast, setCast] = useState('On-camera talent');
   const [language, setLanguage] = useState('English');
   const [productionMethod, setProductionMethod] = useState('Live action');
-  const [aiVideoTool, setAiVideoTool] = useState('Google Veo');
+  const [aiVideoTools, setAiVideoTools] = useState<AiPromptTool[]>(['veo']);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -226,6 +232,10 @@ export default function GeneratorPage() {
       setError(t('gen_topic_required'));
       return;
     }
+    if (showAdvanced && productionMethod === 'AI video generation' && aiVideoTools.length === 0) {
+      setError(t('gen_ai_tool_required'));
+      return;
+    }
     if (credits !== undefined && credits < estimatedCreditCost) {
       setError(t('gen_no_credits'));
       return;
@@ -244,6 +254,8 @@ export default function GeneratorPage() {
         body: JSON.stringify({
           ...(url.trim() ? { url: url.trim() } : {}),
           targetProduct: targetProduct.trim(),
+          productionMethod: showAdvanced ? productionMethod : 'Live action',
+          aiVideoTools: showAdvanced && productionMethod === 'AI video generation' ? aiVideoTools : [],
           ...(showAdvanced ? { userCustomPrompt: [
             `Content goal: ${purpose}`,
             `Concept: ${concept}`,
@@ -252,7 +264,7 @@ export default function GeneratorPage() {
             `On-camera talent: ${cast}`,
             `Priority language: ${language}`,
             `Production method: ${productionMethod}`,
-            productionMethod === 'AI video generation' ? `AI video tool: ${aiVideoTool} (provide copy-ready prompts without calling a video generation API)` : '',
+            productionMethod === 'AI video generation' ? `AI video tools: ${aiVideoTools.join(', ')} (provide copy-ready prompts without calling a video generation API)` : '',
             customPrompt.trim(),
           ].filter(Boolean).join('\n') } : {}),
         }),
@@ -406,11 +418,12 @@ export default function GeneratorPage() {
 
             {showAdvanced && <div className="rounded-2xl p-5 sm:p-7 space-y-5 fade-in-up" style={{ background: 'rgba(13,13,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
               <div className="flex items-center gap-3 border-b border-white/8 pb-4"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black">2</span><div><h3 className="text-sm font-bold text-white">{t('gen_method_heading')}</h3><p className="text-xs text-white/40">{t('gen_method_desc')}</p></div></div>
-              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_production_method')}</label><ChoiceChips options={PRODUCTION_METHODS} value={productionMethod} onChange={setProductionMethod} /></div>
+              <div className="space-y-2"><label className="text-xs font-semibold text-white/70">{t('gen_production_method')}</label><ChoiceChips options={[...PRODUCTION_METHODS]} value={productionMethod} onChange={setProductionMethod} /></div>
               {productionMethod === 'AI video generation' && (
                 <div className="space-y-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.07] p-4 fade-in-up">
                   <div><p className="text-xs font-bold text-violet-100">{t('gen_ai_tool')}</p><p className="mt-1 text-[11px] leading-relaxed text-white/45">{t('gen_ai_tool_notice')}</p></div>
-                  <ChoiceChips options={AI_VIDEO_TOOLS} value={aiVideoTool} onChange={setAiVideoTool} />
+                  <ToolChips selected={aiVideoTools} onChange={setAiVideoTools} />
+                  {aiVideoTools.length === 0 && <p className="text-xs text-amber-300">{t('gen_ai_tool_required')}</p>}
                 </div>
               )}
             </div>}
@@ -420,16 +433,16 @@ export default function GeneratorPage() {
               <div className="grid gap-2 rounded-xl border border-white/8 bg-white/[0.025] p-4 sm:grid-cols-2">
                 {[
                   [t('gen_reference_heading'), trendReference?.title || url || t('gen_reference_none')], [t('gen_topic_label'), targetProduct || t('gen_input_required')],
-                  [t('gen_summary_goal'), localizedOption(purpose)], [t('gen_summary_duration'), duration], [t('gen_summary_method'), localizedOption(productionMethod)], [t('gen_summary_ai_tool'), productionMethod === 'AI video generation' ? localizedOption(aiVideoTool) : t('gen_not_applicable')],
+                  [t('gen_summary_goal'), localizedOption(purpose)], [t('gen_summary_duration'), duration], [t('gen_summary_method'), showAdvanced ? localizedOption(productionMethod) : localizedOption('Live action')], [t('gen_summary_ai_tool'), showAdvanced && productionMethod === 'AI video generation' ? aiVideoTools.map((tool) => localizedOption(AI_VIDEO_TOOL_CHOICES.find((choice) => choice.key === tool)?.label ?? tool)).join(', ') : t('gen_not_applicable')],
                   [t('gen_summary_scenes'), `${expectedScenes}`], [t('gen_summary_cost'), estimatedCostLabel],
-                ].map(([label, value]) => <div key={label} className="rounded-lg bg-black/15 p-3"><p className="text-[10px] font-bold text-white/35">{label}</p><p className="mt-1 truncate text-xs text-white/75">{value}</p></div>)}
+                ].map(([label, value]) => <div key={label} className="min-w-0 rounded-lg bg-black/15 p-3"><p className="text-[10px] font-bold text-white/35">{label}</p><p className="mt-1 break-words text-xs text-white/75">{value}</p></div>)}
               </div>
               {credits !== undefined && credits < estimatedCreditCost && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
                 </div>
               )}
-              <button type="button" onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (credits !== undefined && credits < estimatedCreditCost)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
+              <button type="button" onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (showAdvanced && productionMethod === 'AI video generation' && aiVideoTools.length === 0) || (credits !== undefined && credits < estimatedCreditCost)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
                 {loading ? (
                   <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />{t('gen_creating_plan')} {progress}%</span>
                 ) : (

@@ -74,7 +74,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
         className="sticky top-0 z-40 w-full glass shadow-lg shadow-black/20"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="grid grid-cols-[1fr_auto_1fr] h-16 items-center">
+          <div className="flex h-16 items-center justify-between gap-2">
             {/* Logo — left */}
             <Link href="/" className="flex items-center gap-1 group shrink-0 justify-self-start transition-transform duration-200 hover:-translate-y-0.5">
               <span className="text-base font-bold text-white">ViralScript</span>
@@ -82,7 +82,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
             </Link>
 
             {/* Desktop Nav links — perfectly centered */}
-            <nav className="hidden md:flex items-center justify-center gap-1">
+            <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
               {[
                 { label: t('nav_generator'), href: '/generator' },
                 { label: t('nav_credits'), href: '/pricing' },
@@ -91,7 +91,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`relative px-4 py-2 text-sm text-slate-400 transition-all duration-200 after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity hover:-translate-y-0.5 hover:text-white ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
+                  className={`relative whitespace-nowrap px-3 py-2 text-sm text-slate-400 transition-all duration-200 after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity hover:-translate-y-0.5 hover:text-white ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
                 >
                   {item.label}
                 </Link>
@@ -104,7 +104,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                     openLogin();
                   }
                 }}
-                className="flex items-center gap-1.5 rounded-lg border border-transparent px-4 py-2 text-sm text-emerald-400/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent px-3 py-2 text-sm text-emerald-400/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
               >
                 <Users size={14} />
                 {t('nav_invite')}
@@ -114,7 +114,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
             {/* Right side */}
             <div className="flex items-center justify-end gap-2 shrink-0">
               {/* Language Selector */}
-              <LanguageSwitcher />
+              <div className="hidden sm:block"><LanguageSwitcher /></div>
 
               {isLoading ? (
                 <div className="hidden sm:block h-9 w-[150px] animate-pulse rounded-full border border-white/10 bg-white/5" aria-label="인증 상태 로딩 중" />
@@ -132,13 +132,15 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                   <div className="relative">
                     <button
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 hover:border-white/20 transition-all"
+                      className="flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2 py-2 hover:bg-white/10 hover:border-white/20 transition-all sm:px-3"
+                      aria-expanded={userMenuOpen}
+                      aria-label={displayName}
                     >
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center">
                         <span className="text-xs font-black text-white" aria-hidden="true">V</span>
                       </div>
                       <span className="hidden sm:block max-w-28 truncate text-sm text-white/80 font-medium">{displayName}</span>
-                      <ChevronDown size={14} className={`text-white/40 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown size={14} className={`hidden text-white/40 transition-transform sm:block ${userMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     {userMenuOpen && (
@@ -183,9 +185,10 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
 
               {/* Mobile menu toggle */}
               <button
-                className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl border border-white/10 text-white/60 hover:text-white hover:bg-white/8 transition-all"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 text-white/60 transition-all hover:bg-white/8 hover:text-white lg:hidden"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="메뉴 열기"
+                aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
@@ -195,8 +198,9 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/8 glass px-4 py-4 space-y-1 fade-in-up">
-            {[
+          <div className="border-t border-white/8 px-4 py-4 glass fade-in-up lg:hidden">
+            <nav className="grid grid-cols-3 gap-2">
+              {[
               { label: t('nav_generator'), href: '/generator' },
               { label: t('nav_credits'), href: '/pricing' },
               { label: t('nav_trends'), href: pathname === '/' ? '#trends' : '/trends' },
@@ -204,13 +208,14 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`block px-4 py-2.5 text-sm transition-all duration-200 hover:-translate-y-0.5 ${isActive(item.href) ? 'font-bold text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`flex min-h-12 min-w-0 items-center justify-center rounded-lg border border-white/10 px-1 py-2 text-center text-xs leading-tight break-keep transition-all duration-200 sm:text-sm ${isActive(item.href) ? 'bg-white/10 font-bold text-white' : 'text-slate-400 hover:text-white'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
               </Link>
-            ))}
-            <div className="h-px bg-white/8 my-2" />
+              ))}
+            </nav>
+            <div className="my-3 h-px bg-white/8" />
             <button onClick={() => { 
               if (user) {
                 setReferralOpen(true);
@@ -226,6 +231,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 {t('nav_login')}
               </button>
             )}
+            <div className="mt-3 sm:hidden"><LanguageSwitcher /></div>
           </div>
         )}
       </header>

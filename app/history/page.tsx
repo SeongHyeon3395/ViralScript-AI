@@ -11,7 +11,7 @@ import type { NavbarRef } from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import GenerationResult from '@/app/components/GenerationResult';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { normalizeGenerationOutput } from '@/lib/generationOutput';
+import { normalizeGenerationOutput, selectedPromptTools } from '@/lib/generationOutput';
 import { useAuth } from '@/app/components/AuthProvider';
 import type { GenerationOutput } from '@/types';
 import { getLang, t } from '@/app/components/LanguageSwitcher';
@@ -60,12 +60,11 @@ function normalizedHistoryResult(item: HistoryItem): GenerationOutput | null {
 }
 
 function promptsFor(result: GenerationOutput): string {
+  const labels = { veo: 'Veo', runway: 'Runway', kling: 'Kling', firefly: 'Adobe Firefly', generic: '범용' };
+  const tools = selectedPromptTools(result);
   return result.scenes.map((scene) => [
     `Scene ${scene.scene_number} (${scene.start_time}~${scene.end_time})`,
-    `Veo:\n${scene.ai_prompts.veo}`,
-    `Runway:\n${scene.ai_prompts.runway}`,
-    `Kling:\n${scene.ai_prompts.kling}`,
-    `범용:\n${scene.ai_prompts.generic}`,
+    ...tools.map((tool) => `${labels[tool]}:\n${scene.ai_prompts[tool]}`),
   ].join('\n\n')).join('\n\n---\n\n');
 }
 

@@ -62,7 +62,7 @@ export default function ContactSupport() {
   }
 
   return <>
-    <button type="button" onClick={() => setOpen(true)} className="hover:text-white/60 transition-colors">{t('footer_contact')}</button>
+    <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-11 items-center hover:text-white/60 transition-colors">{t('footer_contact')}</button>
     {open && <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="contact-title" className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#10121b] p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">

@@ -94,8 +94,11 @@ export interface AiVideoPrompts {
   veo: string;
   runway: string;
   kling: string;
+  firefly: string;
   generic: string;
 }
+
+export type AiPromptTool = keyof AiVideoPrompts;
 
 export interface SceneScript {
   scene_number: number;
@@ -131,6 +134,7 @@ export interface SceneScript {
 
 export interface GenerationOutput {
   schema_version: 2;
+  selected_ai_tools?: AiPromptTool[];
   source_url: string;
   project_title: string;
   target_product: string;
@@ -184,6 +188,8 @@ export interface AnalyzeRequest {
   url?: string;
   targetProduct?: string;
   userCustomPrompt?: string;
+  productionMethod?: string;
+  aiVideoTools?: AiPromptTool[];
 }
 
 export interface AnalyzeResponse {

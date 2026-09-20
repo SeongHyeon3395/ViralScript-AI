@@ -1,7 +1,8 @@
 import { Type, type Schema } from '@google/genai';
+import type { AiPromptTool } from '@/types';
 
 const localizedText: Schema = { type: Type.OBJECT, properties: { kr: { type: Type.STRING }, us: { type: Type.STRING }, jp: { type: Type.STRING } }, required: ['kr', 'us', 'jp'] };
-const promptText: Schema = { type: Type.OBJECT, properties: { veo: { type: Type.STRING }, runway: { type: Type.STRING }, kling: { type: Type.STRING }, generic: { type: Type.STRING } }, required: ['veo', 'runway', 'kling', 'generic'] };
+const promptText: Schema = { type: Type.OBJECT, properties: { veo: { type: Type.STRING }, runway: { type: Type.STRING }, kling: { type: Type.STRING }, firefly: { type: Type.STRING }, generic: { type: Type.STRING } }, required: ['veo', 'runway', 'kling', 'firefly', 'generic'] };
 
 export const geminiOutputSchema: Schema = {
   type: Type.OBJECT,
@@ -19,3 +20,37 @@ export const geminiOutputSchema: Schema = {
   },
   required: ['schema_version', 'project_title', 'target_product', 'concept', 'target_audience', 'video_goal', 'duration_seconds', 'overall_viral_strategy', 'hook', 'final_cta', 'structure_analysis', 'scenes', 'voiceover', 'captions', 'editing_timeline', 'compliance_notes'],
 };
+
+export function openRouterOutputSchema(selectedTools: AiPromptTool[]): Record<string, unknown> {
+  // Convert the existing Gemini schema to JSON Schema without changing its
+  // production-plan fields. Only requested video-tool prompts are generated.
+  function convert(value: Schema): Record<string, unknown> {
+    const type = String(value.type).toLowerCase();
+    const result: Record<string, unknown> = { type };
+    if (value.properties) {
+      const properties = Object.fromEntries(Object.entries(value.properties).map(([key, child]) => [key, convert(child)]));
+      result.properties = properties;
+      // OpenRouter's strict JSON-schema mode expects every declared property
+      // to be required, even fields that the old Gemini schema treated as optional.
+      result.required = Object.keys(properties);
+      result.additionalProperties = false;
+    }
+    if (value.items) result.items = convert(value.items);
+    return result;
+  }
+  const root = convert(geminiOutputSchema);
+  const scene = ((root.properties as Record<string, Record<string, unknown>>).scenes.items as Record<string, unknown>);
+  const sceneProperties = scene.properties as Record<string, unknown>;
+  if (selectedTools.length === 0) {
+    delete sceneProperties.ai_prompts;
+    scene.required = (scene.required as string[]).filter((key) => key !== 'ai_prompts');
+  } else {
+    sceneProperties.ai_prompts = {
+      type: 'object',
+      properties: Object.fromEntries(selectedTools.map((tool) => [tool, { type: 'string' }])),
+      required: selectedTools,
+      additionalProperties: false,
+    };
+  }
+  return root;
+}

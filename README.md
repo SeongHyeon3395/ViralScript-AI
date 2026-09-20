@@ -1,6 +1,6 @@
 # ViralScript AI
 
-TikTok과 YouTube Shorts 영상을 분석하고, Gemini AI로 숏폼 영상 대본과 다국어 콘텐츠를 생성하는 Next.js 애플리케이션입니다.
+TikTok과 YouTube Shorts 영상을 분석하고, OpenRouter를 통해 Gemini AI로 숏폼 영상 대본과 다국어 콘텐츠를 생성하는 Next.js 애플리케이션입니다.
 
 ## 주요 기능
 
@@ -23,7 +23,7 @@ TikTok과 YouTube Shorts 영상을 분석하고, Gemini AI로 숏폼 영상 대�
 | Frontend | Next.js 16, React 19, TypeScript |
 | Styling | Tailwind CSS 4 |
 | Authentication & Database | Supabase |
-| AI | Google Gemini API (`@google/genai`) |
+| AI | OpenRouter (`google/gemini-3.5-flash`) |
 | Video metadata | Apify, YouTube Data API v3 |
 | Deployment | Vercel |
 | Testing | Vitest |
@@ -34,7 +34,7 @@ TikTok과 YouTube Shorts 영상을 분석하고, Gemini AI로 숏폼 영상 대�
 
 - Node.js 20 이상 권장
 - Supabase 프로젝트
-- Google Gemini API 키
+- OpenRouter API 키
 - 트렌드 수집을 사용할 경우 YouTube Data API 키와 Apify API 토큰
 
 ### 설치
@@ -73,7 +73,7 @@ npm run dev
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-GOOGLE_AI_API_KEY=your-gemini-api-key
+OPENROUTER_API_KEY=your-openrouter-api-key
 ```
 
 ### 트렌드 수집
@@ -101,6 +101,7 @@ NEXT_PUBLIC_SITE_URL=https://your-domain.example
 ```
 
 `.env.local`, Supabase service role key, API 키, 결제 키는 절대 Git에 커밋하지 마세요.
+`NEXT_PUBLIC_ADSENSE_CLIENT_ID`와 `NEXT_PUBLIC_ADSENSE_DISPLAY_SLOT`에는 본인 웹 AdSense 광고 계정의 실제 값을 사용하세요. Android AdMob 데모 보상 광고 단위 `5224354917`은 웹 AdSense 슬롯이 아닙니다. 현재 웹 광고 표시와 크레딧 보상은 연결되지 않습니다.
 
 ## Supabase 데이터베이스
 
@@ -193,7 +194,7 @@ app/
 ├── generator/            # 영상 분석·대본 생성 화면
 ├── trends/               # 전체 트렌드 페이지
 └── page.tsx              # 메인 화면
-services/                 # Gemini·Apify·결제 서비스
+services/                 # OpenRouter(Gemini)·Apify·결제 서비스
 lib/supabase/             # 브라우저·서버 Supabase client
 supabase/migrations/      # 데이터베이스 마이그레이션
 utils/                    # URL 정규화 및 공통 유틸리티
@@ -222,6 +223,7 @@ npm.cmd test -- --run
 
 1. Vercel 프로젝트를 GitHub 저장소에 연결합니다.
 2. Vercel Project Settings에 `.env.local`의 환경변수를 등록합니다.
+   AI 생성에는 서버 전용 `OPENROUTER_API_KEY`가 필요합니다. 기존 `GOOGLE_AI_API_KEY`는 더 이상 사용하지 않습니다. 키를 등록하거나 교체한 뒤 Production/Preview 환경에 재배포하세요.
 3. Supabase migration을 먼저 적용합니다.
 4. `main` 브랜치에 push하면 Vercel이 애플리케이션을 배포합니다.
 5. Vercel Cron 설정에서 `/api/cron/trend` 실행 상태를 확인합니다.

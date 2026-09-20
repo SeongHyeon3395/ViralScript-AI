@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeGenerationOutput } from '@/lib/generationOutput';
+import { normalizeGenerationOutput, selectedPromptTools } from '@/lib/generationOutput';
 import { formatProductionPlanText } from '@/lib/productionPlanText';
 
 const legacyResult = {
@@ -41,6 +41,27 @@ describe('normalizeGenerationOutput', () => {
 
   it('rejects structurally unusable results', () => {
     expect(() => normalizeGenerationOutput({ project_title: '', scenes: [] })).toThrow();
+  });
+
+  it('keeps only the selected AI tools in saved output and text export', () => {
+    const result = normalizeGenerationOutput({
+      ...legacyResult,
+      selected_ai_tools: ['veo', 'firefly'],
+      scenes: [{ ...legacyResult.scenes[0], ai_prompts: { veo: 'Veo prompt', runway: 'Wrong prompt', firefly: 'Firefly prompt' } }],
+    });
+    expect(selectedPromptTools(result)).toEqual(['veo', 'firefly']);
+    expect(result.scenes[0].ai_prompts.runway).toBe('');
+    const exported = formatProductionPlanText(result, 'ko', 'kr');
+    expect(exported).toContain('Veo prompt');
+    expect(exported).toContain('Firefly prompt');
+    expect(exported).not.toContain('Wrong prompt');
+  });
+
+  it('omits AI prompts for a non-AI production method', () => {
+    const result = normalizeGenerationOutput({ ...legacyResult, selected_ai_tools: [] });
+    expect(selectedPromptTools(result)).toEqual([]);
+    expect(result.scenes[0].ai_prompts.veo).toBe('');
+    expect(formatProductionPlanText(result, 'ko', 'kr')).not.toContain('Create a vertical video.');
   });
 });
 

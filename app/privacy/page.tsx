@@ -25,7 +25,7 @@ export default function PrivacyPage() {
               <h2 className="font-bold text-violet-300">2. Purposes</h2>
               <p>We use this information for authentication and account recovery, service delivery, generation charges based on the selected generation method, fraud and abuse prevention, customer support, payment verification, legal compliance, and service reliability.</p>
               <h2 className="font-bold text-violet-300">3. Service providers and international processing</h2>
-              <p>Supabase provides authentication and database services; Vercel provides hosting; Google Gemini provides AI inference; Apify and YouTube APIs may provide public video metadata. Stripe or Toss Payments processes verified payments only when payments are enabled. Ad rewards are currently disabled because server-side reward verification is unavailable.</p>
+              <p>Supabase provides authentication and database services; Vercel provides hosting; OpenRouter routes AI requests to the Google Gemini model; Apify and YouTube APIs may provide public video metadata. Stripe or Toss Payments processes verified payments only when payments are enabled. Ad rewards are currently disabled because server-side reward verification is unavailable.</p>
               <h2 className="font-bold text-violet-300">4. Retention and deletion</h2>
               <p>Account data is deleted when the account is deleted unless retention is required for payment, dispute, security, or legal obligations. A deletion restriction record may be retained for 30 days to enforce the re-registration waiting period. Payment and complaint records may be retained for the period required by applicable law.</p>
               <h2 className="font-bold text-violet-300">5. Your choices and security</h2>
@@ -90,7 +90,7 @@ export default function PrivacyPage() {
             <tbody>
               <tr><td>Supabase, Inc.</td><td>데이터베이스 호스팅, 사용자 인증 및 크레딧 관리</td><td>프로젝트에 설정된 리전</td><td>회원 탈퇴 또는 법정 보존기간까지</td></tr>
               <tr><td>Vercel, Inc.</td><td>웹 호스팅 및 네트워크 배포</td><td>미국 및 글로벌 Edge</td><td>회원 탈퇴 시까지</td></tr>
-              <tr><td>Google LLC (Gemini)</td><td>AI 대본 생성 추론</td><td>미국 등</td><td>Google의 적용 정책에 따름</td></tr>
+              <tr><td>OpenRouter / Google LLC (Gemini)</td><td>AI 요청 전달 및 대본 생성 추론</td><td>미국 등</td><td>각 제공업체의 적용 정책에 따름</td></tr>
               <tr><td>Apify Technologies</td><td>공개 URL 메타데이터 정제</td><td>체코 등</td><td>Apify의 적용 정책에 따름</td></tr>
               <tr><td>Stripe, Inc. / 토스페이먼츠</td><td>결제 활성화 시 주문 승인 및 결제 검증</td><td>미국 / 대한민국</td><td>관련 법령 및 각 처리방침에 따름</td></tr>
             </tbody>

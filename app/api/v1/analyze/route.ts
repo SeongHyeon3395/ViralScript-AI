@@ -6,7 +6,9 @@ import { generateLocalizedScripts } from '@/services/aiEngine';
 import { CREDIT_COST } from '@/lib/credits';
 import { ERROR_CODES } from '@/types';
 import type { AnalyzeRequest, AnalyzeResponse, GenerationOutput, Profile } from '@/types';
-import { normalizeGenerationOutput } from '@/lib/generationOutput';
+import { AI_PROMPT_TOOLS, normalizeGenerationOutput } from '@/lib/generationOutput';
+import { PRODUCTION_METHODS } from '@/lib/generationOptions';
+import type { AiPromptTool } from '@/types';
 import { createHash } from 'node:crypto';
 
 export const runtime = 'nodejs';
@@ -114,7 +116,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  const { url, targetProduct: requestedTargetProduct, userCustomPrompt } = body;
+  const { url, targetProduct: requestedTargetProduct, userCustomPrompt, productionMethod: requestedMethod, aiVideoTools } = body;
 
   if ((url !== undefined && (typeof url !== 'string' || url.length > 2048)) || typeof requestedTargetProduct !== 'string' || !requestedTargetProduct.trim() || (userCustomPrompt !== undefined && typeof userCustomPrompt !== 'string')) {
     return NextResponse.json(
@@ -126,6 +128,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   if ((requestedTargetProduct?.length ?? 0) > 200 || (userCustomPrompt?.length ?? 0) > 4000) {
     return NextResponse.json({ success: false, error: 'Request fields are too long', errorCode: ERROR_CODES.INVALID_URL_FORMAT }, { status: 413 });
   }
+
+  const productionMethod = requestedMethod ?? 'Live action';
+  if (!PRODUCTION_METHODS.includes(productionMethod as typeof PRODUCTION_METHODS[number]) ||
+      (aiVideoTools !== undefined && (!Array.isArray(aiVideoTools) || aiVideoTools.length > AI_PROMPT_TOOLS.length || aiVideoTools.some((tool) => !AI_PROMPT_TOOLS.includes(tool)))) ||
+      (productionMethod === 'AI video generation' && (!aiVideoTools?.length || new Set(aiVideoTools).size !== aiVideoTools.length)) ||
+      (productionMethod !== 'AI video generation' && aiVideoTools?.length)) {
+    return NextResponse.json({ success: false, error: 'Invalid production options', errorCode: ERROR_CODES.INVALID_URL_FORMAT }, { status: 400 });
+  }
+  const selectedTools: AiPromptTool[] = productionMethod === 'AI video generation' ? aiVideoTools ?? [] : [];
 
   const targetProduct = requestedTargetProduct.trim();
 
@@ -147,13 +158,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       );
     }
   }
-  const resultCacheKey = createHash('sha256').update(`${urlHash}\n${targetProduct}\n${userCustomPrompt ?? ''}\nschema-v2`).digest('hex');
-  console.log('[analyze] route entry', {
-    rawUrl: url,
-    normalizedUrl,
-    platform,
-    requestedTargetProduct,
-  });
+  const resultCacheKey = createHash('sha256').update(`${urlHash}\n${targetProduct}\n${userCustomPrompt ?? ''}\n${productionMethod}\n${selectedTools.join(',')}\nschema-v3`).digest('hex');
+  console.log('[analyze] route entry', { platform, hasReferenceUrl: Boolean(normalizedUrl), productionMethod });
 
   // 4. 캐시 조회 (script_cache 테이블)
   const { data: cached } = normalizedUrl
@@ -170,7 +176,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
   // 비용은 서버에서만 결정한다. 참고 영상 URL이 있거나 실제 상세 설정이
   // 전달된 요청은 8크레딧, 기본 주제 생성은 5크레딧이다.
   // 클라이언트가 보낸 비용이나 잔액 값은 절대 사용하지 않는다.
-  const hasAdvancedSettings = Boolean(userCustomPrompt?.trim());
+  const hasAdvancedSettings = Boolean(userCustomPrompt?.trim()) || productionMethod !== 'Live action';
   const creditCost = normalizedUrl || hasAdvancedSettings
     ? CREDIT_COST.FULL_ANALYSIS
     : CREDIT_COST.TOPIC_ONLY;
@@ -289,15 +295,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  // 8. AI 생성 (Gemini) — 실패 시 크레딧 차감 없음 (RPC는 step 9에서 호출)
-  // BYOK: profile에 custom_gemini_key가 있으면 사용
+  // 8. OpenRouter를 통한 Gemini 생성 — 실패 시 크레딧 차감 없음.
+  // Legacy custom_gemini_key is deliberately not sent to OpenRouter.
   let result: GenerationOutput;
   try {
     result = await generateLocalizedScripts(
       metadata,
       targetProduct,
       userCustomPrompt,
-      profile.custom_gemini_key ?? undefined,
+      productionMethod,
+      selectedTools,
       aiTimeoutMs
     );
   } catch (err) {
