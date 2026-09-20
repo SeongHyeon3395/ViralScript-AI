@@ -196,6 +196,17 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(translations.match(/gen_error_no_charge:/g)).toHaveLength(4);
   });
 
+  it('reserves a realistic deadline for slow AI generation and distinguishes timeouts', () => {
+    const route = read('app/api/v1/analyze/route.ts');
+    const engine = read('services/aiEngine.ts');
+    const scraper = read('services/scraperMiddleware.ts');
+    expect(route).toContain('export const maxDuration = 120');
+    expect(route).toContain('Math.min(90_000, 100_000 - (Date.now() - requestStart))');
+    expect(route).toContain('case ERROR_CODES.AI_TIMEOUT:');
+    expect(engine).toContain('thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }');
+    expect(scraper).toContain('const SCRAPER_TIMEOUT_MS = 30_000');
+  });
+
   it('aligns the legal documents with the generation pricing policy', () => {
     const privacy = read('app/privacy/page.tsx');
     const terms = read('app/terms/page.tsx');

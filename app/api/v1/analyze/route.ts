@@ -10,11 +10,11 @@ import { normalizeGenerationOutput } from '@/lib/generationOutput';
 import { createHash } from 'node:crypto';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
-// Vercel 60초 제한 내에서 스크래핑+AI 연산이 안전하게 완료되도록 남은 여유를 확보
-// 스크래핑 최대 55초(재시도 포함) + AI 최대 45초이므로 deadline으로 조기 중단
-const HARD_DEADLINE_MS = 55_000; // 요청 진입 후 이 시간 초과 시 504 반환
+// Reference scraping plus a detailed multi-language storyboard can exceed 60s.
+// Keep a 10s margin for the atomic debit and HTTP response.
+const HARD_DEADLINE_MS = 110_000;
 
 // ─── 헬퍼: 에러 코드 → HTTP 상태 코드 매핑 ─────────────────
 
@@ -31,6 +31,7 @@ function mapErrorToStatus(code: string): number {
     case ERROR_CODES.URL_PRIVATE_OR_DELETED:
       return 404;
     case ERROR_CODES.SCRAPER_TIMEOUT:
+    case ERROR_CODES.AI_TIMEOUT:
       return 504;
     case ERROR_CODES.AI_MODERATION_BLOCK:
       return 451;
@@ -280,7 +281,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
   // Leave time for the atomic debit and response after Gemini finishes.
-  const aiTimeoutMs = Math.min(45_000, 50_000 - (Date.now() - requestStart));
+  const aiTimeoutMs = Math.min(90_000, 100_000 - (Date.now() - requestStart));
   if (aiTimeoutMs <= 0) {
     return NextResponse.json(
       { success: false, error: 'Not enough time remains to generate safely', errorCode: ERROR_CODES.SCRAPER_TIMEOUT },
@@ -311,8 +312,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   if (isDeadlineExceeded()) {
     return NextResponse.json(
-      { success: false, error: 'Request timed out after AI generation, before credits were debited', errorCode: ERROR_CODES.AI_PROVIDER_UNAVAILABLE },
-      { status: 503 }
+      { success: false, error: 'Request timed out after AI generation, before credits were debited', errorCode: ERROR_CODES.AI_TIMEOUT },
+      { status: 504 }
     );
   }
 

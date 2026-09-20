@@ -3,8 +3,10 @@ import type { ScrapedMetadata, SupportedPlatform } from '@/types';
 import { ERROR_CODES } from '@/types';
 
 const APIFY_BASE_URL = 'https://api.apify.com/v2/acts';
-const SCRAPER_TIMEOUT_MS = 55_000;
-const RETRY_TIMEOUT_MS = 25_000;
+// Leave enough of the request budget for multi-language AI generation.
+// If the actor is slow, the existing oEmbed fallback can still supply a title.
+const SCRAPER_TIMEOUT_MS = 30_000;
+const RETRY_TIMEOUT_MS = 10_000;
 
 // 플랫폼별 Apify Actor ID (현재 2026 동작 확인된 엑터)
 const ACTOR_IDS: Record<SupportedPlatform, string> = {

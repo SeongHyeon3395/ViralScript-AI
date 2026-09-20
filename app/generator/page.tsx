@@ -266,6 +266,7 @@ export default function GeneratorPage() {
           code === 'ERR_SCRAPER_TIMEOUT' ? 'gen_error_timeout' :
           code === 'AI_RATE_LIMITED' ? 'gen_error_quota' :
           code === 'AI_PROVIDER_UNAVAILABLE' ? 'gen_error_provider' :
+          code === 'AI_TIMEOUT' ? 'gen_error_timeout_ai' :
           code === 'AI_CONFIG_MISSING' ? 'gen_error_setup' :
           code === 'AI_OUTPUT_INVALID' ? 'gen_error_output' :
           code === 'ERR_AI_MODERATION_BLOCK' ? 'gen_error_moderation' :
