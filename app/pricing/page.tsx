@@ -15,9 +15,9 @@ import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
 
 const PAYMENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PAYMENT === 'true';
-// No provider SSV or signed reward event is configured. Keep browser reward UI
-// disabled even if a stale public environment variable is accidentally true.
-const ADS_REWARD_ENABLED = false;
+// Test the configured regular AdSense slot and its entry points. This never
+// awards credits; production rewards still require server-side verification.
+const ADS_REWARD_ENABLED = true;
 
 export default function PricingPage() {
   useLanguage();
@@ -123,7 +123,7 @@ export default function PricingPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                   {([
                     { icon: Gift, title: t('free_roulette_title'), desc: t('free_roulette_desc'), badge: t('free_roulette_badge'), badgeClass: 'badge-green', action: t('pricing_roulette_action'), onClick: () => {}, highlight: false, isRoulette: true, disabled: false },
-                    { icon: Play, title: t('free_ad_title'), desc: t('free_ad_desc'), badge: ADS_REWARD_ENABLED ? t('free_ad_badge') : t('ads_temporarily_unavailable'), badgeClass: 'badge-amber', action: ADS_REWARD_ENABLED ? t('pricing_ad_action') : t('ads_temporarily_unavailable'), onClick: () => setAdOpen(true), highlight: ADS_REWARD_ENABLED, isRoulette: false, disabled: !ADS_REWARD_ENABLED },
+                    { icon: Play, title: t('ads_test_title'), desc: t('ads_test_notice'), badge: t('ads_test_badge'), badgeClass: 'badge-amber', action: t('ads_test_action'), onClick: () => setAdOpen(true), highlight: ADS_REWARD_ENABLED, isRoulette: false, disabled: !ADS_REWARD_ENABLED },
                     { icon: Users, title: t('free_invite_title'), desc: t('free_invite_desc'), badge: t('free_invite_badge'), badgeClass: 'badge-purple', action: t('pricing_invite_action'), onClick: () => setReferralOpen(true), highlight: false, isRoulette: false, disabled: false },
                   ] as const).map(({ icon: Icon, title, desc, badge, badgeClass, action, onClick, highlight, isRoulette, disabled = false }) => (
                     <div key={title} className={`relative rounded-2xl p-7 card-hover flex flex-col ${highlight ? 'glow-purple' : ''}`}

@@ -713,9 +713,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               )}
 
               {mode === 'login' && (
-                <button type="button" disabled={loading} onClick={() => void signInWithGoogle()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-50">
-                  <span aria-hidden="true" className="text-base font-bold text-[#4285F4]">G</span>
-                  {t('google_login_button')}
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => void signInWithGoogle()}
+                  className="flex h-11 w-full items-center justify-center gap-3 rounded-full border border-[#747775] bg-white px-4 text-sm font-medium text-[#1f1f1f] transition-colors hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4285f4] focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span aria-hidden="true" className="h-5 w-5 shrink-0 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: 'url(https://developers.google.com/static/identity/images/g-logo.png)' }} />
+                  <span>{t('google_login_button')}</span>
                 </button>
               )}
 

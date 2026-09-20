@@ -72,10 +72,11 @@ export interface NormalizedUrlResult {
 export interface ScrapedMetadata {
   durationSeconds: number;
   transcriptText: string;
+  sourceEvidence?: 'subtitles' | 'description' | 'title_only';
   creatorCountry?: string;
   engagementMetrics?: {
-    views: number;
-    likes: number;
+    views?: number;
+    likes?: number;
   };
 }
 
@@ -193,6 +194,7 @@ export interface AnalyzeResponse {
   creditCostApplied?: number;
   durationSeconds?: number;
   generationId?: string | null;
+  feedbackEligible?: boolean;
   requiredCredits?: number;
   error?: string;
   errorCode?: string;

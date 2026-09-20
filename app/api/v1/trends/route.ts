@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { normalizeAndValidateUrl } from '@/utils/urlNormalizer';
+import { getTrendHealth } from '@/lib/trendHealth';
 
 export const runtime = 'nodejs';
 export const revalidate = 0;
@@ -38,7 +39,7 @@ export async function GET(): Promise<NextResponse> {
     }).filter((item): item is NonNullable<typeof item> => item !== null);
 
     return NextResponse.json(
-      { trends, updatedAt: trends[0]?.updated_at ?? trends[0]?.created_at ?? null, degraded: false },
+      { trends, updatedAt: trends[0]?.created_at ?? null, health: getTrendHealth(trends), degraded: false },
       { headers: { 'Cache-Control': 'no-store, max-age=0' } },
     );
   } catch (error) {

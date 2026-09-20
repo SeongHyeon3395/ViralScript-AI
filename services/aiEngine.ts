@@ -20,6 +20,7 @@ The reference video is not a replication target. Analyze only its viral structur
 
 [REQUIRED PRODUCTION PLAN]
 - Create a strong original hook in the first 3 seconds and a clear final CTA.
+- Do not invent facts about the reference video. If only its title or description is available, say that detailed scene, pacing, transcript, and engagement analysis is unavailable; create an original plan from the available text instead.
 - Divide the plan into 5 to 8 timed scenes. Every scene needs a purpose and viewer emotion.
 - Give actionable, production-ready detail for every scene: exact visual composition, subject appearance, subject action beat-by-beat, key-subject placement, camera shot/movement/lens, lighting direction, color palette, narration, captions, SFX, BGM, background, transition, and continuity notes. Do not use vague one-sentence descriptions.
 - Produce Korean, US English, and Japanese narration and captions.
@@ -46,16 +47,21 @@ function buildUserContent(
   contentTopic: string,
   userCustomPrompt?: string
 ): string {
+  const evidence = metadata.sourceEvidence === 'subtitles' ? 'Subtitle text available (visual scenes are not verified)'
+    : metadata.sourceEvidence === 'description' ? 'Description/title only (no subtitles or verified scenes)'
+      : metadata.sourceEvidence === 'title_only' ? 'Title only (no subtitles, scene details, or verified pacing)'
+        : 'No reference video';
   return `
 [ORIGINAL VIDEO METADATA]
-- Total Duration: ${metadata.durationSeconds} seconds
-- Original Creator Region: ${metadata.creatorCountry ?? 'Global'}
-- Engagement Signals: ${metadata.engagementMetrics?.views?.toLocaleString() ?? 'N/A'} views, ${metadata.engagementMetrics?.likes?.toLocaleString() ?? 'N/A'} likes
-- Raw Transcript / Context: "${metadata.transcriptText}"
+- Evidence available: ${evidence}
+- Total Duration: ${metadata.durationSeconds > 0 ? `${metadata.durationSeconds} seconds` : 'Unknown'}
+- Original Creator Region: ${metadata.creatorCountry ?? 'Unknown'}
+- Engagement Signals: ${metadata.engagementMetrics?.views?.toLocaleString() ?? 'Unknown'} views, ${metadata.engagementMetrics?.likes?.toLocaleString() ?? 'Unknown'} likes
+- Available text (not necessarily a transcript): "${metadata.transcriptText}"
 - Content Topic: "${contentTopic}"
 - Additional User Request: "${userCustomPrompt ?? 'Maximize audience retention while keeping the content natural and useful.'}"
 
-Deconstruct this pacing and engagement structure, then generate a fully localized 3-country storyboard for the content topic. This is general creator content, not necessarily an advertisement or product promotion.
+Use only verified evidence when describing the reference. If pacing, scenes, engagement, or transcript are unavailable, do not claim to have analyzed them. Generate a fully localized 3-country storyboard for the content topic. This is general creator content, not necessarily an advertisement or product promotion.
 `.trim();
 }
 

@@ -14,9 +14,9 @@ import { useAuth } from '@/app/components/AuthProvider';
 import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
 
-// No provider SSV or signed reward event is configured. Keep browser reward UI
-// disabled even if a stale public environment variable is accidentally true.
-const ADS_REWARD_ENABLED = false;
+// Test the configured regular AdSense slot and its entry points. This never
+// awards credits; production rewards still require server-side verification.
+const ADS_REWARD_ENABLED = true;
 import { clearUserCreditsCache } from '@/lib/profile';
 import { CREDIT_COST } from '@/lib/credits';
 import {
@@ -278,7 +278,7 @@ export default function GeneratorPage() {
       }
       setProgress(100); setProgressLabel(t('gen_analyzing_done'));
       setResult(data.data!); setCached(data.cached ?? false);
-      if (data.generationId) window.dispatchEvent(new CustomEvent('generation:completed', { detail: { generationId: data.generationId } }));
+      if (data.generationId && data.feedbackEligible) window.dispatchEvent(new CustomEvent('generation:completed', { detail: { generationId: data.generationId } }));
       if (typeof data.creditsRemaining === 'number') applyCreditsFromServer(data.creditsRemaining);
       clearUserCreditsCache();
       void refreshCredits();
@@ -431,7 +431,7 @@ export default function GeneratorPage() {
               {credits !== undefined && credits < estimatedCreditCost && (
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-xs text-amber-300 fade-in-up" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <span>⚠️ {t('gen_no_credits')}</span>
-                  {ADS_REWARD_ENABLED && <button type="button" onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('gen_ad_topup_btn')}</button>}
+                  {ADS_REWARD_ENABLED && <button type="button" onClick={handleOpenAdPopup} className="ml-auto flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-400 hover:to-orange-400 transition-all"><Gift size={12} />{t('ads_test_action')}</button>}
                 </div>
               )}
               <button type="button" onClick={handleAnalyze} disabled={loading || !targetProduct.trim() || (credits !== undefined && credits < estimatedCreditCost)} className="btn-primary w-full flex flex-col items-center justify-center gap-0.5 py-4">
@@ -460,10 +460,11 @@ export default function GeneratorPage() {
               )}
 
               <div className="flex items-center justify-center gap-1">
-                {ADS_REWARD_ENABLED ? <button type="button" onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('gen_credits_low_cta')}<RefreshCw size={11} /></button> : <span className="text-xs text-white/30">{t('ads_temporarily_unavailable')}</span>}
+                {ADS_REWARD_ENABLED ? <button type="button" onClick={handleOpenAdPopup} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-colors"><Gift size={13} />{t('ads_test_action')}<RefreshCw size={11} /></button> : <span className="text-xs text-white/30">{t('ads_temporarily_unavailable')}</span>}
               </div>
             </div>
             {result && <div className="flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-5"><span className="mt-0.5 text-emerald-300">✓</span><div><h3 className="text-sm font-bold text-white">{t('gen_complete_title')}</h3><p className="mt-1 text-xs leading-relaxed text-white/55">{t('gen_complete_desc')}</p></div></div>}
+            {result?.source_url && <p role="note" className="rounded-xl border border-amber-400/25 bg-amber-400/10 p-4 text-xs leading-relaxed text-amber-100">{t('gen_source_limit_notice')}</p>}
             </div>
 
             {error && (

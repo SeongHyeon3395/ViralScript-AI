@@ -121,6 +121,14 @@ describe('signup form usability and password policy', () => {
     expect(translations.match(/auth_password_special_required:/g)).toHaveLength(4);
     expect(read('supabase/config.toml')).toContain('minimum_password_length = 8');
   });
+
+  it('does not expose the provider login error for invalid credentials', () => {
+    const modal = read('app/components/AuthModal.tsx');
+    const translations = read('app/components/LanguageSwitcher.tsx');
+    expect(modal).toContain("error.code === 'invalid_credentials'");
+    expect(modal).toContain("t('auth_invalid_credentials')");
+    expect(translations.match(/auth_invalid_credentials:/g)).toHaveLength(4);
+  });
 });
 
 describe('privacy, credits, and disabled reward UX', () => {
@@ -149,14 +157,14 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(read('app/terms/page.tsx')).toContain('A completed topic-only generation costs five credits');
   });
 
-  it('keeps the unverified ad reward action disabled in the client', () => {
+  it('allows test ad rendering without treating it as a credit reward', () => {
     const pricing = read('app/pricing/page.tsx');
     const popup = read('app/components/RewardedAdPopup.tsx');
-    expect(pricing).toContain('const ADS_REWARD_ENABLED = false');
+    expect(pricing).toContain('const ADS_REWARD_ENABLED = true');
     expect(pricing).toContain('disabled: !ADS_REWARD_ENABLED');
     expect(pricing).toContain('{ADS_REWARD_ENABLED && <RewardedAdPopup');
     expect(read('app/generator/page.tsx')).toContain('{ADS_REWARD_ENABLED && <RewardedAdPopup');
-    expect(popup).not.toContain('adsbygoogle');
+    expect(popup).toContain('<AdSenseDisplayAd />');
     expect(popup).not.toContain("fetch('/api/v1/monetization/ad-reward'");
   });
 

@@ -34,25 +34,30 @@ interface ApifyRawItem {
   authorMeta?: { region?: string; name?: string };
 }
 
-function extractTranscript(item: ApifyRawItem): string {
+function extractSourceText(item: ApifyRawItem): Pick<ScrapedMetadata, 'transcriptText' | 'sourceEvidence'> {
   if (item.subtitles && Array.isArray(item.subtitles) && item.subtitles.length > 0) {
-    return item.subtitles
+    const transcriptText = item.subtitles
       .map((s) => s.text)
       .join(' ')
       .replace(/[\r\n]+/g, ' ')
       .trim();
+    if (transcriptText) return { transcriptText, sourceEvidence: 'subtitles' };
   }
 
-  const fallback = [item.title, item.description, item.text]
+  const description = [item.description, item.text]
     .filter(Boolean)
     .join(' ')
     .replace(/[\r\n]+/g, ' ')
     .trim();
+  if (description) return { transcriptText: [item.title, description].filter(Boolean).join(' — '), sourceEvidence: 'description' };
+  return { transcriptText: item.title?.trim() || 'No source text available.', sourceEvidence: 'title_only' };
+}
 
-  if (fallback.length >= 5) return fallback;
-
-  // 자막 완전 실패 시 — 시각 메타데이터 기반으로 AI가 구조 추론
-  return 'No explicit transcript available. Relying on visual metadata pacing and engagement signals.';
+function knownCount(value: string | number | undefined): number | undefined {
+  if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? value : undefined;
+  if (!value) return undefined;
+  const parsed = Number(value.replace(/,/g, '').trim());
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
 async function callApifyActor(
@@ -108,10 +113,9 @@ export async function fetchVideoMetadata(
     try {
       const item = await fetchOEmbedMetadata(normalizedUrl, platform);
       return {
-        durationSeconds: 30,
-        transcriptText: extractTranscript(item),
-        creatorCountry: item.authorMeta?.region ?? 'KR',
-        engagementMetrics: { views: 100000, likes: 10000 },
+        durationSeconds: 0,
+        ...extractSourceText(item),
+        creatorCountry: item.authorMeta?.region,
       };
     } catch {
       throw new Error(ERROR_CODES.MIDDLEWARE_SCRAPING_FAILED);
@@ -147,17 +151,15 @@ export async function fetchVideoMetadata(
   }
 
   const durationRaw = item.videoMeta?.duration ?? item.duration;
-  const durationSeconds = typeof durationRaw === 'number'
-    ? durationRaw
-    : parseInt(String(durationRaw ?? '30'), 10) || 30;
+  const parsedDuration = typeof durationRaw === 'number' ? durationRaw : Number.parseInt(String(durationRaw ?? ''), 10);
+  const durationSeconds = Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 0;
+  const views = knownCount(item.playCount);
+  const likes = knownCount(item.diggCount);
 
   return {
     durationSeconds,
-    transcriptText: extractTranscript(item),
-    creatorCountry: item.authorMeta?.region ?? 'KR',
-    engagementMetrics: {
-      views: parseInt(String(item.playCount ?? '100000'), 10) || 100000,
-      likes: parseInt(String(item.diggCount ?? '10000'), 10) || 10000,
-    },
+    ...extractSourceText(item),
+    creatorCountry: item.authorMeta?.region,
+    engagementMetrics: views !== undefined || likes !== undefined ? { views, likes } : undefined,
   };
 }

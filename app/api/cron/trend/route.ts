@@ -202,7 +202,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       target_type: 'trend_feed',
       target_id: null,
       before_data: null,
-      after_data: { inserted: selection.inserted, updated: selection.updated, collected: candidates.length, insertedByBucket: selection.insertedByBucket },
+      after_data: { inserted: selection.inserted, updated: selection.updated, collected: candidates.length, insertedByBucket: selection.insertedByBucket, sourceErrors },
       reason: 'Scheduled trend refresh',
     });
     if (auditError) throw new Error(`Trend refresh audit failed: ${auditError.message}`);

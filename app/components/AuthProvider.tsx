@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { clearUserCreditsCache, fetchUserCredits, fetchUserLanguage } from '@/lib/profile';
+import { t } from './LanguageSwitcher';
 
 interface AuthContextValue {
   user: SupabaseUser | null;
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (expiryAlertShownRef.current) return;
     expiryAlertShownRef.current = true;
     const supabase = getSupabaseBrowserClient();
-    window.alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
+    window.alert(t('auth_session_expired'));
     clearSessionTimestamp();
     try {
       await supabase.auth.signOut();

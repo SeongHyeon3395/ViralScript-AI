@@ -108,10 +108,10 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
               {[
                 { icon: Gift, titleKey: 'free_roulette_title', descKey: 'free_roulette_desc', badgeKey: 'free_roulette_badge', badgeClass: 'badge-green', highlight: false },
-                { icon: Play, titleKey: 'free_ad_title', descKey: 'free_ad_desc', badgeKey: 'free_ad_badge', badgeClass: 'badge-amber', highlight: true },
+                { icon: Play, titleKey: 'free_ad_title', descKey: 'free_ad_desc', badgeKey: 'free_ad_badge', badgeClass: 'badge-amber', highlight: false },
                 { icon: Users, titleKey: 'free_invite_title', descKey: 'free_invite_desc', badgeKey: 'free_invite_badge', badgeClass: 'badge-purple', highlight: false },
               ].map(({ icon: Icon, titleKey, descKey, badgeKey, badgeClass, highlight }) => (
-                <div key={titleKey} role="button" tabIndex={0} onClick={() => {
+                <div key={titleKey} role={titleKey === 'free_ad_title' ? undefined : 'button'} tabIndex={titleKey === 'free_ad_title' ? undefined : 0} onClick={() => {
                   if (titleKey === 'free_roulette_title') {
                     if (navbarRef.current?.getUser()) window.dispatchEvent(new CustomEvent('daily-roulette:open'));
                     else navbarRef.current?.openLoginModal();
@@ -120,8 +120,8 @@ export default function Home() {
                     else navbarRef.current?.openLoginModal();
                   }
                 }} onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') event.currentTarget.click();
-                }} className={`relative rounded-2xl p-6 card-hover flex flex-col cursor-pointer ${highlight ? 'glow-purple' : ''}`}
+                  if (titleKey !== 'free_ad_title' && (event.key === 'Enter' || event.key === ' ')) event.currentTarget.click();
+                }} className={`relative rounded-2xl p-6 flex flex-col ${titleKey === 'free_ad_title' ? '' : 'card-hover cursor-pointer'} ${highlight ? 'glow-purple' : ''}`}
                   style={{ background: highlight ? 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(79,70,229,0.10) 100%)' : 'rgba(13,13,20,0.6)', border: highlight ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.08)' }}>
                   {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="badge badge-amber px-3 py-1 text-xs"><Star size={10} fill="currentColor" />{t('recommended')}</span></div>}
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/20 to-indigo-600/20 border border-violet-500/20 flex items-center justify-center mb-4"><Icon size={18} className="text-violet-400" /></div>

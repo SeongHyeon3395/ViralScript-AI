@@ -6,6 +6,7 @@ import { Music, Play, Eye, Heart, RefreshCw, Loader2, ChevronDown, ChevronLeft, 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
+import type { TrendBucketHealth } from '@/lib/trendHealth';
 
 interface TrendItem {
   id: string; platform: string; region: string;
@@ -63,18 +64,20 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
   const [refreshKey, setRefreshKey] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [health, setHealth] = useState<TrendBucketHealth[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     async function fetchTrends() {
       try {
         const response = await fetch('/api/v1/trends', { cache: 'no-store' });
-        const payload = await response.json() as { trends?: TrendItem[]; updatedAt?: string | null; degraded?: boolean; errorCode?: string };
+        const payload = await response.json() as { trends?: TrendItem[]; updatedAt?: string | null; health?: TrendBucketHealth[]; degraded?: boolean; errorCode?: string };
         if (cancelled) return;
-        if (!response.ok || payload.degraded) { setLoadError(payload.errorCode ?? 'TREND_DB_UNAVAILABLE'); return; }
+        if (!response.ok || payload.degraded) { setLoadError(payload.errorCode ?? 'TREND_DB_UNAVAILABLE'); setLoading(false); return; }
         const loadedTrends = payload.trends ?? [];
         setTrends(loadedTrends);
-        setLastUpdated(payload.updatedAt ?? loadedTrends[0]?.updated_at ?? loadedTrends[0]?.created_at ?? null);
+        setLastUpdated(payload.updatedAt ?? loadedTrends[0]?.created_at ?? null);
+        setHealth(payload.health ?? []);
         setLoadError(null);
       } catch (err) {
         console.error('[TrendFeed] Fetch error:', err);
@@ -151,6 +154,10 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
   }
 
   const kstFormattedTime = lastUpdated ? formatKstTime(lastUpdated) : null;
+  const unhealthyBuckets = health.filter((bucket) => bucket.status !== 'fresh'
+    && (activeRegion === 'all' || bucket.region === activeRegion)
+    && (activeFilter === 'all' || bucket.platform === activeFilter));
+  const unhealthyLabel = unhealthyBuckets.map((bucket) => `${REGION_FLAGS[bucket.region]} ${bucket.region} ${bucket.platform === 'youtube' ? 'YouTube' : 'TikTok'}`).join(', ');
 
   let filtered = activeFilter === 'all' ? trends : trends.filter((t) => toFilterKey(t.platform) === activeFilter);
   if (activeRegion !== 'all') {
@@ -226,10 +233,16 @@ export default function TrendFeed({ onGenerate, mode = 'home' }: TrendFeedProps)
         ))}
       </div>
 
+      {!loading && !loadError && unhealthyBuckets.length > 0 && (
+        <p role="status" className="rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs text-amber-100">
+          {t('trend_freshness_warning').replace('{buckets}', unhealthyLabel)}
+        </p>
+      )}
+
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}</div>
       ) : loadError ? (
-        <div className="rounded-xl border border-red-400/25 bg-red-400/10 p-4 text-sm text-red-200" role="alert">Failed to load trends. Please refresh and try again.</div>
+        <div className="rounded-xl border border-red-400/25 bg-red-400/10 p-4 text-sm text-red-200" role="alert">{t('trend_load_failed')}</div>
       ) : displayed.length > 0 ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

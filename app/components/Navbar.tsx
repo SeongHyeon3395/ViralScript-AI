@@ -30,7 +30,6 @@ export interface NavbarRef {
 const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
   useLanguage();
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
@@ -59,20 +58,12 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     openLoginModal: () => {
-      setAuthMode('login');
       setAuthOpen(true);
     },
     getUser: () => user,
   }));
 
   function openLogin() {
-    setAuthMode('login');
-    setAuthOpen(true);
-    setMobileMenuOpen(false);
-  }
-
-  function openSignup() {
-    setAuthMode('signup');
     setAuthOpen(true);
     setMobileMenuOpen(false);
   }
@@ -82,18 +73,6 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
       <header
         className="sticky top-0 z-40 w-full glass shadow-lg shadow-black/20"
       >
-        {/* Top announcement bar — 로그인 시 숨김 */}
-        {!user && !isLoading && (
-          <div className="border-b border-amber-400/20 bg-gradient-to-r from-amber-500/15 via-violet-500/10 to-cyan-500/15 px-3 py-2 text-center">
-            <p className="text-xs text-slate-200">
-              {t('announcement_bonus')}{' '}
-              <button onClick={openSignup} className="font-bold text-amber-300 underline decoration-amber-300/50 underline-offset-2 transition-colors hover:text-amber-200 hover:decoration-amber-200">
-                {t('announcement_signup')}
-              </button>
-            </p>
-          </div>
-        )}
-
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid grid-cols-[1fr_auto_1fr] h-16 items-center">
             {/* Logo — left */}
@@ -194,20 +173,12 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                   </div>
                 </>
               ) : (
-                <>
-                    <button
+                  <button
                     onClick={openLogin}
                     className="btn-primary-compact hidden px-4 py-2 text-sm sm:block"
                   >
                     {t('nav_login')}
                   </button>
-                  <button
-                    onClick={openSignup}
-                    className="btn-primary-compact hidden px-4 py-2 text-sm sm:block"
-                  >
-                    {t('nav_signup')}
-                  </button>
-                </>
               )}
 
               {/* Mobile menu toggle */}
@@ -250,12 +221,11 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
             }} className="w-full rounded-lg border border-transparent px-4 py-2.5 text-left text-sm text-emerald-400/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300">
               {t('nav_mobile_invite')}
             </button>
-            <button onClick={openLogin} className="btn-primary-compact w-full px-4 py-2.5 text-left text-sm">
-              {t('nav_login')}
-            </button>
-            <button onClick={openSignup} className="btn-primary-compact w-full px-4 py-2.5 text-left text-sm">
-              {t('nav_start_free')}
-            </button>
+            {!isLoading && !user && (
+              <button onClick={openLogin} className="btn-primary-compact w-full px-4 py-2.5 text-left text-sm">
+                {t('nav_login')}
+              </button>
+            )}
           </div>
         )}
       </header>
@@ -263,7 +233,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
       <AuthModal
         isOpen={authOpen}
         onClose={() => setAuthOpen(false)}
-        initialMode={authMode}
+        initialMode="login"
       />
       <ReferralSystem
         isOpen={referralOpen}

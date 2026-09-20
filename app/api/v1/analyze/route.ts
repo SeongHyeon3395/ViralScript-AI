@@ -242,10 +242,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     metadata = normalizedUrl
       ? await fetchVideoMetadata(normalizedUrl, platform, profile.custom_apify_token ?? undefined)
       : {
-        durationSeconds: 30,
+        durationSeconds: 0,
         transcriptText: 'No reference video provided. Build the structure from the content topic and user requirements.',
-        creatorCountry: 'Global',
-        engagementMetrics: { views: 0, likes: 0 },
       };
   } catch (err) {
     const code = err instanceof Error ? err.message : ERROR_CODES.MIDDLEWARE_SCRAPING_FAILED;
@@ -354,6 +352,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle<{ id: string }>();
+  const { count: generationCount } = await supabase
+    .from('user_generation_history')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
 
   return NextResponse.json({
     success: true,
@@ -363,5 +365,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     creditCostApplied: creditCost,
     durationSeconds: metadata.durationSeconds,
     generationId: latestGeneration?.id ?? null,
+    feedbackEligible: generationCount === 1,
   });
 }
