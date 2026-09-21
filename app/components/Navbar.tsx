@@ -74,7 +74,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
         className="sticky top-0 z-40 w-full glass shadow-lg shadow-black/20"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex h-16 items-center justify-between gap-2">
+          <div className="relative flex h-16 items-center justify-between gap-2">
             {/* Logo — left */}
             <Link href="/" className="flex items-center gap-1 group shrink-0 justify-self-start transition-transform duration-200 hover:-translate-y-0.5">
               <span className="text-base font-bold text-white">ViralScript</span>
@@ -82,7 +82,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
             </Link>
 
             {/* Desktop Nav links — perfectly centered */}
-            <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
+            <nav className="pointer-events-none absolute inset-0 hidden items-center justify-center gap-1 lg:flex">
               {[
                 { label: t('nav_generator'), href: '/generator' },
                 { label: t('nav_credits'), href: '/pricing' },
@@ -91,7 +91,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`relative whitespace-nowrap px-3 py-2 text-sm text-slate-400 transition-all duration-200 after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity hover:-translate-y-0.5 hover:text-white ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
+                  className={`pointer-events-auto relative whitespace-nowrap px-3 py-2 text-sm text-slate-400 transition-all duration-200 after:absolute after:inset-x-4 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-cyan-300 after:transition-opacity hover:-translate-y-0.5 hover:text-white ${isActive(item.href) ? 'font-bold text-white after:opacity-100' : 'after:opacity-0'}`}
                 >
                   {item.label}
                 </Link>
@@ -104,7 +104,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                     openLogin();
                   }
                 }}
-                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent px-3 py-2 text-sm text-emerald-400/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
+                className="pointer-events-auto flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent px-3 py-2 text-sm text-emerald-400/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300"
               >
                 <Users size={14} />
                 {t('nav_invite')}
@@ -112,7 +112,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
             </nav>
 
             {/* Right side */}
-            <div className="flex items-center justify-end gap-2 shrink-0">
+            <div className="relative z-10 flex shrink-0 items-center justify-end gap-2">
               {/* Language Selector */}
               <div className="hidden sm:block"><LanguageSwitcher /></div>
 
@@ -199,7 +199,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="border-t border-white/8 px-4 py-4 glass fade-in-up lg:hidden">
-            <nav className="grid grid-cols-3 gap-2">
+            <nav className="flex flex-col gap-2">
               {[
               { label: t('nav_generator'), href: '/generator' },
               { label: t('nav_credits'), href: '/pricing' },
@@ -208,14 +208,13 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex min-h-12 min-w-0 items-center justify-center rounded-lg border border-white/10 px-1 py-2 text-center text-xs leading-tight break-keep transition-all duration-200 sm:text-sm ${isActive(item.href) ? 'bg-white/10 font-bold text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`flex min-h-12 w-full items-center rounded-xl border px-4 text-left text-sm transition-all duration-200 ${isActive(item.href) ? 'border-violet-400/50 bg-violet-500/20 font-bold text-white' : 'border-white/10 bg-white/[0.025] text-slate-300 hover:border-white/20 hover:bg-white/10 hover:text-white'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
               </Link>
               ))}
             </nav>
-            <div className="my-3 h-px bg-white/8" />
             <button onClick={() => { 
               if (user) {
                 setReferralOpen(true);
@@ -223,11 +222,11 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                 openLogin();
               }
               setMobileMenuOpen(false); 
-            }} className="w-full rounded-lg border border-transparent px-4 py-2.5 text-left text-sm text-emerald-400/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/8 hover:text-emerald-300">
+            }} className="mt-2 flex min-h-12 w-full items-center rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 text-left text-sm font-medium text-emerald-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300/45 hover:bg-emerald-500/15">
               {t('nav_mobile_invite')}
             </button>
             {!isLoading && !user && (
-              <button onClick={openLogin} className="btn-primary-compact w-full px-4 py-2.5 text-left text-sm">
+              <button onClick={openLogin} className="btn-primary-compact mt-2 flex min-h-12 w-full items-center rounded-xl px-4 text-left text-sm">
                 {t('nav_login')}
               </button>
             )}
