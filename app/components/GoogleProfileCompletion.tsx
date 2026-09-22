@@ -50,13 +50,23 @@ export default function GoogleProfileCompletion() {
     if (!user || saving) return;
     setSaving(true); setError('');
     try {
-      const rpc = getSupabaseBrowserClient().rpc as unknown as (name: string, args: Record<string, unknown>) => Promise<{ error: Error | null }>;
-      const { error: saveError } = await rpc('complete_google_profile', {
-        p_phone_country_code: countryCode.trim(),
-        p_phone_number: phoneNumber.replace(/[\s()-]/g, ''),
-        p_referral_code: canApplyReferral ? referralCode.trim().toUpperCase() || null : null,
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('UNAUTHORIZED');
+      const response = await fetch('/api/v1/auth/complete-google-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          phoneCountryCode: countryCode.trim(),
+          phoneNumber: phoneNumber.replace(/[\s()-]/g, ''),
+          referralCode: canApplyReferral ? referralCode.trim().toUpperCase() || null : null,
+        }),
       });
-      if (saveError) throw saveError;
+      const result = await response.json() as { errorCode?: string };
+      if (!response.ok) throw new Error(result.errorCode ?? 'PROFILE_SAVE_FAILED');
       window.sessionStorage.removeItem(REFERRAL_STORAGE_KEY);
       setOpen(false);
       void refreshCredits();

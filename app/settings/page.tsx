@@ -451,16 +451,24 @@ export default function SettingsPage() {
     setSaving(true); setSaveOk(false); setSaveError(null);
     try {
       const supabase = getSupabaseBrowserClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any).rpc('update_user_settings', {
-        p_full_name:               settings.full_name,
-        p_phone_country_code:      phoneCountryCode,
-        p_phone_number:            phoneNumber,
-        p_default_language:        settings.default_language,
-        p_email_notifications:     settings.email_notifications,
-        p_default_target_platform: settings.default_target_platform,
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error(t('auth_session_expired'));
+      const response = await fetch('/api/v1/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          fullName: settings.full_name,
+          phoneCountryCode,
+          phoneNumber,
+          defaultLanguage: settings.default_language,
+          emailNotifications: settings.email_notifications,
+          defaultTargetPlatform: settings.default_target_platform,
+        }),
       });
-      if (error) throw error;
+      if (!response.ok) throw new Error(t('settings_save_failed'));
 
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);
@@ -478,11 +486,14 @@ export default function SettingsPage() {
 
     setDeleting(true);
     const supabase = getSupabaseBrowserClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc('delete_user_account');
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = session ? await fetch('/api/v1/profile', {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    }) : null;
 
-    if (error) {
-      showToast(error.message || t('settings_delete_error'), 'error');
+    if (!response?.ok) {
+      showToast(t('settings_delete_error'), 'error');
       setDeleting(false);
       return;
     }

@@ -51,8 +51,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const supabase = getSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { error } = await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<{ error: Error | null }>)('update_user_settings', { p_default_language: next });
-    if (error) throw error;
+    const response = await fetch('/api/v1/profile', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ defaultLanguage: next }),
+    });
+    if (!response.ok) throw new Error('LANGUAGE_UPDATE_FAILED');
   }, []);
 
   const value = useMemo(() => ({ language, setLanguage }), [language, setLanguage]);

@@ -12,6 +12,9 @@ const trendUpsertMigration = () => read('supabase/migrations/20260916000032_tren
 const phoneSettingsMigration = () => read('supabase/migrations/20260922000038_profile_phone_settings.sql');
 const dailyLimitMigration = () => read('supabase/migrations/20260922000039_daily_generation_limit.sql');
 const feedbackRlsMigration = () => read('supabase/migrations/20260923000040_generation_feedback_rls.sql');
+const betaSecurityMigration = () => read('supabase/migrations/20260923000041_beta_security_hardening.sql');
+const legacyProfilePolicyMigration = () => read('supabase/migrations/20260923000042_remove_legacy_profile_policies.sql');
+const foreignKeyIndexesMigration = () => read('supabase/migrations/20260923000043_complete_foreign_key_indexes.sql');
 
 describe('topic-only generation contracts', () => {
   it('stores a missing source URL as NULL and leaves debit/history atomic', () => {
@@ -269,6 +272,52 @@ describe('generation feedback privacy', () => {
     const sql = feedbackRlsMigration();
     expect(sql).toContain('ALTER TABLE public.generation_feedback ENABLE ROW LEVEL SECURITY');
     expect(sql).toContain('REVOKE ALL ON TABLE public.generation_feedback FROM PUBLIC, anon, authenticated');
+  });
+});
+
+describe('beta database boundary hardening', () => {
+  it('moves privileged account mutations behind authenticated server routes', () => {
+    const sql = betaSecurityMigration();
+    const profileRoute = read('app/api/v1/profile/route.ts');
+    const googleRoute = read('app/api/v1/auth/complete-google-profile/route.ts');
+    expect(sql).toContain('DROP FUNCTION IF EXISTS public.update_user_settings');
+    expect(sql).toContain('DROP FUNCTION IF EXISTS public.complete_google_profile');
+    expect(sql).toContain('DROP FUNCTION IF EXISTS public.delete_user_account');
+    expect(sql).toContain('TO service_role');
+    expect(profileRoute).toContain("supabase.rpc('update_user_settings_server'");
+    expect(profileRoute).toContain("supabase.rpc('delete_user_account_server'");
+    expect(googleRoute).toContain("supabase.rpc('complete_google_profile_server'");
+    expect(read('app/settings/page.tsx')).not.toContain(".rpc('update_user_settings'");
+    expect(read('app/components/GoogleProfileCompletion.tsx')).not.toContain("rpc('complete_google_profile'");
+  });
+
+  it('rate-limits public email recovery without exposing a direct database RPC', () => {
+    const sql = betaSecurityMigration();
+    const route = read('app/api/v1/auth/find-email/route.ts');
+    const modal = read('app/components/AuthModal.tsx');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.email_recovery_attempts');
+    expect(sql).toContain('EMAIL_RECOVERY_RATE_LIMITED');
+    expect(sql).toContain('pg_advisory_xact_lock');
+    expect(route).toContain("createHmac('sha256'");
+    expect(route).toContain("supabase.rpc('find_email_by_phone_server'");
+    expect(modal).toContain("fetch('/api/v1/auth/find-email'");
+    expect(modal).not.toContain("rpc('find_email_by_phone'");
+  });
+
+  it('fixes advisor policies, function search paths, payment ambiguity, and missing foreign-key indexes', () => {
+    const sql = betaSecurityMigration();
+    expect(sql).toContain('DROP POLICY IF EXISTS profiles_settings_select_own');
+    expect(sql).toContain('USING ((select auth.uid()) = user_id)');
+    expect(sql).toContain('ALTER FUNCTION public.get_required_credits(INTEGER) SET search_path');
+    expect(sql).toContain('v_credits_remaining INTEGER');
+    expect(sql).toContain('support_inquiries_handled_by_idx');
+    expect(sql).toContain('trend_feed_deleted_by_idx');
+    expect(sql).toContain('user_agreements_user_id_idx');
+    expect(legacyProfilePolicyMigration()).toContain('DROP POLICY IF EXISTS "Public profiles are viewable by everyone"');
+    expect(legacyProfilePolicyMigration()).toContain('DROP POLICY IF EXISTS "Users can insert their own profile"');
+    expect(legacyProfilePolicyMigration()).toContain('REVOKE SELECT ON TABLE public.profiles FROM PUBLIC, anon');
+    expect(foreignKeyIndexesMigration()).toContain('admin_audit_logs_admin_user_id_idx');
+    expect(foreignKeyIndexesMigration()).toContain('generation_feedback_generation_id_idx');
   });
 });
 

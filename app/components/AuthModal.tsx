@@ -300,17 +300,22 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setFoundEmailResult(null);
 
     try {
-      const supabase = getSupabaseBrowserClient();
-      const { data, error } = await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<{ data: Array<{ masked_email: string }> | null; error: { message: string } | null }>)('find_email_by_phone', {
-        p_full_name: name,
-        p_phone_country_code: phoneCountryCode,
-        p_phone_number: phoneNumber,
+      const response = await fetch('/api/v1/auth/find-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: name,
+          phoneCountryCode,
+          phoneNumber,
+        }),
       });
-
-      if (error) {
-        setMessage({ type: 'error', text: error.message || t('auth_network_error') });
-      } else if (data && data.length > 0) {
-        setFoundEmailResult(data[0]);
+      const result = await response.json() as { maskedEmail?: string | null; errorCode?: string };
+      if (response.status === 429) {
+        setMessage({ type: 'error', text: t('find_email_rate_limited') });
+      } else if (!response.ok) {
+        setMessage({ type: 'error', text: t('auth_network_error') });
+      } else if (result.maskedEmail) {
+        setFoundEmailResult({ masked_email: result.maskedEmail });
       } else {
         setMessage({ type: 'error', text: t('find_email_not_found') });
       }
