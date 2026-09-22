@@ -1,121 +1,32 @@
 'use client';
 
-import Navbar from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import { useLanguage } from '@/app/components/LanguageProvider';
+import Navbar from '@/app/components/Navbar';
 
-export default function PrivacyPage() {
-  const { language } = useLanguage();
+const EFFECTIVE_DATE = '2026년 9월 22일';
+const CONTACT_EMAIL = 'psunghyi@gmail.com';
 
-  if (language !== 'ko') {
-    return (
-      <>
-        <Navbar />
-        <main className="flex-1 px-4 pb-20 pt-28 sm:px-6">
-          <div className="mx-auto max-w-3xl space-y-6">
-            {(language === 'ja' || language === 'zh') && <p className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-100">A reviewed translation is not yet available for your selected language. The English policy is shown as the governing default.</p>}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-center">
-              <h1 className="text-3xl font-extrabold text-white">Privacy Policy</h1>
-              <p className="mt-3 text-xs text-white/30">Effective: September 15, 2026</p>
-            </div>
-            <div className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-sm leading-7 text-white/60">
-              <p>ViralScript AI processes only the information needed to operate accounts, generate video plans, provide support, prevent abuse, and process payments when payments are enabled.</p>
-              <h2 className="font-bold text-violet-300">1. Information we process</h2>
-              <p>Required account information includes your name, email address, country calling code, phone number, authentication identifier, account status, settings, credit balance, referral relationship, and service activity. Generation inputs, generated plans, reference URLs when supplied, support inquiries, suspension appeals, and transaction/order records are stored when you use those features. Technical logs may include IP address, device/browser data, cookies, and security events.</p>
-              <h2 className="font-bold text-violet-300">2. Purposes</h2>
-              <p>We use this information for authentication and account recovery, service delivery, generation charges based on the selected generation method, fraud and abuse prevention, customer support, payment verification, legal compliance, and service reliability.</p>
-              <h2 className="font-bold text-violet-300">3. Service providers and international processing</h2>
-              <p>Supabase provides authentication and database services; Vercel provides hosting; OpenRouter routes AI requests to the Google Gemini model; Apify and YouTube APIs may provide public video metadata. Stripe or Toss Payments processes verified payments only when payments are enabled. Ad rewards are currently disabled because server-side reward verification is unavailable.</p>
-              <h2 className="font-bold text-violet-300">4. Retention and deletion</h2>
-              <p>Account data is deleted when the account is deleted unless retention is required for payment, dispute, security, or legal obligations. A deletion restriction record may be retained for 30 days to enforce the re-registration waiting period. Payment and complaint records may be retained for the period required by applicable law.</p>
-              <h2 className="font-bold text-violet-300">5. Your choices and security</h2>
-              <p>You can update supported profile settings or delete your account from Settings. Data is protected using HTTPS, Supabase Row Level Security, server-only service credentials, restricted database functions, and verified payment webhooks. No online service can guarantee absolute security.</p>
-              <h2 className="font-bold text-violet-300">6. Contact</h2>
-              <p>Use Contact us in the site footer for privacy requests. Do not include passwords, payment keys, or API secrets in an inquiry.</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Navbar />
-      <main className="flex-1 pt-28 pb-20 px-4 sm:px-6">
-        <div className="mx-auto max-w-3xl space-y-6">
-          <div className="text-center space-y-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-8">
-            <h1 className="text-3xl font-extrabold text-white">개인정보처리방침</h1>
-            <p className="text-sm text-white/50">Privacy Policy</p>
-            <div className="h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
-            <p className="text-xs text-white/30">시행일자: 2026년 9월 15일</p>
-          </div>
-
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 prose prose-invert prose-sm max-w-none [&_h3]:text-violet-300 [&_h3]:font-bold [&_h3]:text-base [&_strong]:text-white/80 [&_li]:text-white/60 [&_p]:text-white/60 [&_td]:text-white/50 [&_th]:text-white/70 [&_table]:border-slate-700 [&_th]:bg-slate-800/50 [&_td]:border-t [&_td]:border-slate-700/50 [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2">
-          <p>ViralScript AI(이하 &quot;회사&quot; 또는 &quot;플랫폼&quot;)은 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」 등 관련 법령을 철저히 준수합니다. 본 방침은 플랫폼이 어떠한 정보를 수집하고, 어떻게 이용하며, 안전하게 보호하는지 안내합니다.</p>
-
-          <h3>1. 수집하는 개인정보의 항목 및 수집 방법</h3>
-          <p>플랫폼은 최소한의 개인정보만을 수집하며, 민감한 금융 정보나 원본 미디어 파일을 수집하지 않습니다.</p>
-          <p><strong>수집 항목:</strong></p>
-          <ul>
-            <li>계정 정보: 이름, 이메일 주소, 국가번호, 전화번호, 인증 식별자, 계정 상태 및 설정</li>
-            <li>서비스 정보: 콘텐츠 주제, 사용자 요청, 제공한 참고 URL, 생성 결과와 생성 이력, 크레딧 잔액 및 사용 내역, 추천인 관계</li>
-            <li>지원·거래 정보: 문의 및 정지 이의 신청 내용, 결제가 활성화된 경우 결제 주문·거래 상태</li>
-            <li>자동 수집 정보: 접속 IP, 브라우저·기기 환경, 쿠키, 오류 및 보안 로그</li>
-          </ul>
-          <p><strong>수집 방법:</strong> Supabase Auth를 통한 회원가입 및 소셜 로그인, 웹사이트 이용 시 생성 정보 자동 수집</p>
-
-          <h3>2. 개인정보의 수집 및 이용 목적</h3>
-          <p>수집한 개인정보는 다음의 목적을 위해서만 활용됩니다.</p>
-          <ol>
-            <li><strong>회원 관리:</strong> 본인 확인, 불량 회원의 부정을 방지하기 위한 계정 식별, 가입 및 탈퇴 의사 확인</li>
-            <li><strong>서비스 제공 및 과금 제어:</strong> 기본 주제 생성은 5크레딧, 참고 URL 또는 상세 설정 생성은 8크레딧 차감, 생성 이력 저장, 다국어 영상 대본·장면 설계 제공</li>
-            <li><strong>서비스 분석 및 통계:</strong> 접속 빈도 파악, 기능 개선을 위한 통계적 데이터 분석</li>
-          </ol>
-
-          <h3>3. 개인정보의 보유 및 이용 기간</h3>
-          <p>1. 이용자의 개인정보는 원칙적으로 <strong>회원 탈퇴 시 또는 개인정보 수집 및 이용 목적이 달성된 후 지체 없이 파기</strong>합니다.<br />
-          2. 단, 관계 법령(전자상거래 등에서의 소비자보호에 관한 법률, 통신비밀보호법 등)의 규정에 의하여 보존할 필요가 있는 경우 법령에서 정한 일정한 기간 동안 보관합니다.</p>
-          <ul>
-            <li>웹사이트 방문기록(로그 기록, IP 등): 3개월 (통신비밀보호법)</li>
-            <li>회원 탈퇴 후 동일 이메일 재가입 제한 기록: 30일</li>
-            <li>소비자의 불만 또는 분쟁 처리에 관한 기록: 관련 법령이 정한 기간</li>
-          </ul>
-
-          <h3>4. 개인정보의 제3자 제공 및 위탁 처리 (클라우드 인프라)</h3>
-          <p>플랫폼은 안정적인 24시간 글로벌 서비스 제공을 위해 아래와 같이 글로벌 검증 클라우드 인프라에 개인정보 처리를 위탁하고 있습니다.</p>
-          <table className="min-w-full text-xs">
-            <thead><tr><th>수탁 업체</th><th>위탁 업무 및 목적</th><th>이전 국가</th><th>보존 기간</th></tr></thead>
-            <tbody>
-              <tr><td>Supabase, Inc.</td><td>데이터베이스 호스팅, 사용자 인증 및 크레딧 관리</td><td>프로젝트에 설정된 리전</td><td>회원 탈퇴 또는 법정 보존기간까지</td></tr>
-              <tr><td>Vercel, Inc.</td><td>웹 호스팅 및 네트워크 배포</td><td>미국 및 글로벌 Edge</td><td>회원 탈퇴 시까지</td></tr>
-              <tr><td>OpenRouter / Google LLC (Gemini)</td><td>AI 요청 전달 및 대본 생성 추론</td><td>미국 등</td><td>각 제공업체의 적용 정책에 따름</td></tr>
-              <tr><td>Apify Technologies</td><td>공개 URL 메타데이터 정제</td><td>체코 등</td><td>Apify의 적용 정책에 따름</td></tr>
-              <tr><td>Stripe, Inc. / 토스페이먼츠</td><td>결제 활성화 시 주문 승인 및 결제 검증</td><td>미국 / 대한민국</td><td>관련 법령 및 각 처리방침에 따름</td></tr>
-            </tbody>
-          </table>
-          <p className="mt-2"><strong>광고 보상 상태:</strong> 서버 측 보상 검증 기능이 준비되지 않아 현재 광고 시청에 따른 크레딧 지급은 비활성화되어 있습니다. 향후 광고 기능을 활성화하는 경우 관련 처리 내용을 사전에 갱신합니다.</p>
-
-          <h3>5. 이용자의 권리와 그 행사 방법</h3>
-          <p>1. 이용자는 언제든지 자신의 개인정보를 조회하거나 수정할 수 있으며, 회원 탈퇴를 통해 개인정보 이용 및 수집에 대한 동의를 철회할 수 있습니다.<br />
-          2. 동의 철회 및 데이터 삭제 요청은 플랫폼 내 &apos;계정 설정&apos; 메뉴 또는 아래 문의 메일을 통해 서면으로 요청할 수 있으며, 플랫폼은 지체 없이 조치합니다.</p>
-
-          <h3>6. 개인정보의 안전성 확보 조치</h3>
-          <p>1. <strong>[보안 아키텍처]</strong> 모든 통신은 HTTPS SSL 암호화를 통하여 전송되며, Supabase의 RLS(Row Level Security) 보안 정책을 통해 타 이용자의 데이터 접근을 물리적으로 차단합니다.<br />
-          2. <strong>[비밀 키 격리]</strong> 서비스 제어를 위한 관리자 마스터 키(Service Role Key) 및 외부 AI API 키는 브라우저에 노출되지 않도록 서버리스 환경 변수로 안전하게 격리 보관됩니다.</p>
-
-          <h3>7. 개인정보 보호책임자 및 문의처</h3>
-          <p>플랫폼은 이용자의 개인정보 관련 문의 및 불만 처리를 위해 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
-          <p><strong>담당자명:</strong> Vibe Coder PJ<br />
-          <strong>문의 이메일:</strong> help@viralscript.ai<br />
-          <strong>응답 시간:</strong> 평일 10:00 ~ 18:00 (KST 기준)</p>
-
-          <p><strong>부칙</strong><br />본 방침은 2026년 9월 15일부터 적용됩니다.</p>
-          </div>
-        </div>
-      </main>
-      <Footer />
-    </>
-  );
+function LegalShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return <><Navbar /><main className="flex-1 px-4 pb-16 pt-28 sm:px-6"><article className="mx-auto max-w-3xl"><header className="border-b border-white/10 pb-6"><h1 className="text-3xl font-bold tracking-tight text-white">{title}</h1><p className="mt-2 text-sm text-white/45">{subtitle}</p></header><div className="mt-8 space-y-8 text-sm leading-7 text-white/65 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-white [&_li]:my-1 [&_strong]:font-semibold [&_strong]:text-white/85">{children}</div></article></main><Footer /></>;
 }
+
+function KoreanPolicy() {
+  return <LegalShell title="개인정보처리방침" subtitle={`시행일: ${EFFECTIVE_DATE} · ViralScriptAI`}>
+    <p>ViralScriptAI(이하 “서비스”)는 계정 운영과 AI 영상 기획 서비스 제공에 필요한 범위에서만 개인정보를 처리합니다. 이 방침은 수집 정보, 이용 목적, 보관 기간 및 이용자의 권리를 설명합니다.</p>
+    <section><h2>1. 개인정보처리자 및 문의처</h2><p>개인정보 관련 문의, 열람·정정·삭제·처리정지 요청은 아래로 보내실 수 있습니다.</p><p><strong>서비스명:</strong> ViralScriptAI<br /><strong>문의 이메일:</strong> <a className="text-violet-300 underline underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p></section>
+    <section><h2>2. 수집하는 정보</h2><ul className="list-disc pl-5"><li><strong>계정 정보:</strong> 이름, 이메일 주소, 국가번호, 전화번호, 인증 제공자 식별자, 계정 상태 및 설정</li><li><strong>Google 로그인:</strong> Google이 제공하는 이메일 주소와 이름 등 로그인에 필요한 기본 프로필 정보. 전화번호와 추천인 코드는 서비스에서 별도로 입력받습니다.</li><li><strong>서비스 이용 정보:</strong> 입력한 주제·요청·참고 URL, 생성 결과와 이력, 크레딧 잔액·사용 내역, 추천 관계, 설문 응답</li><li><strong>문의·결제 정보:</strong> 문의 및 이의신청 내용, 결제 기능이 활성화된 경우 주문·결제 검증 정보</li><li><strong>자동 생성 정보:</strong> 로그인 세션·보안에 필요한 쿠키, IP 주소, 브라우저·기기 정보, 오류 및 접근 로그</li></ul><p>정보는 회원가입·Google 로그인·서비스 이용·문의·결제 과정에서 수집됩니다. 비밀번호와 카드번호를 서비스가 직접 저장하지 않으며, 영상 원본 파일을 업로드받지 않습니다.</p></section>
+    <section><h2>3. 이용 목적</h2><ul className="list-disc pl-5"><li>로그인, 본인 식별, 계정 복구 및 고객 지원</li><li>영상 기획 생성, 생성 이력 제공, 크레딧 차감·지급 및 결제 검증</li><li>부정 이용 방지, 서비스 안정성·보안 유지 및 법적 의무 이행</li><li>서비스 품질 개선을 위한 오류 분석 및 통계</li></ul></section>
+    <section><h2>4. 보관 기간 및 파기</h2><p>계정 및 생성 이력은 회원 탈퇴 또는 처리 목적 달성 시 지체 없이 삭제합니다. 다만 탈퇴한 이메일의 재가입 제한 기록은 30일간 보관하며, 결제·분쟁·보안 기록은 관련 법령 또는 분쟁 해결에 필요한 기간 동안 보관할 수 있습니다.</p><p>보관 기간이 끝난 정보는 복구할 수 없는 방법으로 삭제합니다. 전자 파일은 접근을 차단한 뒤 안전하게 삭제하고, 출력물은 분쇄 또는 소각합니다.</p></section>
+    <section><h2>5. 처리 위탁 및 국외 이전</h2><p>서비스 운영을 위해 아래 사업자에게 필요한 정보 처리를 맡기거나 전송합니다. 각 사업자는 해당 업무 수행에 필요한 범위에서만 정보를 처리합니다.</p><div className="overflow-x-auto rounded-lg border border-white/10"><table className="min-w-[640px] w-full text-left text-xs leading-6"><thead className="bg-white/[0.04] text-white/75"><tr><th className="px-3 py-2">사업자</th><th className="px-3 py-2">목적·전송 정보</th><th className="px-3 py-2">이전 시점·방법</th><th className="px-3 py-2">보관</th></tr></thead><tbody className="divide-y divide-white/8"><tr><td className="px-3 py-2">Supabase</td><td className="px-3 py-2">인증·데이터베이스: 계정, 서비스 이용 정보</td><td className="px-3 py-2">회원가입·이용 시 암호화 통신으로 전송</td><td className="px-3 py-2">탈퇴 또는 목적 달성 시까지</td></tr><tr><td className="px-3 py-2">Vercel</td><td className="px-3 py-2">웹 호스팅·보안: 접속 및 요청 정보</td><td className="px-3 py-2">접속 시 암호화 통신으로 전송</td><td className="px-3 py-2">서비스 제공에 필요한 기간</td></tr><tr><td className="px-3 py-2">OpenRouter 및 AI 제공자</td><td className="px-3 py-2">AI 생성: 주제, 요청, 참고 URL 및 생성에 필요한 텍스트</td><td className="px-3 py-2">생성 요청 시 암호화 통신으로 전송</td><td className="px-3 py-2">각 제공업체 정책에 따른 기간</td></tr><tr><td className="px-3 py-2">Google</td><td className="px-3 py-2">소셜 로그인: 이메일·이름 등 기본 프로필</td><td className="px-3 py-2">Google 로그인 선택 시 OAuth 방식으로 수신</td><td className="px-3 py-2">계정 탈퇴 또는 목적 달성 시까지</td></tr><tr><td className="px-3 py-2">결제 제공자</td><td className="px-3 py-2">결제 활성화 시 주문·결제 검증 정보</td><td className="px-3 py-2">결제 요청 시 암호화 통신으로 전송</td><td className="px-3 py-2">관련 법령 및 제공자 정책에 따른 기간</td></tr></tbody></table></div><p>참고 영상 URL을 분석하는 기능을 사용할 때에는 공개 URL의 메타데이터 처리에 외부 데이터 제공자가 이용될 수 있습니다. 광고는 일반 표시 광고로 제공될 수 있으나, 현재 표시 광고 시청만으로 크레딧이 지급되지는 않습니다.</p></section>
+    <section><h2>6. 이용자의 권리</h2><p>이용자는 자신의 개인정보에 대해 열람, 정정·삭제, 처리정지 및 동의 철회를 요청할 수 있습니다. 가능한 정보는 계정 설정에서 직접 수정하거나 탈퇴할 수 있으며, 그 밖의 요청은 위 문의처로 보내 주세요. 법령상 제한이 있는 경우에는 그 사유를 안내합니다.</p></section>
+    <section><h2>7. 안전성 확보 조치</h2><p>서비스는 전송 구간 암호화, 접근 권한 관리, 사용자별 데이터 접근 제어, 비밀 키의 서버 환경 분리 및 접근 로그 관리 등 합리적인 보호 조치를 적용합니다. 다만 인터넷 환경의 특성상 절대적인 보안을 보장할 수는 없습니다.</p></section>
+    <section><h2>8. 방침 변경</h2><p>방침을 변경하는 경우 시행일과 변경 내용을 이 페이지에 공개합니다. 이용자 권리에 중대한 영향을 주는 변경은 합리적인 기간 전에 별도로 알립니다.</p></section>
+  </LegalShell>;
+}
+
+function EnglishPolicy() {
+  return <LegalShell title="Privacy Policy" subtitle="Effective September 22, 2026 · ViralScriptAI"><p>ViralScriptAI processes only the information needed to operate accounts, provide AI video-planning features, prevent abuse, and support users.</p><section><h2>1. Information we process</h2><p>We process account details (name, email, country calling code, phone number, authentication identifier, account status and settings); Google basic profile information used for sign-in; generation inputs, reference URLs, results and history; credits and promotional activity; support messages; and, when enabled, payment-verification records. Essential session cookies, IP address, browser/device data, error and security logs may also be processed.</p></section><section><h2>2. Why we use it</h2><p>We use this information for authentication, account recovery, service delivery, credit and payment verification, security and abuse prevention, support, legal compliance, and reliability improvements.</p></section><section><h2>3. Providers and international processing</h2><p>Supabase provides authentication and database services; Vercel provides hosting and security infrastructure; OpenRouter and its AI providers process the text required for generation; Google provides optional social sign-in; and a payment provider processes payments only when that feature is enabled. A public reference URL may be processed by a metadata provider when you request URL analysis. Data is transmitted using encrypted connections when these services are used and retained only as necessary for the service, applicable provider policy, legal obligations, or dispute resolution.</p></section><section><h2>4. Retention and deletion</h2><p>We delete account data and generation history when an account is deleted or the purpose ends, unless retention is required for security, payment, dispute, or legal reasons. A deleted-email restriction record may be retained for 30 days. Electronic records are securely deleted so they cannot be restored.</p></section><section><h2>5. Your choices and contact</h2><p>You may update available profile details or delete your account in Settings. To request access, correction, deletion, or restriction, contact <a className="text-violet-300 underline underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Do not send passwords, payment credentials, or API keys through support.</p></section><section><h2>6. Changes</h2><p>We will post material changes on this page before they take effect. Display advertisements may be shown, but viewing a display advertisement alone does not grant credits. Ad rewards are currently disabled because server-side reward verification is unavailable.</p></section></LegalShell>;
+}
+
+export default function PrivacyPage() { const { language } = useLanguage(); return language === 'ko' ? <KoreanPolicy /> : <EnglishPolicy />; }
