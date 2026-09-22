@@ -5,6 +5,7 @@ import { AuthProvider } from "./components/AuthProvider";
 import { LanguageProvider } from "./components/LanguageProvider";
 import GenerationFeedbackPrompt from "./components/GenerationFeedbackPrompt";
 import GoogleProfileCompletion from "./components/GoogleProfileCompletion";
+import AdSenseScript from "./components/AdSenseScript";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://viralscript-ai-inky.vercel.app";
 
@@ -58,6 +59,7 @@ export default function RootLayout({
           <AuthProvider>{children}<GenerationFeedbackPrompt /><GoogleProfileCompletion /></AuthProvider>
         </LanguageProvider>
         <ToastHost />
+        <AdSenseScript />
       </body>
     </html>
   );

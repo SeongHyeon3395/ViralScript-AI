@@ -1,6 +1,5 @@
 'use client';
 
-import Script from 'next/script';
 import { useEffect, useRef } from 'react';
 import { useLanguage } from './LanguageProvider';
 
@@ -36,7 +35,6 @@ export default function AdSenseDisplayAd({ testMode = false }: { testMode?: bool
   return (
     <aside aria-label={label} className="mx-auto mt-8 max-w-4xl rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3">
       <p className="mb-2 text-center text-[10px] font-medium uppercase tracking-widest text-white/25">{label}</p>
-      <Script id="adsense-display-script" strategy="afterInteractive" async crossOrigin="anonymous" src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`} />
       <ins className="adsbygoogle block" style={{ display: 'block' }} data-ad-client={clientId} data-ad-slot={slotId} data-ad-format="auto" data-full-width-responsive="true" data-adtest={testMode ? 'on' : undefined} />
     </aside>
   );

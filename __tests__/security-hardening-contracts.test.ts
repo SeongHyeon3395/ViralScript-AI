@@ -174,12 +174,15 @@ describe('privacy, credits, and disabled reward UX', () => {
 
   it('can show an environment-configured AdSense display slot without connecting it to rewards', () => {
     const displayAd = read('app/components/AdSenseDisplayAd.tsx');
-    const pricing = read('app/pricing/page.tsx');
+    const script = read('app/components/AdSenseScript.tsx');
+    const footer = read('app/components/Footer.tsx');
+    const adsText = read('app/ads.txt/route.ts');
     expect(displayAd).toContain('NEXT_PUBLIC_ADSENSE_DISPLAY_SLOT');
-    expect(displayAd).toContain('pagead/js/adsbygoogle.js');
+    expect(script).toContain('pagead/js/adsbygoogle.js');
     expect(displayAd).toContain("data-adtest={testMode ? 'on' : undefined}");
     expect(displayAd).not.toContain('onRewardClaimed');
-    expect(pricing).toContain('<AdSenseDisplayAd />');
+    expect(footer).toContain('<AdSenseDisplayAd />');
+    expect(adsText).toContain('f08c47fec0942fa0');
   });
 
   it('explains generation failures and only promises no debit for recognized API errors', () => {
