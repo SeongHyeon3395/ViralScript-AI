@@ -1,7 +1,7 @@
 import type { AiPromptTool } from '@/types';
 
-// Keep the plan schema local: Gemini is called through OpenRouter, so the
-// Google SDK (and its install-time dependencies) is no longer needed.
+// Keep the plan schema local so it can be sent directly to the Gemini API
+// without adding a client SDK or exposing the server API key.
 const Type = { OBJECT: 'OBJECT', STRING: 'STRING', INTEGER: 'INTEGER', ARRAY: 'ARRAY' } as const;
 type Schema = {
   type: typeof Type[keyof typeof Type];
@@ -30,7 +30,7 @@ export const geminiOutputSchema: Schema = {
   required: ['schema_version', 'project_title', 'target_product', 'concept', 'target_audience', 'video_goal', 'duration_seconds', 'overall_viral_strategy', 'hook', 'final_cta', 'structure_analysis', 'scenes', 'voiceover', 'captions', 'editing_timeline', 'compliance_notes'],
 };
 
-export function openRouterOutputSchema(selectedTools: AiPromptTool[]): Record<string, unknown> {
+export function geminiResponseSchema(selectedTools: AiPromptTool[]): Record<string, unknown> {
   // Convert the existing Gemini schema to JSON Schema without changing its
   // production-plan fields. Only requested video-tool prompts are generated.
   function convert(value: Schema): Record<string, unknown> {
@@ -39,8 +39,8 @@ export function openRouterOutputSchema(selectedTools: AiPromptTool[]): Record<st
     if (value.properties) {
       const properties = Object.fromEntries(Object.entries(value.properties).map(([key, child]) => [key, convert(child)]));
       result.properties = properties;
-      // OpenRouter's strict JSON-schema mode expects every declared property
-      // to be required, even fields that the old Gemini schema treated as optional.
+      // Gemini structured output works best when every declared field is
+      // represented in the required list, which also keeps the client output deterministic.
       result.required = Object.keys(properties);
       result.additionalProperties = false;
     }

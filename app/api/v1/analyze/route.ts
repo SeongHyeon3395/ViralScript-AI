@@ -295,8 +295,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     );
   }
 
-  // 8. OpenRouter를 통한 Gemini 생성 — 실패 시 크레딧 차감 없음.
-  // Legacy custom_gemini_key is deliberately not sent to OpenRouter.
+  // 8. Gemini 생성 — 실패 시 크레딧 차감 없음.
+  // Legacy custom_gemini_key is deliberately not sent to the provider.
   let result: GenerationOutput;
   try {
     result = await generateLocalizedScripts(

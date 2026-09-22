@@ -48,7 +48,7 @@
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   - `SUPABASE_SERVICE_ROLE_KEY`
-  - `GOOGLE_AI_API_KEY`
+  - `GEMINI_API_KEY`
   - `CRON_SECRET`
 
 ### 7️⃣ 아키텍처 문서
@@ -161,7 +161,7 @@ SELECT * FROM trend_feed ORDER BY created_at DESC;
 - [ ] 프로젝트 배포 (`vercel --prod`)
 - [ ] 환경 변수 추가:
   - [ ] `CRON_SECRET`
-  - [ ] `GOOGLE_AI_API_KEY`
+  - [ ] `GEMINI_API_KEY`
   - [ ] `SUPABASE_SERVICE_ROLE_KEY`
   - [ ] `NEXT_PUBLIC_SUPABASE_URL`
   - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY`

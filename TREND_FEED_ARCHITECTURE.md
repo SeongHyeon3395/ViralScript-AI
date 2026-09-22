@@ -218,7 +218,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # Google AI (Gemini)
-GOOGLE_AI_API_KEY=your-gemini-api-key
+GEMINI_API_KEY=your-gemini-api-key
 
 # Vercel Cron Secret
 CRON_SECRET=your-random-secret-token
@@ -253,7 +253,7 @@ vercel --prod
 
 ### 3. 환경 변수 설정 (Vercel Dashboard)
 1. Project Settings → Environment Variables
-2. `CRON_SECRET`, `GOOGLE_AI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` 추가
+2. `CRON_SECRET`, `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` 추가
 3. Redeploy
 
 ### 4. 수동 Cron 테스트 (로컬)
@@ -297,7 +297,7 @@ curl -X POST https://your-app.vercel.app/api/cron/trend \
 - Supabase Dashboard → Table Editor에서 직접 데이터 확인
 
 ### 3. AI 응답 오류 시
-- `GOOGLE_AI_API_KEY` 확인
+- `GEMINI_API_KEY` 확인
 - Gemini API 할당량 확인
 - Response Schema 형식 확인
 

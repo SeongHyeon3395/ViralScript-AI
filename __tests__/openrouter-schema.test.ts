@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { openRouterOutputSchema } from '@/services/geminiSchema';
+import { geminiResponseSchema } from '@/services/geminiSchema';
 
-function sceneShape(tools: Parameters<typeof openRouterOutputSchema>[0]) {
-  const root = openRouterOutputSchema(tools);
+function sceneShape(tools: Parameters<typeof geminiResponseSchema>[0]) {
+  const root = geminiResponseSchema(tools);
   const scenes = (root.properties as Record<string, Record<string, unknown>>).scenes;
   return scenes.items as Record<string, unknown>;
 }
 
-describe('OpenRouter output schema', () => {
+describe('Gemini output schema', () => {
   it('requires only the selected tool prompts', () => {
     const scene = sceneShape(['veo', 'firefly']);
     const prompt = (scene.properties as Record<string, Record<string, unknown>>).ai_prompts;
