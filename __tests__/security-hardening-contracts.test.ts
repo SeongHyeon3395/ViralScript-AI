@@ -11,6 +11,7 @@ const inquiryWorkflowMigration = () => read('supabase/migrations/20260915000031_
 const trendUpsertMigration = () => read('supabase/migrations/20260916000032_trend_feed_upsert_constraint.sql');
 const phoneSettingsMigration = () => read('supabase/migrations/20260922000038_profile_phone_settings.sql');
 const dailyLimitMigration = () => read('supabase/migrations/20260922000039_daily_generation_limit.sql');
+const feedbackRlsMigration = () => read('supabase/migrations/20260923000040_generation_feedback_rls.sql');
 
 describe('topic-only generation contracts', () => {
   it('stores a missing source URL as NULL and leaves debit/history atomic', () => {
@@ -260,6 +261,14 @@ describe('daily generation limit', () => {
     expect(sql).toContain("date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'");
     expect(sql).toContain('v_daily_generation_count >= 3');
     expect(sql).toContain("RAISE EXCEPTION 'DAILY_GENERATION_LIMIT_REACHED'");
+  });
+});
+
+describe('generation feedback privacy', () => {
+  it('keeps feedback private from direct browser database access', () => {
+    const sql = feedbackRlsMigration();
+    expect(sql).toContain('ALTER TABLE public.generation_feedback ENABLE ROW LEVEL SECURITY');
+    expect(sql).toContain('REVOKE ALL ON TABLE public.generation_feedback FROM PUBLIC, anon, authenticated');
   });
 });
 
