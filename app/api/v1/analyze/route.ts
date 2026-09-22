@@ -17,6 +17,7 @@ export const maxDuration = 120;
 // Reference scraping plus a detailed multi-language storyboard can exceed 60s.
 // Keep a 10s margin for the atomic debit and HTTP response.
 const HARD_DEADLINE_MS = 110_000;
+const DAILY_GENERATION_LIMIT = 3;
 
 // ─── 헬퍼: 에러 코드 → HTTP 상태 코드 매핑 ─────────────────
 
@@ -38,6 +39,7 @@ function mapErrorToStatus(code: string): number {
     case ERROR_CODES.AI_MODERATION_BLOCK:
       return 451;
     case ERROR_CODES.AI_RATE_LIMITED:
+    case ERROR_CODES.DAILY_GENERATION_LIMIT_REACHED:
       return 429;
     case ERROR_CODES.AI_PROVIDER_UNAVAILABLE:
       return 503;
@@ -103,6 +105,23 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
       { success: false, error: 'Account suspended', errorCode: ERROR_CODES.UNAUTHORIZED },
       { status: 403 },
     );
+  }
+
+  // A server-side pre-check avoids scraper/Gemini work after the daily quota
+  // is exhausted. The final transaction repeats this limit under a row lock.
+  const startOfUtcDay = new Date();
+  startOfUtcDay.setUTCHours(0, 0, 0, 0);
+  const { count: dailyGenerationCount, error: dailyCountError } = await supabase
+    .from('user_generation_history')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .gte('created_at', startOfUtcDay.toISOString());
+  if (dailyCountError) {
+    console.error('[analyze] daily generation count failed:', dailyCountError.message);
+    return NextResponse.json({ success: false, error: 'Could not verify daily generation limit', errorCode: ERROR_CODES.DB_TRANSACTION_FAIL }, { status: 500 });
+  }
+  if ((dailyGenerationCount ?? 0) >= DAILY_GENERATION_LIMIT) {
+    return NextResponse.json({ success: false, error: 'Daily generation limit reached', errorCode: ERROR_CODES.DAILY_GENERATION_LIMIT_REACHED }, { status: 429 });
   }
 
   // 2. 요청 바디 파싱
@@ -219,6 +238,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
     if (rpcError) {
       console.error('[analyze] RPC error (cache hit):', rpcError.message);
+      if (rpcError.message?.includes('DAILY_GENERATION_LIMIT_REACHED')) {
+        return NextResponse.json({ success: false, error: 'Daily generation limit reached', errorCode: ERROR_CODES.DAILY_GENERATION_LIMIT_REACHED }, { status: 429 });
+      }
       if (rpcError.message?.includes('INSUFFICIENT_CREDITS')) {
         return NextResponse.json(
           { success: false, error: 'Insufficient credits', errorCode: ERROR_CODES.INSUFFICIENT_CREDITS },
@@ -340,6 +362,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
   if (rpcError) {
     console.error('[analyze] deduct_dynamic_credit RPC error:', rpcError.message);
+    if (rpcError.message?.includes('DAILY_GENERATION_LIMIT_REACHED')) {
+      return NextResponse.json({ success: false, error: 'Daily generation limit reached', errorCode: ERROR_CODES.DAILY_GENERATION_LIMIT_REACHED }, { status: 429 });
+    }
     if (rpcError.message?.includes('INSUFFICIENT_CREDITS')) {
       return NextResponse.json(
         { success: false, error: 'Insufficient credits', errorCode: ERROR_CODES.INSUFFICIENT_CREDITS },

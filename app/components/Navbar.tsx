@@ -2,7 +2,7 @@
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Zap,
   History,
@@ -35,6 +35,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
   const [referralOpen, setReferralOpen] = useState(false);
   const { user, isLoading, credits } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   useEffect(() => {
     const handler = () => setReferralOpen(true);
     window.addEventListener('referral:open', handler);
@@ -151,9 +152,9 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
                         </div>
                         <div className="p-1.5">
                           {[
-                            { icon: History, label: t('nav_history'), action: () => { setUserMenuOpen(false); window.location.href = '/history'; } },
-                            { icon: CreditCard, label: t('nav_charge'), action: () => { setUserMenuOpen(false); window.location.href = '/pricing'; } },
-                            { icon: Settings, label: t('nav_settings'), action: () => { setUserMenuOpen(false); window.location.href = '/settings'; } },
+                            { icon: History, label: t('nav_history'), action: () => { setUserMenuOpen(false); router.push('/history'); } },
+                            { icon: CreditCard, label: t('nav_charge'), action: () => { setUserMenuOpen(false); router.push('/pricing'); } },
+                            { icon: Settings, label: t('nav_settings'), action: () => { setUserMenuOpen(false); router.push('/settings'); } },
                           ].map(({ icon: Icon, label, action }) => (
                             <button
                               key={label}

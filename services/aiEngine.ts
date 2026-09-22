@@ -3,7 +3,10 @@ import type { AiPromptTool, ScrapedMetadata, GenerationOutput } from '@/types';
 import { ERROR_CODES } from '@/types';
 import { normalizeGenerationOutput } from '@/lib/generationOutput';
 
-const GEMINI_MODEL = 'gemini-3.5-flash';
+// Gemini 3.6 Flash keeps robust structured-output quality while its standard
+// token pricing is lower than the previously configured 3.5 Flash model.
+const GEMINI_MODEL = 'gemini-3.6-flash';
+const MAX_OUTPUT_TOKENS = 10_240;
 
 function buildSystemInstruction(productionMethod: string, selectedTools: AiPromptTool[]): string {
   return `
@@ -64,7 +67,7 @@ Use only verified evidence when describing the reference. If pacing, scenes, eng
 }
 
 /**
- * Gemini 3.5 Flash로 3개국 제작 기획안을 생성합니다.
+ * Gemini 3.6 Flash로 3개국 제작 기획안을 생성합니다.
  * API 키는 서버 환경변수에서만 읽고 클라이언트로 보내지 않습니다.
  */
 export async function generateLocalizedScripts(
@@ -91,7 +94,7 @@ export async function generateLocalizedScripts(
         generationConfig: {
           responseMimeType: 'application/json',
           responseJsonSchema: geminiResponseSchema(selectedTools),
-          maxOutputTokens: 24576,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
         },
       }),
       signal: AbortSignal.timeout(timeoutMs),

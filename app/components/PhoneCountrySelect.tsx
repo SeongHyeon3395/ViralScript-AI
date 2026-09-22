@@ -12,6 +12,10 @@ const PHONE_COUNTRIES = [
   ['BR', '+55', 'Brazil'], ['MX', '+52', 'Mexico'], ['AR', '+54', 'Argentina'], ['CL', '+56', 'Chile'], ['CO', '+57', 'Colombia'], ['PE', '+51', 'Peru'], ['VE', '+58', 'Venezuela'], ['CR', '+506', 'Costa Rica'], ['PA', '+507', 'Panama'], ['DO', '+1', 'Dominican Republic'], ['JM', '+1', 'Jamaica'],
 ] as const;
 
+export function getPhoneCountryIso(phoneCountryCode: string): string {
+  return PHONE_COUNTRIES.find(([, dial]) => dial === phoneCountryCode)?.[0] ?? 'US';
+}
+
 function FlagIcon({ countryCode }: { countryCode: string }) {
   return <span className={`fi fi-${countryCode.toLowerCase()} h-4 w-6 shrink-0 rounded-sm`} aria-hidden="true" />;
 }

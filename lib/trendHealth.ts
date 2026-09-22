@@ -3,7 +3,14 @@ export const TREND_FRESHNESS_MS = 48 * 60 * 60 * 1000;
 export type TrendBucketStatus = 'fresh' | 'stale' | 'missing';
 export type TrendBucketHealth = { region: 'KR' | 'US' | 'JP'; platform: 'youtube' | 'tiktok'; status: TrendBucketStatus; latestAt: string | null };
 
-type TrendTimestamp = { platform: string; region: string; created_at?: string | null };
+type TrendTimestamp = {
+  platform: string;
+  region: string;
+  created_at?: string | null;
+  // Database rows also carry updated_at. Freshness deliberately ignores it
+  // because editing metadata must not make an old collection look fresh.
+  updated_at?: string | null;
+};
 
 export function getTrendHealth(rows: TrendTimestamp[], now = Date.now()): TrendBucketHealth[] {
   const regions = ['KR', 'US', 'JP'] as const;

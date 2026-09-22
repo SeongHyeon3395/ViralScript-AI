@@ -26,10 +26,11 @@ describe('Gemini generation request', () => {
     expect(result.selected_ai_tools).toEqual(['veo', 'firefly']);
     expect(result.scenes[0].ai_prompts.runway).toBe('');
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent');
+    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent');
     expect((options.headers as Record<string, string>)['x-goog-api-key']).toBe('test-only-key');
     const request = JSON.parse(options.body as string);
     expect(request.generationConfig.responseMimeType).toBe('application/json');
+    expect(request.generationConfig.maxOutputTokens).toBe(10240);
     expect(request.generationConfig.responseJsonSchema.properties.scenes.items.properties.ai_prompts.required).toEqual(['veo', 'firefly']);
     expect(options.cache).toBe('no-store');
   });

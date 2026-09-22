@@ -9,6 +9,8 @@ const referralMigration = () => read('supabase/migrations/20260915000027_referra
 const emailRecoveryMigration = () => read('supabase/migrations/20260915000030_email_recovery_privacy.sql');
 const inquiryWorkflowMigration = () => read('supabase/migrations/20260915000031_support_inquiry_workflow.sql');
 const trendUpsertMigration = () => read('supabase/migrations/20260916000032_trend_feed_upsert_constraint.sql');
+const phoneSettingsMigration = () => read('supabase/migrations/20260922000038_profile_phone_settings.sql');
+const dailyLimitMigration = () => read('supabase/migrations/20260922000039_daily_generation_limit.sql');
 
 describe('topic-only generation contracts', () => {
   it('stores a missing source URL as NULL and leaves debit/history atomic', () => {
@@ -216,7 +218,8 @@ describe('privacy, credits, and disabled reward UX', () => {
     const privacy = read('app/privacy/page.tsx');
     const terms = read('app/terms/page.tsx');
     expect(privacy).toContain('국가번호, 전화번호');
-    expect(privacy).toContain('Ad rewards are currently disabled');
+    expect(privacy).toContain('Google AdSense may process cookies');
+    expect(privacy).toContain('Ad rewards remain disabled');
     expect(terms).toContain('기본 주제만으로 만드는 생성은 정상 완료 시 5크레딧');
     expect(terms).toContain('참고 URL을 제공하거나 상세 설정을 적용한 생성은 정상 완료 시 8크레딧');
   });
@@ -240,6 +243,23 @@ describe('Google signup completion', () => {
     expect(modal).toContain("t('auth_email_already_exists')");
     expect(modal).toContain("normalizedMessage.includes('already registered')");
     expect(modal).toContain("error.code === 'user_already_exists'");
+  });
+
+  it('validates editable phone numbers with the same literal-plus pattern as signup', () => {
+    const sql = phoneSettingsMigration();
+    expect(sql).toContain("p_phone_country_code !~ '^\\+[0-9]{1,4}$'");
+    expect(sql).not.toContain("p_phone_country_code !~ '^\\\\+[0-9]{1,4}$'");
+    expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.update_user_settings');
+  });
+});
+
+describe('daily generation limit', () => {
+  it('rechecks the three-generation UTC limit inside the locked debit transaction', () => {
+    const sql = dailyLimitMigration();
+    expect(sql).toContain('FOR UPDATE');
+    expect(sql).toContain("date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'");
+    expect(sql).toContain('v_daily_generation_count >= 3');
+    expect(sql).toContain("RAISE EXCEPTION 'DAILY_GENERATION_LIMIT_REACHED'");
   });
 });
 

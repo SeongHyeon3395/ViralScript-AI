@@ -276,6 +276,7 @@ export default function GeneratorPage() {
           res.status === 402 ? 'gen_error_balance' :
           code === 'ERR_URL_PRIVATE_OR_DELETED' ? 'gen_error_video' :
           code === 'ERR_SCRAPER_TIMEOUT' ? 'gen_error_timeout' :
+          code === 'DAILY_GENERATION_LIMIT_REACHED' ? 'gen_error_daily_limit' :
           code === 'AI_RATE_LIMITED' ? 'gen_error_quota' :
           code === 'AI_PROVIDER_UNAVAILABLE' ? 'gen_error_provider' :
           code === 'AI_TIMEOUT' ? 'gen_error_timeout_ai' :

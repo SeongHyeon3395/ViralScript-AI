@@ -14,12 +14,15 @@ import { useAuth } from '@/app/components/AuthProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
+import PhoneCountrySelect, { getPhoneCountryIso } from '@/app/components/PhoneCountrySelect';
 
 // ─── 타입 ─────────────────────────────────────────────────────────
 
 interface UserSettings {
   full_name: string | null;
   email: string;
+  phone_country_code: string;
+  phone_number: string;
   default_language: 'ko' | 'en' | 'ja' | 'zh';
   email_notifications: boolean;
   default_target_platform: 'tiktok' | 'youtube';
@@ -151,6 +154,7 @@ function ProfileTab({ settings, onUpdate, onOpenPasswordModal }: {
   onUpdate: (p: Partial<UserSettings>) => void;
   onOpenPasswordModal: () => void;
 }) {
+  const [countryIso, setCountryIso] = useState(() => getPhoneCountryIso(settings.phone_country_code));
   return (
     <div className="space-y-4">
       <SectionCard title={t('settings_profile_section')} icon={User}>
@@ -163,6 +167,17 @@ function ProfileTab({ settings, onUpdate, onOpenPasswordModal }: {
             <FieldLabel>{t('settings_email_locked')}</FieldLabel>
             <TextInput value={settings.email} disabled />
           </div>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div>
+              <FieldLabel>{t('signup_country_label')}</FieldLabel>
+              <PhoneCountrySelect value={settings.phone_country_code} countryIso={countryIso} onChange={(dial, iso) => { setCountryIso(iso); onUpdate({ phone_country_code: dial }); }} />
+            </div>
+            <div>
+              <FieldLabel>{t('signup_phone_label')}</FieldLabel>
+              <input type="tel" inputMode="numeric" autoComplete="tel-national" value={settings.phone_number} onChange={event => onUpdate({ phone_number: event.target.value.replace(/[^0-9]/g, '') })} placeholder={t('signup_phone_placeholder')} className="w-full rounded-xl px-4 py-2.5 text-sm input-dark" />
+            </div>
+          </div>
+          <p className="text-xs text-white/35">{t('signup_phone_disclaimer')}</p>
         </div>
       </SectionCard>
 
@@ -392,7 +407,7 @@ export default function SettingsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from('profiles')
-      .select('full_name, email, default_language, email_notifications, default_target_platform')
+      .select('full_name, email, phone_country_code, phone_number, default_language, email_notifications, default_target_platform')
       .eq('id', user.id)
       .maybeSingle() as { data: Record<string, unknown> | null; error: unknown };
 
@@ -405,6 +420,8 @@ export default function SettingsPage() {
     setSettings({
       full_name:               (data.full_name as string | null) ?? null,
       email:                   (data.email as string | null) ?? user.email ?? '',
+      phone_country_code:      (data.phone_country_code as string | null) ?? '+1',
+      phone_number:            (data.phone_number as string | null) ?? '',
       default_language:        (data.default_language as UserSettings['default_language']) ?? 'en',
       email_notifications:     (data.email_notifications as boolean | null) ?? true,
       default_target_platform: (data.default_target_platform as UserSettings['default_target_platform']) ?? 'tiktok',
@@ -425,12 +442,20 @@ export default function SettingsPage() {
 
   async function handleSave() {
     if (!settings || !user) return;
+    const phoneCountryCode = settings.phone_country_code.trim();
+    const phoneNumber = settings.phone_number.replace(/[^0-9]/g, '');
+    if (!/^\+[0-9]{1,4}$/.test(phoneCountryCode) || !/^[0-9]{6,20}$/.test(phoneNumber)) {
+      setSaveError(t('google_profile_save_failed'));
+      return;
+    }
     setSaving(true); setSaveOk(false); setSaveError(null);
     try {
       const supabase = getSupabaseBrowserClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any).rpc('update_user_settings', {
         p_full_name:               settings.full_name,
+        p_phone_country_code:      phoneCountryCode,
+        p_phone_number:            phoneNumber,
         p_default_language:        settings.default_language,
         p_email_notifications:     settings.email_notifications,
         p_default_target_platform: settings.default_target_platform,

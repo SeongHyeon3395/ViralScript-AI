@@ -23,7 +23,7 @@ TikTok과 YouTube Shorts 영상을 분석하고, Google Gemini AI로 숏폼 영�
 | Frontend | Next.js 16, React 19, TypeScript |
 | Styling | Tailwind CSS 4 |
 | Authentication & Database | Supabase |
-| AI | Google Gemini (`gemini-3.5-flash`) |
+| AI | Google Gemini (`gemini-3.6-flash`) |
 | Video metadata | Apify, YouTube Data API v3 |
 | Deployment | Vercel |
 | Testing | Vitest |

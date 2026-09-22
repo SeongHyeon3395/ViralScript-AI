@@ -6,11 +6,13 @@ import Footer from '@/app/components/Footer';
 import TrendFeed from '@/app/components/TrendFeed';
 import { t } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/components/LanguageProvider';
+import { useRouter } from 'next/navigation';
 
 
 
 export default function TrendsPage() {
   useLanguage();
+  const router = useRouter();
   const navbarRef = useRef<NavbarRef>(null);
 
   function handleTrendGenerate(params: URLSearchParams) {
@@ -18,7 +20,7 @@ export default function TrendsPage() {
       navbarRef.current?.openLoginModal();
       return;
     }
-    window.location.href = `/generator?${params.toString()}`;
+    router.push(`/generator?${params.toString()}`);
   }
 
   return (
