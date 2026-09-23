@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { SITE_MAINTENANCE_COPY, SITE_MAINTENANCE_MODES, type SiteMaintenanceMode } from '@/lib/siteMaintenance';
 
 // Upstash Redis 기반 슬라이딩 윈도우 Rate Limiter
 // 분당 최대 10회 요청 (IP 기반)
@@ -26,8 +27,74 @@ function getRateLimiter(): Ratelimit | null {
 
 // Next.js 16: 함수명은 반드시 `proxy`여야 합니다 (middleware → proxy 변경)
 export async function proxy(req: NextRequest): Promise<NextResponse> {
+  const path = req.nextUrl.pathname;
+  const isControlRoute = path === '/Master' || path.startsWith('/Master/') || path === '/api/master' || path.startsWith('/api/master/');
+  const isOperationalRoute = path.startsWith('/api/cron/') || path.startsWith('/api/webhooks/');
+  const isPublicInfoRoute = ['/privacy', '/terms', '/ads.txt', '/robots.txt', '/sitemap.xml'].includes(path);
+  const isStaticAsset = path.startsWith('/_next/') || path.startsWith('/favicon') || /\.[a-zA-Z0-9]{2,5}$/.test(path);
+
+  if (!isControlRoute && !isOperationalRoute && !isPublicInfoRoute && !isStaticAsset) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (supabaseUrl && anonKey) {
+      try {
+        const response = await fetch(
+          `${supabaseUrl.replace(/\/$/, '')}/rest/v1/site_settings?select=maintenance_mode&id=eq.true&limit=1`,
+          {
+            headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(2500),
+          },
+        );
+        if (!response.ok) throw new Error(`Maintenance status lookup returned ${response.status}`);
+        const rows = await response.json() as Array<{ maintenance_mode?: string | null }>;
+        const rawMode = rows[0]?.maintenance_mode;
+        const mode = SITE_MAINTENANCE_MODES.includes(rawMode as SiteMaintenanceMode) ? rawMode as SiteMaintenanceMode : null;
+
+        if (mode) {
+          const languageHeader = req.headers.get('accept-language')?.toLowerCase() ?? '';
+          const language: 'ko' | 'en' | 'ja' | 'zh' = languageHeader.includes('ko') ? 'ko'
+            : languageHeader.includes('ja') ? 'ja'
+              : languageHeader.includes('zh') ? 'zh' : 'en';
+          const { title, message } = SITE_MAINTENANCE_COPY[mode][language];
+          const isApi = path.startsWith('/api/');
+          if (isApi) {
+            return NextResponse.json(
+              { errorCode: 'SITE_MAINTENANCE', mode, message },
+              { status: 503, headers: { 'Retry-After': '300', 'Cache-Control': 'no-store' } },
+            );
+          }
+
+          const html = `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${title} — ViralScript AI</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#080910;color:#f5f3ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}.card{max-width:560px;text-align:center;padding:42px 32px;border:1px solid #ffffff20;border-radius:24px;background:#ffffff08}.mark{font-size:12px;letter-spacing:.2em;color:#c4b5fd;font-weight:800}.icon{font-size:40px;margin:28px 0 12px}h1{font-size:clamp(24px,5vw,34px);margin:0 0 14px}p{color:#c4c1d2;line-height:1.8;margin:0}</style></head><body><main class="card"><div class="mark">VIRALSCRIPT AI</div><div class="icon" aria-hidden="true">🛠️</div><h1>${title}</h1><p>${message}</p></main></body></html>`;
+          return new NextResponse(html, {
+            status: 503,
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-store, max-age=0',
+              'Retry-After': '300',
+              'X-Robots-Tag': 'noindex, nofollow',
+            },
+          });
+        }
+      } catch (error) {
+        console.error('[site-maintenance] Status lookup failed', error);
+        const isApi = path.startsWith('/api/');
+        if (isApi) {
+          return NextResponse.json(
+            { errorCode: 'SITE_STATUS_UNAVAILABLE', error: '서비스 상태를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.' },
+            { status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } },
+          );
+        }
+        return new NextResponse('ViralScript AI is temporarily unavailable. Please try again shortly.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'Retry-After': '60' },
+        });
+      }
+    }
+  }
+
   // analyze 엔드포인트에만 Rate Limiting 적용
-  if (req.nextUrl.pathname.startsWith('/api/v1/analyze')) {
+  if (path.startsWith('/api/v1/analyze')) {
     const limiter = getRateLimiter();
 
     if (limiter) {
@@ -69,5 +136,5 @@ export async function proxy(req: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: '/api/v1/analyze/:path*',
+  matcher: '/:path*',
 };

@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Activity, ArchiveRestore, BarChart3, ChevronLeft, ChevronRight, CircleDollarSign,
   Edit3, Eye, EyeOff, FileClock, Film, Loader2, LockKeyhole, LogOut, RefreshCw,
-  MessageSquare, Search, ShieldCheck, Trash2, UserRoundCog, Users, X,
+  MessageSquare, Search, Settings2, ShieldCheck, Trash2, UserRoundCog, Users, X,
 } from 'lucide-react';
 import { createMasterBrowserClient } from '@/lib/supabase/client';
+import { SITE_MAINTENANCE_LABELS, SITE_MAINTENANCE_MODES, type SiteMaintenanceMode } from '@/lib/siteMaintenance';
 
-type Tab = 'dashboard' | 'users' | 'trends' | 'inquiries' | 'audits';
+type Tab = 'dashboard' | 'users' | 'trends' | 'inquiries' | 'audits' | 'site';
 
 interface DashboardData {
   stats: {
@@ -40,6 +41,7 @@ interface AuditRow {
 }
 
 interface PageData<T> { page: number; pageSize: number; total: number; users?: T[]; trends?: T[]; inquiries?: T[]; audits?: T[] }
+interface SiteSettings { maintenance_mode: SiteMaintenanceMode | null; updated_at: string; updated_by: string | null }
 
 function formatDate(value: string | null): string {
   if (!value) return '-';
@@ -69,6 +71,7 @@ export default function MasterConsole() {
   const [trends, setTrends] = useState<PageData<TrendRow>>({ page: 1, pageSize: 25, total: 0, trends: [] });
   const [audits, setAudits] = useState<PageData<AuditRow>>({ page: 1, pageSize: 25, total: 0, audits: [] });
   const [inquiries, setInquiries] = useState<PageData<InquiryRow>>({ page: 1, pageSize: 25, total: 0, inquiries: [] });
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [search, setSearch] = useState('');
   const [trendStatus, setTrendStatus] = useState<'active' | 'deleted'>('active');
   const [selectedTrendIds, setSelectedTrendIds] = useState<string[]>([]);
@@ -103,6 +106,7 @@ export default function MasterConsole() {
       if (nextTab === 'trends') setTrends(await api(`?resource=trends&page=${page}&status=${trendStatus}&search=${encodeURIComponent(query)}`) as PageData<TrendRow>);
       if (nextTab === 'audits') setAudits(await api(`?resource=audits&page=${page}&kind=${auditKind}`) as PageData<AuditRow>);
       if (nextTab === 'inquiries') setInquiries(await api(`?resource=inquiries&page=${page}&category=${encodeURIComponent(inquiryCategory)}&search=${encodeURIComponent(query)}`) as PageData<InquiryRow>);
+      if (nextTab === 'site') setSiteSettings(await api('?resource=site-settings') as SiteSettings);
       setStatus('ready');
     } catch (caught) {
       const err = caught as Error & { status?: number };
@@ -165,6 +169,17 @@ export default function MasterConsole() {
     finally { setLoading(false); }
   }
 
+  async function saveSiteMaintenance(mode: SiteMaintenanceMode | null, confirmPassword: string) {
+    setLoading(true); setError(''); setNotice('');
+    try {
+      const result = await api('', { method: 'PATCH', body: JSON.stringify({ action: 'site_maintenance', mode, password: confirmPassword }) }) as SiteSettings;
+      setSiteSettings(result);
+      setNotice(mode ? `${SITE_MAINTENANCE_LABELS[mode]} 상태를 활성화했습니다.` : '사이트 유지보수 상태를 해제했습니다.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '사이트 설정을 저장하지 못했습니다.');
+    } finally { setLoading(false); }
+  }
+
   function switchTab(next: Tab) {
     setTab(next); setSearch(''); setNotice(''); setError(''); setSelectedTrendIds([]);
     if (next === 'dashboard') void load(next, 1, '');
@@ -199,6 +214,7 @@ export default function MasterConsole() {
     { id: 'trends' as const, label: '트렌드 피드', icon: Film },
     { id: 'inquiries' as const, label: '문의 내용', icon: MessageSquare },
     { id: 'audits' as const, label: '감사 로그', icon: FileClock },
+    { id: 'site' as const, label: '사이트 설정', icon: Settings2 },
   ];
 
   return (
@@ -229,6 +245,7 @@ export default function MasterConsole() {
           {tab === 'users' && <UsersPanel data={users} search={search} setSearch={setSearch} edit={setEditingUser} page={(page) => void load('users', page)} />}
           {tab === 'trends' && <TrendsPanel data={trends} search={search} setSearch={setSearch} status={trendStatus} setStatus={(next) => { setTrendStatus(next); setSelectedTrendIds([]); }} selectedIds={selectedTrendIds} setSelectedIds={setSelectedTrendIds} edit={setEditingTrend} moderate={(row, restore) => { if (window.confirm(restore ? '이 피드를 복원하시겠습니까?' : '이 피드를 피드에서 숨기시겠습니까? 언제든 복원할 수 있습니다.')) void mutate({ action: restore ? 'restore_trend' : 'delete_trend', trendId: row.id }, restore ? '피드를 복원했습니다.' : '피드를 삭제 보관함으로 이동했습니다.'); }} bulk={(action, ids) => { const label = action === 'bulk_delete_trends' ? '선택한 피드를 삭제 보관함으로 이동하시겠습니까?' : action === 'bulk_restore_trends' ? '선택한 피드를 복원하시겠습니까?' : action === 'empty_trash' ? '삭제 보관함의 모든 피드를 영구 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.' : '선택한 피드를 영구 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'; if (window.confirm(label)) void mutate({ action, ...(ids ? { trendIds: ids } : {}) }, action === 'bulk_delete_trends' ? '선택한 피드를 삭제 보관함으로 이동했습니다.' : action === 'bulk_restore_trends' ? '선택한 피드를 복원했습니다.' : '삭제 보관함을 비웠습니다.'); }} page={(page) => void load('trends', page)} />}
           {tab === 'audits' && <AuditsPanel data={audits} kind={auditKind} setKind={setAuditKind} page={(page) => void load('audits', page)} />}
+          {tab === 'site' && <SiteSettingsPanel settings={siteSettings} loading={loading} save={saveSiteMaintenance} />}
           {tab === 'inquiries' && <InquiriesPanel data={inquiries} search={search} setSearch={setSearch} category={inquiryCategory} setCategory={setInquiryCategory} update={(row, nextStatus) => { const adminNote = window.prompt('관리 메모를 입력하세요. 민감정보는 입력하지 마세요.', row.admin_note ?? ''); if (adminNote === null) return; void mutate({ action: 'update_inquiry', inquiryId: row.id, status: nextStatus, adminNote }, '문의 상태를 저장했습니다.'); }} remove={(row) => { if (!window.confirm(`${row.sender_email}의 문의를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return; const reason = window.prompt('삭제 사유를 입력하세요. 감사 로그에 저장됩니다.', ''); if (reason === null) return; void mutate({ action: 'delete_inquiry', inquiryId: row.id, reason }, '문의가 삭제되었습니다.'); }} page={(page) => void load('inquiries', page)} />}
           {loading && <div className="pointer-events-none fixed inset-0 z-40 grid place-items-center bg-black/15"><Loader2 className="animate-spin text-violet-300" size={30} /></div>}
         </section>
@@ -242,6 +259,62 @@ export default function MasterConsole() {
 function FullScreenLoader() { return <main className="min-h-screen grid place-items-center"><Loader2 className="animate-spin text-violet-300" size={32} /></main>; }
 
 function Message({ color, text, onClose }: { color: 'red' | 'emerald'; text: string; onClose: () => void }) { return <div className={`mb-5 flex items-center justify-between rounded-xl border p-3 text-sm ${color === 'red' ? 'border-red-500/25 bg-red-500/10 text-red-200' : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'}`}><span>{text}</span><button onClick={onClose}><X size={15} /></button></div>; }
+
+function SiteSettingsPanel({ settings, loading, save }: { settings: SiteSettings | null; loading: boolean; save: (mode: SiteMaintenanceMode | null, password: string) => Promise<void> }) {
+  const [pending, setPending] = useState<SiteMaintenanceMode | 'disable' | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const currentMode = settings?.maintenance_mode ?? null;
+  const descriptions: Record<SiteMaintenanceMode, string> = {
+    update: '배포나 점검 시 안내를 표시하고 일반 사이트 및 API 사용을 중단합니다.',
+    incident: '서비스 장애 대응 중 안내를 표시하고 일반 사이트 및 API 사용을 중단합니다.',
+    bugfix: '버그 수정 중 안내를 표시하고 일반 사이트 및 API 사용을 중단합니다.',
+  };
+
+  async function confirm(event: React.FormEvent) {
+    event.preventDefault();
+    if (!pending || !confirmPassword) return;
+    const nextMode = pending === 'disable' ? null : pending;
+    await save(nextMode, confirmPassword);
+    setPending(null);
+    setConfirmPassword('');
+  }
+
+  return <div className="space-y-5">
+    <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[.06] p-5">
+      <h3 className="font-bold text-amber-100">전역 사이트 차단</h3>
+      <p className="mt-2 text-sm leading-6 text-white/60">활성화하면 방문자는 안내 화면만 보며 일반 페이지와 API를 사용할 수 없습니다. 마스터 콘솔은 계속 접근할 수 있고, 변경 시마다 현재 마스터 비밀번호를 다시 확인합니다.</p>
+      <p className="mt-2 text-xs leading-5 text-amber-100/70">Google AdSense 심사 중 사이트가 503으로 응답하면 크롤러가 페이지를 확인하지 못해 심사가 지연되거나 거절될 수 있습니다. 심사가 진행 중이라면 이 설정을 비활성 상태로 유지하는 것을 권장합니다.</p>
+    </div>
+
+    <div className="rounded-2xl border border-white/10 bg-white/[.025] p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><p className="text-xs text-white/40">현재 상태</p><p className={`mt-1 font-bold ${currentMode ? 'text-amber-200' : 'text-emerald-300'}`}>{currentMode ? `차단 중 · ${SITE_MAINTENANCE_LABELS[currentMode]}` : '정상 운영 · 사이트 사용 가능'}</p></div>
+        {currentMode && <button disabled={loading} onClick={() => setPending('disable')} className="rounded-xl border border-emerald-400/25 px-4 py-2.5 text-sm font-bold text-emerald-200 hover:bg-emerald-400/10 disabled:opacity-50">사이트 다시 열기</button>}
+      </div>
+    </div>
+
+    <div className="grid gap-3 lg:grid-cols-3">
+      {SITE_MAINTENANCE_MODES.map((mode) => {
+        const active = currentMode === mode;
+        return <article key={mode} className={`rounded-2xl border p-5 ${active ? 'border-amber-300/40 bg-amber-300/[.07]' : 'border-white/10 bg-white/[.025]'}`}>
+          <div className="flex items-start justify-between gap-3"><div><h3 className="font-bold">{SITE_MAINTENANCE_LABELS[mode]}</h3><p className="mt-2 min-h-12 text-xs leading-5 text-white/50">{descriptions[mode]}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${active ? 'bg-amber-300/15 text-amber-200' : 'bg-white/5 text-white/40'}`}>{active ? '활성화' : '비활성'}</span></div>
+          <button disabled={loading || active} onClick={() => setPending(mode)} className="mt-5 w-full rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40">{active ? '현재 적용 중' : '활성화'}</button>
+        </article>;
+      })}
+    </div>
+
+    {settings?.updated_at && <p className="text-xs text-white/35">마지막 변경: {formatDate(settings.updated_at)}</p>}
+
+    {pending && <div className="fixed inset-0 z-[60] grid place-items-center bg-black/75 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setPending(null); setConfirmPassword(''); } }}>
+      <form onSubmit={(event) => void confirm(event)} className="w-full max-w-md rounded-2xl border border-white/10 bg-[#11131d] p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="site-confirm-title">
+        <div className="flex items-start justify-between gap-4"><div><h3 id="site-confirm-title" className="text-lg font-black">관리자 비밀번호 재확인</h3><p className="mt-2 text-sm leading-6 text-white/55">{pending === 'disable' ? '사이트 차단을 해제합니다.' : `${SITE_MAINTENANCE_LABELS[pending]} 모드를 켜고 사이트 사용을 차단합니다.`} 계속하려면 마스터 계정 비밀번호를 입력하세요.</p></div><button type="button" aria-label="닫기" onClick={() => { setPending(null); setConfirmPassword(''); }} className="text-white/45 hover:text-white"><X size={18} /></button></div>
+        <label htmlFor="site-confirm-password" className="mt-5 block text-xs font-bold text-white/60">마스터 비밀번호</label>
+        <input id="site-confirm-password" type="password" autoComplete="current-password" autoFocus required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="input-dark mt-2 w-full rounded-xl px-4 py-3 text-sm" />
+        <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => { setPending(null); setConfirmPassword(''); }} className="rounded-xl px-4 py-2.5 text-sm text-white/60 hover:bg-white/5">취소</button><button type="submit" disabled={loading || !confirmPassword} className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold hover:bg-violet-500 disabled:opacity-50">{pending === 'disable' ? '비밀번호 확인 후 열기' : '비밀번호 확인 후 활성화'}</button></div>
+      </form>
+    </div>}
+  </div>;
+}
 
 function Dashboard({ data }: { data: DashboardData }) {
   const cards = [

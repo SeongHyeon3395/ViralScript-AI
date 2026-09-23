@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MasterAuthError, requireMaster, writeMasterAudit } from '@/lib/masterAuth';
+import { createServerClient } from '@/lib/supabase/server';
+import { SITE_MAINTENANCE_MODES, type SiteMaintenanceMode } from '@/lib/siteMaintenance';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -206,6 +208,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await requireMaster(req);
     const resource = req.nextUrl.searchParams.get('resource') ?? 'dashboard';
+    if (resource === 'site-settings') {
+      if (session.role !== 'master') throw new MasterAuthError(403, '이 설정은 마스터 계정만 변경할 수 있습니다.');
+      const { data, error } = await session.supabase
+        .from('site_settings')
+        .select('maintenance_mode, updated_at, updated_by')
+        .eq('id', true)
+        .single();
+      if (error) throw new Error(error.message);
+      return NextResponse.json({ data, admin: { email: session.user.email, role: session.role } });
+    }
     const data = resource === 'users'
       ? await getUsers(req, session)
       : resource === 'trends'
@@ -269,7 +281,38 @@ interface InquiryDeleteBody {
   reason?: string;
 }
 
-type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody | TrendBulkBody | InquiryUpdateBody | InquiryDeleteBody;
+interface SiteMaintenanceBody {
+  action: 'site_maintenance';
+  mode: SiteMaintenanceMode | null;
+  password: string;
+}
+
+type MasterMutation = UserUpdateBody | TrendUpdateBody | TrendModerationBody | TrendBulkBody | InquiryUpdateBody | InquiryDeleteBody | SiteMaintenanceBody;
+
+async function setSiteMaintenance(session: Awaited<ReturnType<typeof requireMaster>>, body: SiteMaintenanceBody) {
+  if (session.role !== 'master') throw new MasterAuthError(403, '이 설정은 마스터 계정만 변경할 수 있습니다.');
+  if (body.mode !== null && !SITE_MAINTENANCE_MODES.includes(body.mode)) throw new Error('점검 상태가 올바르지 않습니다.');
+  if (typeof body.password !== 'string' || body.password.length < 1 || body.password.length > 256) {
+    throw new MasterAuthError(401, '계속하려면 관리자 비밀번호를 입력해 주세요.');
+  }
+  if (!session.user.email) throw new MasterAuthError(403, '마스터 계정 이메일을 확인할 수 없습니다.');
+
+  const authClient = createServerClient();
+  const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+    email: session.user.email,
+    password: body.password,
+  });
+  if (authError || authData.user?.id !== session.user.id) {
+    throw new MasterAuthError(401, '관리자 비밀번호가 올바르지 않습니다.');
+  }
+
+  const { data, error } = await session.supabase.rpc('master_set_site_maintenance', {
+    p_actor_id: session.user.id,
+    p_mode: body.mode,
+  });
+  if (error || !data) throw new Error(error?.message ?? '사이트 설정 저장에 실패했습니다.');
+  return data;
+}
 
 async function updateUser(session: Awaited<ReturnType<typeof requireMaster>>, body: UserUpdateBody) {
   if (session.role !== 'master') throw new MasterAuthError(403, 'Only a master may change user accounts.');
@@ -402,6 +445,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
     const data = body.action === 'update_user'
       ? await updateUser(session, body)
+      : body.action === 'site_maintenance'
+        ? await setSiteMaintenance(session, body)
       : body.action === 'update_trend'
         ? await updateTrend(session, body)
           : body.action === 'update_inquiry'
