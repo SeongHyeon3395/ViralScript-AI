@@ -186,6 +186,8 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(displayAd).toContain('NEXT_PUBLIC_ADSENSE_DISPLAY_SLOT');
     expect(script).toContain('pagead/js/adsbygoogle.js');
     expect(displayAd).toContain("data-adtest={testMode ? 'on' : undefined}");
+    expect(displayAd).toContain('data-ad-format="horizontal"');
+    expect(displayAd).toContain('h-[50px] overflow-hidden sm:h-[90px]');
     expect(displayAd).not.toContain('onRewardClaimed');
     expect(footer).toContain('<AdSenseDisplayAd />');
     expect(adsText).toContain('f08c47fec0942fa0');

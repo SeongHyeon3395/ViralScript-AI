@@ -9,7 +9,7 @@ export default function Footer() {
   return (
     <footer id="site-footer" className="border-t border-white/5 px-4 pt-8 pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:px-6">
       <AdSenseDisplayAd />
-      <div className="mx-auto mt-10 max-w-5xl">
+      <div className="mx-auto mt-6 max-w-5xl">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <span className="text-sm font-semibold text-white/40">ViralScript AI</span>
           <p className="text-xs text-white/25 text-center max-w-lg">

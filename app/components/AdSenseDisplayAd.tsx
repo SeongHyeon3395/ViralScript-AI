@@ -33,9 +33,9 @@ export default function AdSenseDisplayAd({ testMode = false }: { testMode?: bool
   if (!isAdSenseDisplayConfigured) return null;
 
   return (
-    <aside aria-label={label} className="mx-auto mt-8 max-w-4xl rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3">
-      <p className="mb-2 text-center text-[10px] font-medium uppercase tracking-widest text-white/25">{label}</p>
-      <ins className="adsbygoogle block" style={{ display: 'block' }} data-ad-client={clientId} data-ad-slot={slotId} data-ad-format="auto" data-full-width-responsive="true" data-adtest={testMode ? 'on' : undefined} />
+    <aside aria-label={label} className="mx-auto mt-4 max-w-4xl rounded-xl border border-white/8 bg-white/[0.02] px-3 py-2 sm:mt-5">
+      <p className="mb-1 text-center text-[9px] font-medium uppercase tracking-widest text-white/25">{label}</p>
+      <ins className="adsbygoogle block h-[50px] overflow-hidden sm:h-[90px]" style={{ display: 'block' }} data-ad-client={clientId} data-ad-slot={slotId} data-ad-format="horizontal" data-full-width-responsive="true" data-adtest={testMode ? 'on' : undefined} />
     </aside>
   );
 }
