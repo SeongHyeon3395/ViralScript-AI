@@ -21,6 +21,7 @@ import { useLanguage } from './LanguageProvider';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useAuth } from './AuthProvider';
+import { PUBLIC_UI } from '@/lib/learning/catalog';
 
 export interface NavbarRef {
   openLoginModal: () => void;
@@ -28,7 +29,7 @@ export interface NavbarRef {
 }
 
 const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
-  useLanguage();
+  const { language } = useLanguage();
   const [authOpen, setAuthOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -83,11 +84,12 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
             </Link>
 
             {/* Desktop Nav links — perfectly centered */}
-            <nav className="pointer-events-none absolute inset-0 hidden items-center justify-center gap-1 lg:flex">
+            <nav className="pointer-events-none absolute inset-0 hidden items-center justify-center gap-1 xl:flex">
               {[
                 { label: t('nav_generator'), href: '/generator' },
                 { label: t('nav_credits'), href: '/pricing' },
                 { label: t('nav_trends'), href: pathname === '/' ? '#trends' : '/trends' },
+                { label: PUBLIC_UI[language].guides, href: `/learn/${language}` },
               ].map((item) => (
                 <Link
                   key={item.label}
@@ -186,7 +188,7 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
 
               {/* Mobile menu toggle */}
               <button
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 text-white/60 transition-all hover:bg-white/8 hover:text-white lg:hidden"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 text-white/60 transition-all hover:bg-white/8 hover:text-white xl:hidden"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="메뉴 열기"
                 aria-expanded={mobileMenuOpen}
@@ -199,12 +201,13 @@ const Navbar = forwardRef<NavbarRef, object>((props, ref) => {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="border-t border-white/8 px-4 py-4 glass fade-in-up lg:hidden">
+          <div className="border-t border-white/8 px-4 py-4 glass fade-in-up xl:hidden">
             <nav className="flex flex-col gap-2">
               {[
               { label: t('nav_generator'), href: '/generator' },
               { label: t('nav_credits'), href: '/pricing' },
               { label: t('nav_trends'), href: pathname === '/' ? '#trends' : '/trends' },
+              { label: PUBLIC_UI[language].guides, href: `/learn/${language}` },
             ].map((item) => (
               <Link
                 key={item.label}

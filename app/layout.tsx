@@ -5,12 +5,12 @@ import { AuthProvider } from "./components/AuthProvider";
 import { LanguageProvider } from "./components/LanguageProvider";
 import GenerationFeedbackPrompt from "./components/GenerationFeedbackPrompt";
 import GoogleProfileCompletion from "./components/GoogleProfileCompletion";
-import AdSenseScript from "./components/AdSenseScript";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://viralscript-ai-inky.vercel.app";
+import { adsenseClientId, adsensePublisherConfigured } from '@/lib/adsense';
+import { SITE_URL } from '@/lib/siteUrl';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
+  other: adsensePublisherConfigured ? { 'google-adsense-account': adsenseClientId } : {},
   title: "ViralScript AI — 글로벌 숏폼 바이럴 대본 생성기",
   description:
     "TikTok과 YouTube Shorts의 바이럴 구조를 분석하여 미국·한국·일본 3개국 최적화 마케팅 대본을 AI로 즉시 생성합니다.",
@@ -59,7 +59,6 @@ export default function RootLayout({
           <AuthProvider>{children}<GenerationFeedbackPrompt /><GoogleProfileCompletion /></AuthProvider>
         </LanguageProvider>
         <ToastHost />
-        <AdSenseScript />
       </body>
     </html>
   );

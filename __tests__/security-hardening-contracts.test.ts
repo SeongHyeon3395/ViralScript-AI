@@ -178,18 +178,22 @@ describe('privacy, credits, and disabled reward UX', () => {
     expect(popup).not.toContain("fetch('/api/v1/monetization/ad-reward'");
   });
 
-  it('can show an environment-configured AdSense display slot without connecting it to rewards', () => {
+  it('restricts manual AdSense slots to public content instead of the shared footer', () => {
     const displayAd = read('app/components/AdSenseDisplayAd.tsx');
     const script = read('app/components/AdSenseScript.tsx');
     const footer = read('app/components/Footer.tsx');
     const adsText = read('app/ads.txt/route.ts');
-    expect(displayAd).toContain('NEXT_PUBLIC_ADSENSE_DISPLAY_SLOT');
+    expect(read('lib/adsense.ts')).toContain('NEXT_PUBLIC_ADSENSE_DISPLAY_SLOT');
+    expect(displayAd).toContain('adsenseServingEnabled');
+    expect(script).toContain('isAdSenseContentPath');
     expect(script).toContain('pagead/js/adsbygoogle.js');
     expect(displayAd).toContain("data-adtest={testMode ? 'on' : undefined}");
     expect(displayAd).toContain('data-ad-format="horizontal"');
-    expect(displayAd).toContain('h-[50px] overflow-hidden sm:h-[90px]');
+    expect(displayAd).not.toContain('overflow-hidden');
     expect(displayAd).not.toContain('onRewardClaimed');
-    expect(footer).toContain('<AdSenseDisplayAd />');
+    expect(footer).not.toContain('AdSenseDisplayAd');
+    expect(read('app/layout.tsx')).not.toContain('<AdSenseScript');
+    expect(read('app/layout.tsx')).toContain('google-adsense-account');
     expect(adsText).toContain('f08c47fec0942fa0');
   });
 

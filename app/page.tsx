@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import DailyRewardWheel from './components/DailyRewardWheel';
 import TrendFeed from './components/TrendFeed';
+import PublicLearningPreview from './components/PublicLearningPreview';
 import type { NavbarRef } from './components/Navbar';
 import { t } from './components/LanguageSwitcher';
 import { useLanguage } from './components/LanguageProvider';
@@ -91,6 +92,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <PublicLearningPreview />
 
         {/* TREND FEED */}
         <section id="trends" className="py-12 sm:py-16 px-4 sm:px-6 border-t border-white/5 scroll-mt-20">

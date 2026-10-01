@@ -2,13 +2,12 @@ import Link from 'next/link';
 import { t } from './LanguageSwitcher';
 import { useLanguage } from './LanguageProvider';
 import ContactSupport from './ContactSupport';
-import AdSenseDisplayAd from './AdSenseDisplayAd';
+import { PUBLIC_UI } from '@/lib/learning/catalog';
 
 export default function Footer() {
-  useLanguage();
+  const { language } = useLanguage();
   return (
     <footer id="site-footer" className="border-t border-white/5 px-4 pt-8 pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:px-6">
-      <AdSenseDisplayAd />
       <div className="mx-auto mt-6 max-w-5xl">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <span className="text-sm font-semibold text-white/40">ViralScript AI</span>
@@ -16,6 +15,8 @@ export default function Footer() {
             {t('footer_disclaimer')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 text-xs text-white/30">
+            <Link href={`/learn/${language}`} className="inline-flex min-h-11 items-center hover:text-white/60 transition-colors">{PUBLIC_UI[language].guides}</Link>
+            <Link href={`/about/${language}`} className="inline-flex min-h-11 items-center hover:text-white/60 transition-colors">{PUBLIC_UI[language].about}</Link>
             <Link href="/terms" className="inline-flex min-h-11 items-center hover:text-white/60 transition-colors">{t('footer_terms')}</Link>
             <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-white/60 transition-colors">{t('footer_privacy')}</Link>
             <ContactSupport />

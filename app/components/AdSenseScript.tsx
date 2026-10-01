@@ -1,24 +1,25 @@
-import Script from 'next/script';
+'use client';
 
-const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim() ?? '';
-const isConfigured = /^ca-pub-\d+$/.test(clientId);
+import Script from 'next/script';
+import { usePathname } from 'next/navigation';
+import { adsenseClientId, adsensePublisherConfigured, adsenseServingEnabled, isAdSenseContentPath } from '@/lib/adsense';
 
 /**
- * Loads AdSense once for the whole App Router tree. Auto Ads settings in the
- * AdSense console control desktop side rails and mobile anchor ads.
+ * Loaded only by public editorial articles after approval. Auto Ads must also
+ * be disabled or restricted in the AdSense account; page exclusions do not
+ * remove manually placed slots.
  */
 export default function AdSenseScript() {
-  if (!isConfigured) return null;
+  const pathname = usePathname();
+  if (!adsensePublisherConfigured || !adsenseServingEnabled || !isAdSenseContentPath(pathname)) return null;
 
   return (
     <Script
       id="adsense-script"
-      // AdSense site review asks for the publisher script in the document head.
-      // In the root layout, beforeInteractive is emitted in <head> by Next.js.
-      strategy="beforeInteractive"
+      strategy="afterInteractive"
       async
       crossOrigin="anonymous"
-      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`}
+      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
     />
   );
 }
